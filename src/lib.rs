@@ -206,7 +206,7 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         }
     }
 
-    fn breadth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
+    fn _breadth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
         move || {
             let mut visited = vec![false; self.nodes.len()];
             let mut queue = VecDeque::new();

@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (counter, _markers) = graph.breadth_search_connected_components();
     let elapsed = now.elapsed();
 
-    println!("Counter: {counter} in {:?} seconds.", elapsed);
+    println!("Counter: {counter} in {:?}", elapsed);
 
     Ok(())
 }
