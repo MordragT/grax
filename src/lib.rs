@@ -233,9 +233,9 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         stack.push(root);
 
         while let Some(idx) = stack.pop() {
-            if markers[idx] == 0 {
-                markers[idx] = counter;
-                for node in &self.adjacencies[idx] {
+            markers[idx] = counter;
+            for node in &self.adjacencies[idx] {
+                if markers[node.0] == 0 {
                     stack.push(node.0);
                 }
             }
@@ -247,9 +247,9 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         queue.push_front(root);
 
         while let Some(idx) = queue.pop_front() {
-            if markers[idx] == 0 {
-                markers[idx] = counter;
-                for node in &self.adjacencies[idx] {
+            markers[idx] = counter;
+            for node in &self.adjacencies[idx] {
+                if markers[node.0] == 0 {
                     queue.push_back(node.0);
                 }
             }
