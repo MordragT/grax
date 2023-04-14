@@ -195,10 +195,10 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
             }
 
             while let Some(idx) = stack.pop() {
-                if visited[idx] == false {
-                    visited[idx] = true;
-                    yield &self.nodes[idx];
-                    for node in &self.adjacencies[idx] {
+                visited[idx] = true;
+                yield &self.nodes[idx];
+                for node in &self.adjacencies[idx] {
+                    if visited[idx] == false {
                         stack.push(node.0);
                     }
                 }
@@ -217,10 +217,10 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
             }
 
             while let Some(idx) = queue.pop_front() {
-                if visited[idx] == false {
-                    visited[idx] = true;
-                    yield &self.nodes[idx];
-                    for node in &self.adjacencies[idx] {
+                visited[idx] = true;
+                yield &self.nodes[idx];
+                for node in &self.adjacencies[idx] {
+                    if visited[idx] == false {
                         queue.push_back(node.0);
                     }
                 }
