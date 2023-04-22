@@ -231,12 +231,13 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
     fn depth_search(&self, root: usize, markers: &mut Vec<u32>, counter: u32) {
         let mut stack = Vec::new();
         stack.push(root);
+        markers[root] = counter;
 
         while let Some(idx) = stack.pop() {
-            markers[idx] = counter;
             for node in &self.adjacencies[idx] {
                 if markers[node.0] == 0 {
                     stack.push(node.0);
+                    markers[node.0] = counter;
                 }
             }
         }
@@ -245,12 +246,13 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
     fn breadth_search(&self, root: usize, markers: &mut Vec<u32>, counter: u32) {
         let mut queue = VecDeque::new();
         queue.push_front(root);
+        markers[root] = counter;
 
         while let Some(idx) = queue.pop_front() {
-            markers[idx] = counter;
             for node in &self.adjacencies[idx] {
                 if markers[node.0] == 0 {
                     queue.push_back(node.0);
+                    markers[node.0] = counter;
                 }
             }
         }
