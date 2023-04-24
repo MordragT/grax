@@ -6,28 +6,19 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::Debug,
     hash::Hash,
-    num::ParseIntError,
-    ops::Generator,
+    marker::PhantomData,
+    ops::{Add, AddAssign, Generator},
 };
-use thiserror::Error;
 
-pub type GraphResult<T> = Result<T, GraphError>;
+use error::{GraphError, GraphResult};
+use structure::{AdjacencyList, Direction, EdgeRef, GraphDataProvider, GraphDataProviderExt};
 
-#[derive(Debug, Error)]
-pub enum GraphError {
-    #[error("The edge between {left:?} and {right:?} already exists.")]
-    EdgeAlreadyExists { left: NodeIndex, right: NodeIndex },
-    #[error("Two sided edge forbidden between {left:?} and {right:?} in directed graph.")]
-    TwoSidedEdgeForbidden { left: NodeIndex, right: NodeIndex },
-    #[error("The given edge list has a bad format")]
-    BadEdgeListFormat,
-    #[error("ParseIntError: {0}")]
-    ParseIntError(#[from] ParseIntError),
-}
+pub mod error;
+pub mod structure;
 
-pub trait Weight: Debug + Clone + Copy + Eq + PartialEq + Hash {}
+// pub trait Weight: Debug + Clone + Copy + Eq + PartialEq + Hash {}
 
-impl<T: Debug + Clone + Copy + Eq + PartialEq + Hash> Weight for T {}
+// impl<T: Debug + Clone + Copy + Eq + PartialEq + Hash> Weight for T {}
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum GraphKind {
@@ -36,168 +27,165 @@ pub enum GraphKind {
     Directed,
 }
 
-pub type DirectedGraph<N, W> = Graph<{ GraphKind::Directed }, N, W>;
-pub type UndirectedGraph<N, W> = Graph<{ GraphKind::Undirected }, N, W>;
+pub type DirectedAdjGraph<N, W> = AdjGraph<{ GraphKind::Directed }, N, W>;
+pub type UndirectedAdjGraph<N, W> = AdjGraph<{ GraphKind::Undirected }, N, W>;
+pub type AdjGraph<const KIND: GraphKind, N, W> = Graph<KIND, N, W, AdjacencyList<KIND, N, W>>;
 
-#[derive(Debug)]
-pub struct Graph<const KIND: GraphKind, N: Debug, W: Weight> {
-    nodes: Vec<N>,
-    adjacencies: Vec<HashSet<NodeIndex>>,
-    edges: HashMap<EdgeIndex, Edge<W>>,
+#[derive(Debug, Default)]
+pub struct Graph<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> {
+    data: D,
+    node_kind: PhantomData<N>,
+    weight_kind: PhantomData<W>,
 }
 
-impl<const KIND: GraphKind> Graph<KIND, usize, ()> {
+impl<const KIND: GraphKind> AdjGraph<KIND, usize, ()> {
     pub fn from_edge_list(edge_list: &str) -> GraphResult<Self> {
-        let mut lines = edge_list.lines();
+        let data = AdjacencyList::from_edge_list(edge_list)?;
 
-        let nodes_len = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
-        let nodes_len = usize::from_str_radix(nodes_len, 10)?;
-
-        let mut graph = Graph {
-            nodes: vec![0; nodes_len],
-            adjacencies: vec![HashSet::new(); nodes_len],
-            edges: HashMap::new(),
-        };
-
-        for line in lines {
-            let mut split = line.split_whitespace();
-            let left = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let right = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-
-            let left = usize::from_str_radix(left, 10)?;
-            let right = usize::from_str_radix(right, 10)?;
-            let left_idx = NodeIndex(left);
-            let right_idx = NodeIndex(right);
-
-            // panics if out of range
-            graph.nodes[left] = left;
-            graph.nodes[right] = right;
-
-            let _ = graph.add_edge(left_idx, right_idx, ())?;
-        }
-
-        Ok(graph)
+        Ok(Self {
+            data,
+            node_kind: PhantomData,
+            weight_kind: PhantomData,
+        })
     }
 }
 
-impl<const KIND: GraphKind, N: Debug + PartialEq, W: Weight> Graph<KIND, N, W> {
-    pub fn contains_node(&self, node: N) -> Option<NodeIndex> {
-        for (i, other) in self.nodes.iter().enumerate() {
-            if &node == other {
-                return Some(NodeIndex(i));
-            }
-        }
-        None
-    }
-}
-
-impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
-    pub fn new() -> Self {
+impl<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
+    pub fn with_data(data: D) -> Self {
         Self {
-            nodes: Vec::new(),
-            adjacencies: Vec::new(),
-            edges: HashMap::new(),
+            data,
+            node_kind: PhantomData,
+            weight_kind: PhantomData,
         }
     }
+}
 
-    pub fn add_node(&mut self, node: N) -> NodeIndex {
-        let index = NodeIndex(self.nodes.len());
-        self.nodes.push(node);
-        self.adjacencies.push(HashSet::new());
-        index
+impl<
+        const KIND: GraphKind,
+        N: PartialEq + Debug,
+        W: PartialEq + Debug,
+        D: GraphDataProviderExt<N, W>,
+    > Graph<KIND, N, W, D>
+{
+    pub fn contains_node(&self, node: &N) -> Option<NodeIndex> {
+        self.data.contains_node(node)
     }
 
-    pub fn update_node(&mut self, index: NodeIndex, node: N) -> N {
-        std::mem::replace(&mut self.nodes[index.0], node)
+    pub fn contains_edge(&self, left: NodeIndex, right: NodeIndex) -> Option<EdgeIndex> {
+        self.data.contains_edge(left, right)
     }
+}
 
-    pub fn get(&self, index: NodeIndex) -> &N {
-        &self.nodes[index.0]
-    }
-
-    pub fn get_mut(&mut self, index: NodeIndex) -> &mut N {
-        &mut self.nodes[index.0]
-    }
-
+impl<const KIND: GraphKind, N: Debug, W: Debug + Copy, D: GraphDataProvider<N, W>>
+    Graph<KIND, N, W, D>
+{
     pub fn add_edge(
         &mut self,
         left: NodeIndex,
         right: NodeIndex,
         weight: W,
     ) -> GraphResult<EdgeIndex> {
-        // no need to check right side, as in undirected graph both edges will be added
-        if self.adjacencies[left.0].contains(&right) {
-            return Err(GraphError::EdgeAlreadyExists { left, right });
+        match KIND {
+            GraphKind::Directed => self.data.add_edge(left, right, weight, Direction::Outgoing),
+            GraphKind::Undirected => {
+                self.data
+                    .add_edge(left, right, weight, Direction::Incoming)?;
+                self.data.add_edge(left, right, weight, Direction::Outgoing)
+            }
+        }
+    }
+}
+
+impl<
+        const KIND: GraphKind,
+        N: Debug,
+        W: Debug + PartialOrd + Default + AddAssign + Copy,
+        D: GraphDataProvider<N, W>,
+    > Graph<KIND, N, W, D>
+{
+    pub fn prim(&self, start: NodeIndex) -> HashSet<NodeIndex> {
+        let mut combined_weight = W::default();
+        let mut visited = HashSet::new();
+        let mut edges = VecDeque::new();
+
+        edges.extend(self.data.adjacent_indices(start));
+
+        while let Some(edge) = edges.pop_front() {
+            visited.insert(index);
+
+            let mut current_ref: Option<EdgeRef<W>> = None;
+            for adj_ref in self.data.adjacent_edges(index) {
+                if !visited.contains(&adj_ref.child) {
+                    if let Some(curr_ref) = &current_ref {
+                        if curr_ref.weight > adj_ref.weight {
+                            current_ref = Some(adj_ref)
+                        }
+                    } else {
+                        current_ref = Some(adj_ref);
+                    }
+                }
+            }
+            if let Some(curr_ref) = current_ref {
+                combined_weight += *curr_ref.weight;
+            }
         }
 
-        if KIND == GraphKind::Directed && self.adjacencies[right.0].contains(&left) {
-            return Err(GraphError::TwoSidedEdgeForbidden {
-                left: right,
-                right: left,
-            });
+        todo!()
+    }
+}
+
+impl<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
+    pub fn new() -> Self {
+        Self {
+            data: Default::default(),
+            node_kind: PhantomData,
+            weight_kind: PhantomData,
         }
-        self.adjacencies[left.0 as usize].insert(right);
+    }
 
-        if KIND == GraphKind::Undirected {
-            self.adjacencies[right.0 as usize].insert(left);
-            assert!(self
-                .edges
-                .insert(EdgeIndex::new(right, left, 0), Edge::new(weight))
-                .is_none());
-        }
+    pub fn add_node(&mut self, node: N) -> NodeIndex {
+        self.data.add_node(node)
+    }
 
-        let idx = EdgeIndex::new(left, right, 0);
-
-        assert!(self.edges.insert(idx, Edge::new(weight)).is_none());
-
-        Ok(idx)
+    pub fn update_node(&mut self, index: NodeIndex, node: N) -> N {
+        self.data.update_node(index, node)
     }
 
     pub fn update_edge(&mut self, index: EdgeIndex, weight: W) -> W {
-        let edge = self
-            .edges
-            .get_mut(&index)
-            .expect("INTERNAL: Broken EdgeIndex: cannot get edge.");
-        let wght = edge.weight;
-        edge.weight = weight;
-        wght
+        self.data.update_edge(index, weight)
     }
 
-    pub fn contains_edge(&self, left: NodeIndex, right: NodeIndex) -> Option<EdgeIndex> {
-        let index = EdgeIndex::new(left, right, 0);
-        if self.edges.contains_key(&index) {
-            Some(index)
-        } else {
-            None
-        }
+    pub fn get(&self, index: NodeIndex) -> &N {
+        self.data.get(index)
+    }
+
+    pub fn get_mut(&mut self, index: NodeIndex) -> &mut N {
+        self.data.get_mut(index)
     }
 
     pub fn weight(&self, index: EdgeIndex) -> &W {
-        &self.edges[&index].weight
+        self.data.weight(index)
     }
 
     pub fn weight_mut(&mut self, index: EdgeIndex) -> &mut W {
-        &mut self
-            .edges
-            .get_mut(&index)
-            .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
-            .weight
+        self.data.weight_mut(index)
     }
 
+    // TODO fix double loop
     fn depth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
         move || {
-            let mut visited = vec![false; self.nodes.len()];
+            let mut visited = vec![false; self.data.node_count()];
             let mut stack = Vec::new();
             visited[root] = true;
 
-            for node in &self.adjacencies[root] {
+            for node in self.data.adjacent_indices(NodeIndex(root)).into_iter() {
                 stack.push(node.0)
             }
 
             while let Some(idx) = stack.pop() {
                 visited[idx] = true;
-                yield &self.nodes[idx];
-                for node in &self.adjacencies[idx] {
+                yield self.get(NodeIndex(idx));
+                for node in self.data.adjacent_indices(NodeIndex(idx)) {
                     if visited[idx] == false {
                         stack.push(node.0);
                     }
@@ -206,20 +194,21 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         }
     }
 
+    // TODO fix double loop
     fn _breadth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
         move || {
-            let mut visited = vec![false; self.nodes.len()];
+            let mut visited = vec![false; self.data.node_count()];
             let mut queue = VecDeque::new();
             visited[root] = true;
 
-            for node in &self.adjacencies[root] {
+            for node in self.data.adjacent_indices(NodeIndex(root)).into_iter() {
                 queue.push_back(node.0)
             }
 
             while let Some(idx) = queue.pop_front() {
                 visited[idx] = true;
-                yield &self.nodes[idx];
-                for node in &self.adjacencies[idx] {
+                yield self.get(NodeIndex(idx));
+                for node in self.data.adjacent_indices(NodeIndex(idx)) {
                     if visited[idx] == false {
                         queue.push_back(node.0);
                     }
@@ -234,7 +223,7 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         markers[root] = counter;
 
         while let Some(idx) = stack.pop() {
-            for node in &self.adjacencies[idx] {
+            for node in self.data.adjacent_indices(NodeIndex(idx)) {
                 if markers[node.0] == 0 {
                     stack.push(node.0);
                     markers[node.0] = counter;
@@ -249,7 +238,7 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         markers[root] = counter;
 
         while let Some(idx) = queue.pop_front() {
-            for node in &self.adjacencies[idx] {
+            for node in self.data.adjacent_indices(NodeIndex(idx)) {
                 if markers[node.0] == 0 {
                     queue.push_back(node.0);
                     markers[node.0] = counter;
@@ -263,9 +252,9 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
         search: impl Fn(&Self, usize, &mut Vec<u32>, u32),
     ) -> (u32, Vec<u32>) {
         let mut counter = 0;
-        let mut markers = vec![0; self.nodes.len()];
+        let mut markers = vec![0; self.data.node_count()];
 
-        for root in 0..self.nodes.len() {
+        for root in 0..self.data.node_count() {
             if markers[root] == 0 {
                 counter += 1;
                 search(&self, root, &mut markers, counter)
@@ -288,14 +277,11 @@ impl<const KIND: GraphKind, N: Debug, W: Weight> Graph<KIND, N, W> {
     }
 
     pub fn node_count(&self) -> usize {
-        self.nodes.len()
+        self.data.node_count()
     }
 
     pub fn edge_count(&self) -> usize {
-        self.adjacencies
-            .iter()
-            .map(|adjs| adjs.len())
-            .fold(0, |a, b| a + b)
+        self.data.edge_count()
     }
 }
 
@@ -319,33 +305,33 @@ impl EdgeIndex {
     }
 }
 
-#[derive(Debug)]
-pub struct Edge<W: Weight> {
-    nodes_between: Option<Vec<NodeIndex>>,
-    weight: W,
-}
+// #[derive(Debug)]
+// pub struct Edge<W> {
+//     nodes_between: Option<Vec<NodeIndex>>,
+//     weight: W,
+// }
 
-impl<W: Weight> Edge<W> {
-    pub fn new(weight: W) -> Self {
-        Self {
-            nodes_between: None,
-            weight,
-        }
-    }
+// impl<W> Edge<W> {
+//     pub fn new(weight: W) -> Self {
+//         Self {
+//             nodes_between: None,
+//             weight,
+//         }
+//     }
 
-    pub fn with_nodes(nodes_betweeen: Vec<NodeIndex>, weight: W) -> Self {
-        Self {
-            nodes_between: Some(nodes_betweeen),
-            weight,
-        }
-    }
-}
+//     pub fn with_nodes(nodes_betweeen: Vec<NodeIndex>, weight: W) -> Self {
+//         Self {
+//             nodes_between: Some(nodes_betweeen),
+//             weight,
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
     extern crate test;
 
-    use crate::UndirectedGraph;
+    use crate::UndirectedAdjGraph;
     use std::{
         collections::HashSet,
         fs,
@@ -356,32 +342,32 @@ mod tests {
 
     #[test]
     fn add_node() {
-        let mut graph = UndirectedGraph::<u32, ()>::new();
+        let mut graph = UndirectedAdjGraph::<u32, ()>::new();
         let _idx1 = graph.add_node(1);
         let _idx2 = graph.add_node(2);
         let _idx3 = graph.add_node(3);
 
-        graph.contains_node(1).unwrap();
-        graph.contains_node(2).unwrap();
-        graph.contains_node(3).unwrap();
+        graph.contains_node(&1).unwrap();
+        graph.contains_node(&2).unwrap();
+        graph.contains_node(&3).unwrap();
 
-        assert!(graph.contains_node(100).is_none());
+        assert!(graph.contains_node(&100).is_none());
     }
 
     #[test]
     fn update_node() {
-        let mut graph = UndirectedGraph::<u32, ()>::new();
+        let mut graph = UndirectedAdjGraph::<u32, ()>::new();
         let idx1 = graph.add_node(1);
 
         assert_eq!(graph.update_node(idx1, 5), 1);
 
-        graph.contains_node(5).unwrap();
-        assert!(graph.contains_node(1).is_none());
+        graph.contains_node(&5).unwrap();
+        assert!(graph.contains_node(&1).is_none());
     }
 
     #[test]
     fn add_edge() {
-        let mut graph = UndirectedGraph::<u32, ()>::new();
+        let mut graph = UndirectedAdjGraph::<u32, ()>::new();
         let idx1 = graph.add_node(1);
         let idx2 = graph.add_node(2);
         let idx3 = graph.add_node(3);
@@ -396,7 +382,7 @@ mod tests {
 
     #[test]
     fn update_edge() {
-        let mut graph = UndirectedGraph::<u32, u32>::new();
+        let mut graph = UndirectedAdjGraph::<u32, u32>::new();
         let idx1 = graph.add_node(1);
         let idx2 = graph.add_node(2);
 
@@ -413,14 +399,14 @@ mod tests {
         1 2
         2 3
         3 1";
-        let graph = UndirectedGraph::from_edge_list(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(edge_list).unwrap();
 
         assert_eq!(graph.node_count(), 4);
 
-        let idx0 = graph.contains_node(0).unwrap();
-        let idx1 = graph.contains_node(1).unwrap();
-        let idx2 = graph.contains_node(2).unwrap();
-        let idx3 = graph.contains_node(3).unwrap();
+        let idx0 = graph.contains_node(&0).unwrap();
+        let idx1 = graph.contains_node(&1).unwrap();
+        let idx2 = graph.contains_node(&2).unwrap();
+        let idx3 = graph.contains_node(&3).unwrap();
 
         graph.contains_edge(idx0, idx2).unwrap();
         graph.contains_edge(idx1, idx2).unwrap();
@@ -442,9 +428,9 @@ mod tests {
         1 2
         2 3
         3 1";
-        let graph = UndirectedGraph::from_edge_list(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(edge_list).unwrap();
 
-        let idx2 = graph.contains_node(2).unwrap();
+        let idx2 = graph.contains_node(&2).unwrap();
 
         let mut gen = graph.neighbors(idx2);
         let mut neighbors = HashSet::new();
@@ -464,7 +450,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph1(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -475,7 +461,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -486,7 +472,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph3(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -497,7 +483,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -508,7 +494,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -519,7 +505,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.breadth_search_connected_components();
@@ -530,7 +516,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph1(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
@@ -541,7 +527,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
@@ -552,7 +538,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph3(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
@@ -563,7 +549,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
@@ -574,7 +560,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
@@ -585,7 +571,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
-        let graph = UndirectedGraph::from_edge_list(&edge_list).unwrap();
+        let graph = UndirectedAdjGraph::from_edge_list(&edge_list).unwrap();
 
         b.iter(|| {
             let (counter, _markers) = graph.depth_search_connected_components();
