@@ -3,6 +3,7 @@
 #![feature(test)]
 
 use std::{
+    cmp::Reverse,
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     fmt::Debug,
     hash::Hash,
@@ -229,7 +230,7 @@ impl<const KIND: GraphKind, N, W: Clone, D: GraphDataProvider<N, W>> Graph<KIND,
 impl<
         const KIND: GraphKind,
         N,
-        W: Ord + Default + AddAssign + ToOwned<Owned = W>,
+        W: Ord + Default + AddAssign + ToOwned<Owned = W> + Debug,
         D: GraphDataProvider<N, W>,
     > Graph<KIND, N, W, D>
 {
@@ -246,9 +247,9 @@ impl<
         let mut weights = HashMap::new();
         let mut total_weight = W::default();
 
-        priority_queue.push(Edge::new(start, W::default()));
+        priority_queue.push(Reverse(Edge::new(start, W::default())));
 
-        while let Some(Edge { to, weight }) = priority_queue.pop() {
+        while let Some(Reverse(Edge { to, weight })) = priority_queue.pop() {
             if visited.contains(&to) {
                 continue;
             }
@@ -260,11 +261,11 @@ impl<
                     if let Some(weight) = weights.get_mut(&edge.to) {
                         if *weight > *edge.weight {
                             *weight = edge.weight.to_owned();
-                            priority_queue.push(edge.into());
+                            priority_queue.push(Reverse(edge.into()));
                         }
                     } else {
                         weights.insert(edge.to, edge.weight.to_owned());
-                        priority_queue.push(edge.into());
+                        priority_queue.push(Reverse(edge.into()));
                     }
                 }
             }
@@ -662,7 +663,7 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
+            let count = graph.prim().0 as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -674,7 +675,7 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
+            let count = graph.prim().0 as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -686,7 +687,7 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
+            let count = graph.prim().0 as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -698,7 +699,7 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
+            let count = graph.prim().0 as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -710,8 +711,8 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
-            assert_eq!(count, 33372.14417);
+            let count = graph.prim().0 as f32;
+            assert_eq!(count, 372.14417);
         })
     }
 
@@ -722,7 +723,7 @@ mod tests {
         let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim();
+            let count = graph.prim().0 as f32;
             assert_eq!(count, 27550.51488);
         })
     }
