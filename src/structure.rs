@@ -20,11 +20,16 @@ pub trait GraphDataProvider<N, W>: Default {
     where
         N: 'a,
         Self: 'a;
+    type Edges<'a>: IntoIterator<Item = EdgeRef<'a, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn node_indices(&self) -> Vec<NodeIndex> {
         (0..self.node_count()).map(NodeIndex).collect()
     }
     fn nodes<'a>(&'a self) -> Self::Nodes<'a>;
+    fn edges<'a>(&'a self) -> Self::Edges<'a>;
     fn adjacent_indices<'a>(&'a self, index: NodeIndex) -> Self::AdjacentIndices<'a>;
     fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a>;
 
@@ -89,12 +94,20 @@ impl<const KIND: GraphKind, N: PartialEq + Default, W: PartialEq + Default>
 impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
     for AdjacencyList<KIND, N, W>
 {
+    type Edges<'a> = Vec<EdgeRef<'a, W>> where Self: 'a;
     type Nodes<'a> = &'a Vec<N> where Self: 'a;
     type AdjacentIndices<'a> = &'a HashSet<NodeIndex> where Self: 'a;
     type AdjacentEdges<'a> = Vec<EdgeRef<'a, W>> where Self: 'a;
 
     fn nodes<'a>(&'a self) -> Self::Nodes<'a> {
         &self.nodes
+    }
+
+    fn edges<'a>(&'a self) -> Self::Edges<'a> {
+        self.edges
+            .iter()
+            .map(|(index, weight)| EdgeRef::new(index.from, index.to, weight))
+            .collect()
     }
 
     fn adjacent_indices<'a>(&'a self, index: NodeIndex) -> Self::AdjacentIndices<'a> {
@@ -104,9 +117,9 @@ impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
         self.adjacent_indices(index)
             .into_iter()
             .map(|child| {
-                let index = EdgeIndex::new(index, *child, 0);
-                let weight = self.weight(index);
-                EdgeRef::new(*child, weight)
+                let edge_index = EdgeIndex::new(index, *child, 0);
+                let weight = self.weight(edge_index);
+                EdgeRef::new(index, *child, weight)
             })
             .collect::<Vec<_>>()
     }

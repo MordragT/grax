@@ -15,10 +15,12 @@ use deser::EdgeList;
 use error::{GraphError, GraphResult};
 use ordered_float::OrderedFloat;
 use structure::{AdjacencyList, GraphDataProvider, GraphDataProviderExt};
+use tree::UnionFind;
 
 pub mod deser;
 pub mod error;
 pub mod structure;
+pub mod tree;
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum GraphKind {
@@ -226,14 +228,80 @@ impl<const KIND: GraphKind, N, W: Clone, D: GraphDataProvider<N, W>> Graph<KIND,
         }
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct MinOrderEdge<W> {
+    to: NodeIndex,
+    weight: W,
+}
+
+impl<W> MinOrderEdge<W> {
+    pub fn new(to: NodeIndex, weight: W) -> Self {
+        Self { to, weight }
+    }
+}
+
+impl<W: Ord> Ord for MinOrderEdge<W> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // reverse order
+        other.weight.cmp(&self.weight)
+    }
+}
+
+impl<W: PartialOrd> PartialOrd for MinOrderEdge<W> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // reverse order
+        other.weight.partial_cmp(&self.weight)
+    }
+}
+
+impl<W> From<Edge<W>> for MinOrderEdge<W> {
+    fn from(edge: Edge<W>) -> Self {
+        Self {
+            to: edge.to,
+            weight: edge.weight,
+        }
+    }
+}
+
+impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for MinOrderEdge<W> {
+    fn from(edge: EdgeRef<'a, W>) -> Self {
+        Self {
+            to: edge.to,
+            weight: edge.weight.to_owned(),
+        }
+    }
+}
 
 impl<
         const KIND: GraphKind,
         N,
-        W: Ord + Default + AddAssign + ToOwned<Owned = W> + Debug,
+        W: Ord + Default + AddAssign + ToOwned<Owned = W>,
         D: GraphDataProvider<N, W>,
     > Graph<KIND, N, W, D>
 {
+    pub fn kruskal(&self) -> W {
+        let mut priority_queue = self
+            .data
+            .edges()
+            .into_iter()
+            .map(|edge| Reverse(edge))
+            .collect::<BinaryHeap<_>>();
+
+        let mut union_find = UnionFind::from(self.data.node_indices().into_iter());
+        let mut total_weight = W::default();
+
+        while let Some(Reverse(EdgeRef { from, to, weight })) = priority_queue.pop() {
+            if union_find.find(from) == union_find.find(to) {
+                continue;
+            }
+
+            union_find.union(from, to);
+            total_weight += weight.to_owned();
+        }
+
+        total_weight
+    }
+
     pub fn prim(&self) -> W {
         match self.data.node_indices().iter().next() {
             Some(start) => self.prim_inner(*start),
@@ -247,9 +315,9 @@ impl<
         let mut weights = HashMap::new();
         let mut total_weight = W::default();
 
-        priority_queue.push(Reverse(Edge::new(start, W::default())));
+        priority_queue.push(MinOrderEdge::new(start, W::default()));
 
-        while let Some(Reverse(Edge { to, weight })) = priority_queue.pop() {
+        while let Some(MinOrderEdge { to, weight }) = priority_queue.pop() {
             if visited.contains(&to) {
                 continue;
             }
@@ -261,11 +329,11 @@ impl<
                     if let Some(weight) = weights.get_mut(&edge.to) {
                         if *weight > *edge.weight {
                             *weight = edge.weight.to_owned();
-                            priority_queue.push(Reverse(edge.into()));
+                            priority_queue.push(edge.into());
                         }
                     } else {
                         weights.insert(edge.to, edge.weight.to_owned());
-                        priority_queue.push(Reverse(edge.into()));
+                        priority_queue.push(edge.into());
                     }
                 }
             }
@@ -306,16 +374,16 @@ pub struct NodeIndex(usize);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EdgeIndex {
-    parent: NodeIndex,
-    child: NodeIndex,
-    depth: u32,
+    pub(crate) to: NodeIndex,
+    pub(crate) from: NodeIndex,
+    pub(crate) depth: u32,
 }
 
 impl EdgeIndex {
     fn new(parent: NodeIndex, child: NodeIndex, depth: u32) -> Self {
         Self {
-            parent,
-            child,
+            to: parent,
+            from: child,
             depth,
         }
     }
@@ -323,13 +391,14 @@ impl EdgeIndex {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Edge<W> {
+    pub from: NodeIndex,
     pub to: NodeIndex,
     pub weight: W,
 }
 
 impl<W> Edge<W> {
-    pub fn new(to: NodeIndex, weight: W) -> Self {
-        Self { to, weight }
+    pub fn new(from: NodeIndex, to: NodeIndex, weight: W) -> Self {
+        Self { from, to, weight }
     }
 }
 
@@ -348,6 +417,7 @@ impl<W: PartialOrd> PartialOrd for Edge<W> {
 impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for Edge<W> {
     fn from(edge_ref: EdgeRef<'a, W>) -> Self {
         Self {
+            from: edge_ref.from,
             to: edge_ref.to,
             weight: edge_ref.weight.to_owned(),
         }
@@ -356,13 +426,14 @@ impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for Edge<W> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct EdgeRef<'a, W> {
+    pub from: NodeIndex,
     pub to: NodeIndex,
     pub weight: &'a W,
 }
 
 impl<'a, W> EdgeRef<'a, W> {
-    pub fn new(to: NodeIndex, weight: &'a W) -> Self {
-        Self { to, weight }
+    pub fn new(from: NodeIndex, to: NodeIndex, weight: &'a W) -> Self {
+        Self { from, to, weight }
     }
 }
 
@@ -724,6 +795,78 @@ mod tests {
 
         b.iter(|| {
             let count = graph.prim().0 as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_1_2(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
+            assert_eq!(count, 287.32286);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_1_20(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
+            assert_eq!(count, 36.86275);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_1_200(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_20(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_200(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_100_200(b: &mut Bencher) {
+        let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
+        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal().0 as f32;
             assert_eq!(count, 27550.51488);
         })
     }
