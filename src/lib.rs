@@ -3,7 +3,7 @@
 #![feature(test)]
 
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     fmt::Debug,
     hash::Hash,
     marker::PhantomData,
@@ -12,15 +12,12 @@ use std::{
 
 use deser::EdgeList;
 use error::{GraphError, GraphResult};
-use structure::{AdjacencyList, Direction, EdgeRef, GraphDataProvider, GraphDataProviderExt};
+use ordered_float::OrderedFloat;
+use structure::{AdjacencyList, GraphDataProvider, GraphDataProviderExt};
 
 pub mod deser;
 pub mod error;
 pub mod structure;
-
-// pub trait Weight: Debug + Clone + Copy + Eq + PartialEq + Hash {}
-
-// impl<T: Debug + Clone + Copy + Eq + PartialEq + Hash> Weight for T {}
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum GraphKind {
@@ -34,176 +31,24 @@ pub type UndirectedAdjGraph<N, W> = AdjGraph<{ GraphKind::Undirected }, N, W>;
 pub type AdjGraph<const KIND: GraphKind, N, W> = Graph<KIND, N, W, AdjacencyList<KIND, N, W>>;
 
 #[derive(Debug, Default)]
-pub struct Graph<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> {
+pub struct Graph<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> {
     data: D,
     node_kind: PhantomData<N>,
     weight_kind: PhantomData<W>,
 }
 
-impl<const KIND: GraphKind, N: Debug + Default, W: Debug + Default> From<AdjacencyList<KIND, N, W>>
-    for AdjGraph<KIND, N, W>
-{
-    fn from(data: AdjacencyList<KIND, N, W>) -> Self {
-        Self::with_data(data)
-    }
-}
-
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, ()> {
-    type Error = GraphError;
-
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
-        let data = AdjacencyList::try_from(edge_list)?;
-        Ok(Self::from(data))
-    }
-}
-
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, f64> {
-    type Error = GraphError;
-
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
-        let data = AdjacencyList::try_from(edge_list)?;
-        Ok(Self::from(data))
-    }
-}
-
-impl<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
-    pub fn with_data(data: D) -> Self {
+impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
+    pub fn new() -> Self {
         Self {
-            data,
+            data: Default::default(),
             node_kind: PhantomData,
             weight_kind: PhantomData,
         }
     }
-}
 
-impl<
-        const KIND: GraphKind,
-        N: PartialEq + Debug,
-        W: PartialEq + Debug,
-        D: GraphDataProviderExt<N, W>,
-    > Graph<KIND, N, W, D>
-{
-    pub fn contains_node(&self, node: &N) -> Option<NodeIndex> {
-        self.data.contains_node(node)
-    }
-
-    pub fn contains_edge(&self, left: NodeIndex, right: NodeIndex) -> Option<EdgeIndex> {
-        self.data.contains_edge(left, right)
-    }
-}
-
-impl<const KIND: GraphKind, N: Debug, W: Debug + Copy, D: GraphDataProvider<N, W>>
-    Graph<KIND, N, W, D>
-{
-    pub fn add_edge(
-        &mut self,
-        left: NodeIndex,
-        right: NodeIndex,
-        weight: W,
-    ) -> GraphResult<EdgeIndex> {
-        match KIND {
-            GraphKind::Directed => self.data.add_edge(left, right, weight, Direction::Outgoing),
-            GraphKind::Undirected => {
-                self.data
-                    .add_edge(left, right, weight, Direction::Incoming)?;
-                self.data.add_edge(left, right, weight, Direction::Outgoing)
-            }
-        }
-    }
-}
-
-impl<
-        const KIND: GraphKind,
-        N: Debug,
-        W: Debug + PartialOrd + Default + AddAssign + Copy,
-        D: GraphDataProvider<N, W>,
-    > Graph<KIND, N, W, D>
-{
-    pub fn prim(&self) -> W {
-        match self.data.node_indices().iter().next() {
-            Some(start) => self.prim_inner(*start),
-            None => W::default(),
-        }
-    }
-
-    fn prim_inner(&self, start: NodeIndex) -> W {
-        let mut visited = HashSet::new();
-        let mut edges: HashMap<NodeIndex, (W, NodeIndex)> = HashMap::new();
-        let mut queue = VecDeque::new();
-        let mut total_weight = W::default();
-
-        queue.push_back(start);
-
-        while let Some(index) = queue.pop_front() {
-            visited.insert(index);
-            // remove visited node from edge_map which
-            // holds minimum weight seen so far
-            // as visited node is not elligble as edge "child" anymore
-            //edges.remove(&index);
-
-            let mut edge: Option<EdgeRef<W>> = None;
-            for adj_edge in self.data.adjacent_edges(index) {
-                if !visited.contains(&adj_edge.child) {
-                    if let Some((weight, parent)) = edges.get_mut(&adj_edge.child) {
-                        if *weight > *adj_edge.weight {
-                            *weight = *adj_edge.weight;
-                            *parent = index;
-                        }
-                    } else {
-                        edges.insert(adj_edge.child, (*adj_edge.weight, index));
-                    }
-
-                    if let Some(e) = &edge {
-                        if e.weight > adj_edge.weight {
-                            edge = Some(adj_edge);
-                        }
-                    } else {
-                        edge = Some(adj_edge);
-                    }
-                }
-
-                // if !visited.contains(&adj_edge.child) {
-                //     if let Some(e) = &edge {
-                //         if e.weight > adj_edge.weight {
-                //             edge = Some(adj_edge)
-                //         }
-                //     } else {
-                //         edge = Some(adj_edge);
-                //     }
-                // }
-            }
-            // edge is none if all adjacencies already visited
-            if let Some(edge) = edge {
-                if let Some((weight, parent)) = edges.get(&edge.child) {
-                    if *parent == index || weight > edge.weight {
-                        total_weight += *edge.weight;
-                        queue.push_back(edge.child);
-                    }
-                } else {
-                    total_weight += *edge.weight;
-                    queue.push_back(edge.child);
-                }
-                // edges.insert(EdgeIndex::new(index, edge.child, 0), *edge.weight);
-                // queue.push_back(edge.child);
-                // queue.push_back(index);
-            }
-        }
-
-        total_weight = edges
-            .into_values()
-            .fold(W::default(), |mut total_weight, (weight, _)| {
-                total_weight += weight;
-                total_weight
-            });
-
-        total_weight
-    }
-}
-
-impl<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
-    pub fn new() -> Self {
+    pub fn with_data(data: D) -> Self {
         Self {
-            data: Default::default(),
+            data,
             node_kind: PhantomData,
             weight_kind: PhantomData,
         }
@@ -351,6 +196,110 @@ impl<const KIND: GraphKind, N: Debug, W: Debug, D: GraphDataProvider<N, W>> Grap
     }
 }
 
+impl<const KIND: GraphKind, N: PartialEq, W: PartialEq, D: GraphDataProviderExt<N, W>>
+    Graph<KIND, N, W, D>
+{
+    pub fn contains_node(&self, node: &N) -> Option<NodeIndex> {
+        self.data.contains_node(node)
+    }
+
+    pub fn contains_edge(&self, left: NodeIndex, right: NodeIndex) -> Option<EdgeIndex> {
+        self.data.contains_edge(left, right)
+    }
+}
+
+impl<const KIND: GraphKind, N, W: Clone, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
+    pub fn add_edge(
+        &mut self,
+        left: NodeIndex,
+        right: NodeIndex,
+        weight: W,
+    ) -> GraphResult<EdgeIndex> {
+        match KIND {
+            GraphKind::Directed => self.data.add_edge(left, right, weight, Direction::Outgoing),
+            GraphKind::Undirected => {
+                self.data
+                    .add_edge(left, right, weight.clone(), Direction::Incoming)?;
+                self.data.add_edge(left, right, weight, Direction::Outgoing)
+            }
+        }
+    }
+}
+
+impl<
+        const KIND: GraphKind,
+        N,
+        W: Ord + Default + AddAssign + ToOwned<Owned = W>,
+        D: GraphDataProvider<N, W>,
+    > Graph<KIND, N, W, D>
+{
+    pub fn prim(&self) -> W {
+        match self.data.node_indices().iter().next() {
+            Some(start) => self.prim_inner(*start),
+            None => W::default(),
+        }
+    }
+
+    fn prim_inner(&self, start: NodeIndex) -> W {
+        let mut visited = HashSet::new();
+        let mut priority_queue = BinaryHeap::new();
+        let mut weights = HashMap::new();
+        let mut total_weight = W::default();
+
+        priority_queue.push(Edge::new(start, W::default()));
+
+        while let Some(Edge { to, weight }) = priority_queue.pop() {
+            if visited.contains(&to) {
+                continue;
+            }
+            visited.insert(to);
+            total_weight += weight;
+
+            for edge in self.data.adjacent_edges(to) {
+                if !visited.contains(&edge.to) {
+                    if let Some(weight) = weights.get_mut(&edge.to) {
+                        if *weight > *edge.weight {
+                            *weight = edge.weight.to_owned();
+                            priority_queue.push(edge.into());
+                        }
+                    } else {
+                        weights.insert(edge.to, edge.weight.to_owned());
+                        priority_queue.push(edge.into());
+                    }
+                }
+            }
+        }
+
+        total_weight
+    }
+}
+
+impl<const KIND: GraphKind, N: Default, W: Default> From<AdjacencyList<KIND, N, W>>
+    for AdjGraph<KIND, N, W>
+{
+    fn from(data: AdjacencyList<KIND, N, W>) -> Self {
+        Self::with_data(data)
+    }
+}
+
+impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, ()> {
+    type Error = GraphError;
+
+    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
+        let data = AdjacencyList::try_from(edge_list)?;
+        Ok(Self::from(data))
+    }
+}
+
+impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, OrderedFloat<f64>> {
+    type Error = GraphError;
+
+    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
+        let data = AdjacencyList::try_from(edge_list)?;
+        Ok(Self::from(data))
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct NodeIndex(usize);
 
@@ -371,27 +320,70 @@ impl EdgeIndex {
     }
 }
 
-// #[derive(Debug)]
-// pub struct Edge<W> {
-//     nodes_between: Option<Vec<NodeIndex>>,
-//     weight: W,
-// }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Edge<W> {
+    pub to: NodeIndex,
+    pub weight: W,
+}
 
-// impl<W> Edge<W> {
-//     pub fn new(weight: W) -> Self {
-//         Self {
-//             nodes_between: None,
-//             weight,
-//         }
-//     }
+impl<W> Edge<W> {
+    pub fn new(to: NodeIndex, weight: W) -> Self {
+        Self { to, weight }
+    }
+}
 
-//     pub fn with_nodes(nodes_betweeen: Vec<NodeIndex>, weight: W) -> Self {
-//         Self {
-//             nodes_between: Some(nodes_betweeen),
-//             weight,
-//         }
-//     }
-// }
+impl<W: Ord> Ord for Edge<W> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.weight.cmp(&other.weight)
+    }
+}
+
+impl<W: PartialOrd> PartialOrd for Edge<W> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.weight.partial_cmp(&other.weight)
+    }
+}
+
+impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for Edge<W> {
+    fn from(edge_ref: EdgeRef<'a, W>) -> Self {
+        Self {
+            to: edge_ref.to,
+            weight: edge_ref.weight.to_owned(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct EdgeRef<'a, W> {
+    pub to: NodeIndex,
+    pub weight: &'a W,
+}
+
+impl<'a, W> EdgeRef<'a, W> {
+    pub fn new(to: NodeIndex, weight: &'a W) -> Self {
+        Self { to, weight }
+    }
+}
+
+impl<'a, W: Ord> Ord for EdgeRef<'a, W> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.weight.cmp(other.weight)
+    }
+}
+
+impl<'a, W: PartialOrd> PartialOrd for EdgeRef<'a, W> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.weight.partial_cmp(other.weight)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Direction {
+    /// left -> right
+    Outgoing,
+    /// left <- right
+    Incoming,
+}
 
 #[cfg(test)]
 mod tests {
@@ -401,6 +393,7 @@ mod tests {
         deser::{EdgeList, EdgeListOptions},
         UndirectedAdjGraph,
     };
+    use ordered_float::OrderedFloat;
     use std::{
         collections::HashSet,
         fs,
@@ -666,7 +659,7 @@ mod tests {
     fn prim_graph_1_2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();
@@ -678,7 +671,7 @@ mod tests {
     fn prim_graph_1_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();
@@ -690,7 +683,7 @@ mod tests {
     fn prim_graph_1_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();
@@ -702,7 +695,7 @@ mod tests {
     fn prim_graph_10_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();
@@ -714,7 +707,7 @@ mod tests {
     fn prim_graph_10_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();
@@ -726,7 +719,7 @@ mod tests {
     fn prim_graph_100_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
 
         b.iter(|| {
             let count = graph.prim();

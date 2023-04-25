@@ -5,28 +5,8 @@ use std::{
 
 use crate::{
     error::{GraphError, GraphResult},
-    EdgeIndex, GraphKind, NodeIndex,
+    Direction, EdgeIndex, EdgeRef, GraphKind, NodeIndex,
 };
-
-#[derive(Debug, Clone, Copy)]
-pub struct EdgeRef<'a, W> {
-    pub child: NodeIndex,
-    pub weight: &'a W,
-}
-
-impl<'a, W> EdgeRef<'a, W> {
-    pub fn new(child: NodeIndex, weight: &'a W) -> Self {
-        Self { child, weight }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Direction {
-    /// left -> right
-    Outgoing,
-    /// left <- right
-    Incoming,
-}
 
 pub trait GraphDataProvider<N, W>: Default {
     type AdjacentEdges<'a>: IntoIterator<Item = EdgeRef<'a, W>> + 'a
