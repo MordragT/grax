@@ -9,24 +9,24 @@ use crate::{
 };
 
 pub trait GraphDataProvider<N, W>: Default {
-    type AdjacentEdges<'a>: IntoIterator<Item = EdgeRef<'a, W>> + 'a
+    type AdjacentEdges<'a>: Iterator<Item = EdgeRef<'a, W>> + 'a
     where
         W: 'a,
         Self: 'a;
-    type AdjacentIndices<'a>: IntoIterator<Item = &'a NodeIndex> + 'a
+    type AdjacentIndices<'a>: Iterator<Item = NodeIndex> + 'a
     where
         Self: 'a;
-    type Nodes<'a>: IntoIterator<Item = &'a N> + 'a
+    type Nodes<'a>: Iterator<Item = &'a N> + 'a
     where
         N: 'a,
         Self: 'a;
-    type Edges<'a>: IntoIterator<Item = EdgeRef<'a, W>> + 'a
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, W>> + 'a
     where
         W: 'a,
         Self: 'a;
 
-    fn node_indices(&self) -> Vec<NodeIndex> {
-        (0..self.node_count()).map(NodeIndex).collect()
+    fn node_indices(&self) -> std::iter::Map<std::ops::Range<usize>, fn(usize) -> NodeIndex> {
+        (0..self.node_count()).map(NodeIndex)
     }
     fn nodes<'a>(&'a self) -> Self::Nodes<'a>;
     fn edges<'a>(&'a self) -> Self::Edges<'a>;
@@ -61,7 +61,7 @@ pub trait GraphDataProvider<N, W>: Default {
 
 pub trait GraphDataProviderExt<N: PartialEq, W: PartialEq>: GraphDataProvider<N, W> {
     fn contains_node(&self, node: &N) -> Option<NodeIndex> {
-        for (i, other) in self.nodes().into_iter().enumerate() {
+        for (i, other) in self.nodes().enumerate() {
             if node == other {
                 return Some(NodeIndex(i));
             }
@@ -94,34 +94,30 @@ impl<const KIND: GraphKind, N: PartialEq + Default, W: PartialEq + Default>
 impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
     for AdjacencyList<KIND, N, W>
 {
-    type Edges<'a> = Vec<EdgeRef<'a, W>> where Self: 'a;
-    type Nodes<'a> = &'a Vec<N> where Self: 'a;
-    type AdjacentIndices<'a> = &'a HashSet<NodeIndex> where Self: 'a;
-    type AdjacentEdges<'a> = Vec<EdgeRef<'a, W>> where Self: 'a;
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
+    type Nodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
+    type AdjacentIndices<'a> = impl Iterator<Item = NodeIndex> + 'a where Self: 'a;
+    type AdjacentEdges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
 
     fn nodes<'a>(&'a self) -> Self::Nodes<'a> {
-        &self.nodes
+        self.nodes.iter()
     }
 
     fn edges<'a>(&'a self) -> Self::Edges<'a> {
         self.edges
             .iter()
             .map(|(index, weight)| EdgeRef::new(index.from, index.to, weight))
-            .collect()
     }
 
     fn adjacent_indices<'a>(&'a self, index: NodeIndex) -> Self::AdjacentIndices<'a> {
-        &self.adjacencies[index.0]
+        self.adjacencies[index.0].iter().cloned()
     }
     fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a> {
-        self.adjacent_indices(index)
-            .into_iter()
-            .map(|child| {
-                let edge_index = EdgeIndex::new(index, *child, 0);
-                let weight = self.weight(edge_index);
-                EdgeRef::new(index, *child, weight)
-            })
-            .collect::<Vec<_>>()
+        self.adjacent_indices(index).map(move |child| {
+            let edge_index = EdgeIndex::new(index, child, 0);
+            let weight = self.weight(edge_index);
+            EdgeRef::new(index, child, weight)
+        })
     }
 
     fn add_node(&mut self, node: N) -> NodeIndex {

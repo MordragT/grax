@@ -1,6 +1,7 @@
 #![feature(adt_const_params)]
 #![feature(generators, generator_trait)]
 #![feature(test)]
+#![feature(type_alias_impl_trait)]
 
 use std::{
     cmp::Reverse,
@@ -92,7 +93,7 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
             let mut stack = Vec::new();
             visited[root] = true;
 
-            for node in self.data.adjacent_indices(NodeIndex(root)).into_iter() {
+            for node in self.data.adjacent_indices(NodeIndex(root)) {
                 stack.push(node.0)
             }
 
@@ -115,7 +116,7 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
             let mut queue = VecDeque::new();
             visited[root] = true;
 
-            for node in self.data.adjacent_indices(NodeIndex(root)).into_iter() {
+            for node in self.data.adjacent_indices(NodeIndex(root)) {
                 queue.push_back(node.0)
             }
 
@@ -283,11 +284,10 @@ impl<
         let mut priority_queue = self
             .data
             .edges()
-            .into_iter()
             .map(|edge| Reverse(edge))
             .collect::<BinaryHeap<_>>();
 
-        let mut union_find = UnionFind::from(self.data.node_indices().into_iter());
+        let mut union_find = UnionFind::from(self.data.node_indices());
         let mut total_weight = W::default();
 
         while let Some(Reverse(EdgeRef { from, to, weight })) = priority_queue.pop() {
@@ -303,8 +303,8 @@ impl<
     }
 
     pub fn prim(&self) -> W {
-        match self.data.node_indices().iter().next() {
-            Some(start) => self.prim_inner(*start),
+        match self.data.node_indices().next() {
+            Some(start) => self.prim_inner(start),
             None => W::default(),
         }
     }
