@@ -88,51 +88,9 @@ pub trait GraphDataProviderExt<N: PartialEq, W: PartialEq>: GraphDataProvider<N,
 
 #[derive(Debug, Default)]
 pub struct AdjacencyList<const KIND: GraphKind, N, W> {
-    nodes: Vec<N>,
-    adjacencies: Vec<HashSet<NodeIndex>>,
-    edges: HashMap<EdgeIndex, W>,
-}
-
-impl<const KIND: GraphKind> AdjacencyList<KIND, usize, ()> {
-    pub fn from_edge_list(edge_list: &str) -> GraphResult<Self> {
-        let mut lines = edge_list.lines();
-
-        let nodes_len = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
-        let nodes_len = usize::from_str_radix(nodes_len, 10)?;
-
-        let mut graph = Self {
-            nodes: vec![0; nodes_len],
-            adjacencies: vec![HashSet::new(); nodes_len],
-            edges: HashMap::new(),
-        };
-
-        for line in lines {
-            let mut split = line.split_whitespace();
-            let left = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let right = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-
-            let left = usize::from_str_radix(left, 10)?;
-            let right = usize::from_str_radix(right, 10)?;
-            let left_idx = NodeIndex(left);
-            let right_idx = NodeIndex(right);
-
-            // panics if out of range
-            graph.nodes[left] = left;
-            graph.nodes[right] = right;
-
-            match KIND {
-                GraphKind::Directed => {
-                    graph.add_edge(left_idx, right_idx, (), Direction::Outgoing)?;
-                }
-                GraphKind::Undirected => {
-                    graph.add_edge(left_idx, right_idx, (), Direction::Outgoing)?;
-                    graph.add_edge(left_idx, right_idx, (), Direction::Incoming)?;
-                }
-            }
-        }
-
-        Ok(graph)
-    }
+    pub(crate) nodes: Vec<N>,
+    pub(crate) adjacencies: Vec<HashSet<NodeIndex>>,
+    pub(crate) edges: HashMap<EdgeIndex, W>,
 }
 
 impl<const KIND: GraphKind, N: PartialEq + Default, W: PartialEq + Default>
@@ -221,11 +179,9 @@ impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
     }
 
     fn weight_mut(&mut self, index: EdgeIndex) -> &mut W {
-        // &mut self
-        //     .edges
-        //     .get_mut(&index)
-        //     .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
-        todo!()
+        self.edges
+            .get_mut(&index)
+            .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
     }
 
     fn node_count(&self) -> usize {

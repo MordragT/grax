@@ -1,4 +1,4 @@
-use std::num::ParseIntError;
+use std::num::{ParseFloatError, ParseIntError};
 use thiserror::Error;
 
 use crate::NodeIndex;
@@ -15,4 +15,6 @@ pub enum GraphError {
     BadEdgeListFormat,
     #[error("ParseIntError: {0}")]
     ParseIntError(#[from] ParseIntError),
+    #[error("ParseFloatError: {0}")]
+    ParseFloatError(#[from] ParseFloatError),
 }
