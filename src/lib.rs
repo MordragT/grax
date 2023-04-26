@@ -7,8 +7,7 @@ use deser::EdgeList;
 use error::{GraphError, GraphResult};
 use priq::PriorityQueue;
 use std::{
-    cmp::Reverse,
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
+    collections::VecDeque,
     fmt::Debug,
     hash::Hash,
     marker::PhantomData,
