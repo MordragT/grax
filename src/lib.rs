@@ -230,45 +230,45 @@ impl<const KIND: GraphKind, N, W: Clone, D: GraphDataProvider<N, W>> Graph<KIND,
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct MinOrderEdge<W> {
+struct MinOrderEdge<'a, W> {
     to: NodeIndex,
-    weight: W,
+    weight: &'a W,
 }
 
-impl<W> MinOrderEdge<W> {
-    pub fn new(to: NodeIndex, weight: W) -> Self {
+impl<'a, W> MinOrderEdge<'a, W> {
+    pub fn new(to: NodeIndex, weight: &'a W) -> Self {
         Self { to, weight }
     }
 }
 
-impl<W: Ord> Ord for MinOrderEdge<W> {
+impl<'a, W: Ord> Ord for MinOrderEdge<'a, W> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         // reverse order
         other.weight.cmp(&self.weight)
     }
 }
 
-impl<W: PartialOrd> PartialOrd for MinOrderEdge<W> {
+impl<'a, W: PartialOrd> PartialOrd for MinOrderEdge<'a, W> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         // reverse order
         other.weight.partial_cmp(&self.weight)
     }
 }
 
-impl<W> From<Edge<W>> for MinOrderEdge<W> {
-    fn from(edge: Edge<W>) -> Self {
+impl<'a, W> From<&'a Edge<W>> for MinOrderEdge<'a, W> {
+    fn from(edge: &'a Edge<W>) -> Self {
         Self {
             to: edge.to,
-            weight: edge.weight,
+            weight: &edge.weight,
         }
     }
 }
 
-impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for MinOrderEdge<W> {
+impl<'a, W> From<EdgeRef<'a, W>> for MinOrderEdge<'a, W> {
     fn from(edge: EdgeRef<'a, W>) -> Self {
         Self {
             to: edge.to,
-            weight: edge.weight.to_owned(),
+            weight: edge.weight,
         }
     }
 }
@@ -310,29 +310,31 @@ impl<
     }
 
     fn prim_inner(&self, start: NodeIndex) -> W {
-        let mut visited = HashSet::new();
-        let mut priority_queue = BinaryHeap::new();
-        let mut weights = HashMap::new();
+        let n = self.node_count();
+        let mut visited = vec![false; n];
+        let mut priority_queue = BinaryHeap::with_capacity(n / 2);
+        let mut weights = vec![None; n];
         let mut total_weight = W::default();
 
-        priority_queue.push(MinOrderEdge::new(start, W::default()));
+        let default_weight = W::default();
+        priority_queue.push(MinOrderEdge::new(start, &default_weight));
 
         while let Some(MinOrderEdge { to, weight }) = priority_queue.pop() {
-            if visited.contains(&to) {
+            if visited[to.0] {
                 continue;
             }
-            visited.insert(to);
-            total_weight += weight;
+            visited[to.0] = true;
+            total_weight += weight.to_owned();
 
             for edge in self.data.adjacent_edges(to) {
-                if !visited.contains(&edge.to) {
-                    if let Some(weight) = weights.get_mut(&edge.to) {
-                        if *weight > *edge.weight {
-                            *weight = edge.weight.to_owned();
+                if !visited[edge.to.0] {
+                    if let Some(weight) = &mut weights[edge.to.0] {
+                        if *weight > edge.weight {
+                            *weight = edge.weight;
                             priority_queue.push(edge.into());
                         }
                     } else {
-                        weights.insert(edge.to, edge.weight.to_owned());
+                        weights[edge.to.0] = Some(edge.weight);
                         priority_queue.push(edge.into());
                     }
                 }
