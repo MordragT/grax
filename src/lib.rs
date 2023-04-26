@@ -3,6 +3,9 @@
 #![feature(test)]
 #![feature(type_alias_impl_trait)]
 
+use deser::EdgeList;
+use error::{GraphError, GraphResult};
+use priq::PriorityQueue;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap, HashSet, VecDeque},
@@ -11,10 +14,6 @@ use std::{
     marker::PhantomData,
     ops::{AddAssign, Generator},
 };
-
-use deser::EdgeList;
-use error::{GraphError, GraphResult};
-use ordered_float::OrderedFloat;
 use structure::{AdjacencyList, GraphDataProvider, GraphDataProviderExt};
 use tree::UnionFind;
 
@@ -276,7 +275,7 @@ impl<'a, W> From<EdgeRef<'a, W>> for MinOrderEdge<'a, W> {
 impl<
         const KIND: GraphKind,
         N,
-        W: Ord + Default + AddAssign + ToOwned<Owned = W>,
+        W: PartialOrd + Default + AddAssign + ToOwned<Owned = W>,
         D: GraphDataProvider<N, W>,
     > Graph<KIND, N, W, D>
 {
@@ -284,13 +283,13 @@ impl<
         let mut priority_queue = self
             .data
             .edges()
-            .map(|edge| Reverse(edge))
-            .collect::<BinaryHeap<_>>();
+            .map(|edge| (edge.weight, (edge.from, edge.to)))
+            .collect::<PriorityQueue<_, _>>();
 
         let mut union_find = UnionFind::from(self.data.node_indices());
         let mut total_weight = W::default();
 
-        while let Some(Reverse(EdgeRef { from, to, weight })) = priority_queue.pop() {
+        while let Some((weight, (from, to))) = priority_queue.pop() {
             if union_find.find(from) == union_find.find(to) {
                 continue;
             }
@@ -312,14 +311,13 @@ impl<
     fn prim_inner(&self, start: NodeIndex) -> W {
         let n = self.node_count();
         let mut visited = vec![false; n];
-        let mut priority_queue = BinaryHeap::with_capacity(n / 2);
+        let mut priority_queue = PriorityQueue::with_capacity(n / 2);
         let mut weights = vec![None; n];
         let mut total_weight = W::default();
 
-        let default_weight = W::default();
-        priority_queue.push(MinOrderEdge::new(start, &default_weight));
+        priority_queue.put(W::default(), start);
 
-        while let Some(MinOrderEdge { to, weight }) = priority_queue.pop() {
+        while let Some((weight, to)) = priority_queue.pop() {
             if visited[to.0] {
                 continue;
             }
@@ -331,11 +329,11 @@ impl<
                     if let Some(weight) = &mut weights[edge.to.0] {
                         if *weight > edge.weight {
                             *weight = edge.weight;
-                            priority_queue.push(edge.into());
+                            priority_queue.put(edge.weight.to_owned(), edge.to);
                         }
                     } else {
                         weights[edge.to.0] = Some(edge.weight);
-                        priority_queue.push(edge.into());
+                        priority_queue.put(edge.weight.to_owned(), edge.to);
                     }
                 }
             }
@@ -362,7 +360,7 @@ impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, ()> {
     }
 }
 
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, OrderedFloat<f64>> {
+impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, f64> {
     type Error = GraphError;
 
     fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
@@ -467,7 +465,6 @@ mod tests {
         deser::{EdgeList, EdgeListOptions},
         UndirectedAdjGraph,
     };
-    use ordered_float::OrderedFloat;
     use std::{
         collections::HashSet,
         fs,
@@ -733,10 +730,10 @@ mod tests {
     fn prim_graph_1_2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -745,10 +742,10 @@ mod tests {
     fn prim_graph_1_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -757,10 +754,10 @@ mod tests {
     fn prim_graph_1_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -769,10 +766,10 @@ mod tests {
     fn prim_graph_10_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -781,10 +778,10 @@ mod tests {
     fn prim_graph_10_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -793,10 +790,10 @@ mod tests {
     fn prim_graph_100_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.prim().0 as f32;
+            let count = graph.prim() as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -805,10 +802,10 @@ mod tests {
     fn kruskal_graph_1_2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -817,10 +814,10 @@ mod tests {
     fn kruskal_graph_1_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -829,10 +826,10 @@ mod tests {
     fn kruskal_graph_1_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -841,10 +838,10 @@ mod tests {
     fn kruskal_graph_10_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -853,10 +850,10 @@ mod tests {
     fn kruskal_graph_10_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -865,10 +862,10 @@ mod tests {
     fn kruskal_graph_100_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
-        let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+        let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
-            let count = graph.kruskal().0 as f32;
+            let count = graph.kruskal() as f32;
             assert_eq!(count, 27550.51488);
         })
     }

@@ -2,7 +2,6 @@ use grph::{
     deser::{EdgeList, EdgeListOptions},
     UndirectedAdjGraph,
 };
-use ordered_float::OrderedFloat;
 use std::{fs, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -37,8 +36,8 @@ fn prim() {
     5 6 0.8
     6 0 0.9"#;
     let edge_list = EdgeList::new(edge_list, EdgeListOptions { weighted: true });
-    let graph = UndirectedAdjGraph::<usize, OrderedFloat<f64>>::try_from(edge_list).unwrap();
+    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.prim();
 
-    assert_eq!(total.0, 2.5);
+    assert_eq!(total, 2.5);
 }

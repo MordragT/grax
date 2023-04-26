@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1"
-ordered-float = "3.7.0"
+priq = "0.2.0"

@@ -1,5 +1,3 @@
-use ordered_float::OrderedFloat;
-
 use crate::{
     error::GraphError,
     structure::{AdjacencyList, GraphDataProvider},
@@ -27,7 +25,7 @@ impl EdgeList {
     }
 }
 
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjacencyList<KIND, usize, OrderedFloat<f64>> {
+impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjacencyList<KIND, usize, f64> {
     type Error = GraphError;
 
     fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
@@ -128,8 +126,6 @@ impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjacencyList<KIND, usize, ()>
 
 #[cfg(test)]
 mod test {
-    use ordered_float::OrderedFloat;
-
     use super::{EdgeList, EdgeListOptions};
     use crate::{structure::AdjacencyList, GraphKind};
     use std::fs;
@@ -150,14 +146,9 @@ mod test {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
         let _adj_list =
-            AdjacencyList::<{ GraphKind::Directed }, usize, OrderedFloat<f64>>::try_from(
-                edge_list.clone(),
-            )
-            .unwrap();
+            AdjacencyList::<{ GraphKind::Directed }, usize, f64>::try_from(edge_list.clone())
+                .unwrap();
         let _adj_list =
-            AdjacencyList::<{ GraphKind::Undirected }, usize, OrderedFloat<f64>>::try_from(
-                edge_list,
-            )
-            .unwrap();
+            AdjacencyList::<{ GraphKind::Undirected }, usize, f64>::try_from(edge_list).unwrap();
     }
 }
