@@ -2,6 +2,7 @@
 #![feature(generators, generator_trait)]
 #![feature(test)]
 #![feature(type_alias_impl_trait)]
+#![feature(specialization)]
 
 use deser::EdgeList;
 use error::{GraphError, GraphResult};
@@ -39,7 +40,7 @@ pub struct Graph<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> {
     weight_kind: PhantomData<W>,
 }
 
-impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
+impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W> + Default> Graph<KIND, N, W, D> {
     pub fn new() -> Self {
         Self {
             data: Default::default(),
@@ -47,7 +48,9 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
             weight_kind: PhantomData,
         }
     }
+}
 
+impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, D> {
     pub fn with_data(data: D) -> Self {
         Self {
             data,
@@ -310,7 +313,7 @@ impl<
     fn prim_inner(&self, start: NodeIndex) -> W {
         let n = self.node_count();
         let mut visited = vec![false; n];
-        let mut priority_queue = PriorityQueue::with_capacity(n / 2);
+        let mut priority_queue = PriorityQueue::with_capacity(n);
         let mut weights = vec![None; n];
         let mut total_weight = W::default();
 
@@ -350,19 +353,13 @@ impl<const KIND: GraphKind, N: Default, W: Default> From<AdjacencyList<KIND, N, 
     }
 }
 
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, ()> {
+impl<const KIND: GraphKind, N: Default, W: Default> TryFrom<EdgeList<N, W>> for AdjGraph<KIND, N, W>
+where
+    AdjacencyList<KIND, N, W>: TryFrom<EdgeList<N, W>, Error = GraphError>,
+{
     type Error = GraphError;
 
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
-        let data = AdjacencyList::try_from(edge_list)?;
-        Ok(Self::from(data))
-    }
-}
-
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjGraph<KIND, usize, f64> {
-    type Error = GraphError;
-
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
+    fn try_from(edge_list: EdgeList<N, W>) -> Result<Self, Self::Error> {
         let data = AdjacencyList::try_from(edge_list)?;
         Ok(Self::from(data))
     }
@@ -460,15 +457,13 @@ pub enum Direction {
 mod tests {
     extern crate test;
 
-    use crate::{
-        deser::{EdgeList, EdgeListOptions},
-        UndirectedAdjGraph,
-    };
+    use crate::{deser::EdgeList, UndirectedAdjGraph};
     use std::{
         collections::HashSet,
         fs,
         ops::{Generator, GeneratorState},
         pin::Pin,
+        str::FromStr,
     };
     use test::Bencher;
 
@@ -531,7 +526,7 @@ mod tests {
         1 2
         2 3
         3 1";
-        let edge_list = EdgeList::new(edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         assert_eq!(graph.node_count(), 4);
@@ -561,7 +556,7 @@ mod tests {
         1 2
         2 3
         3 1";
-        let edge_list = EdgeList::new(edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         let idx2 = graph.contains_node(&2).unwrap();
@@ -584,7 +579,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph1(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -596,7 +591,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -608,7 +603,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph3(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -620,7 +615,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -632,7 +627,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -644,7 +639,7 @@ mod tests {
     #[bench]
     fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -656,7 +651,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph1(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -668,7 +663,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -680,7 +675,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph3(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -692,7 +687,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -704,7 +699,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -716,7 +711,7 @@ mod tests {
     #[bench]
     fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -728,7 +723,7 @@ mod tests {
     #[bench]
     fn prim_graph_1_2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -740,7 +735,7 @@ mod tests {
     #[bench]
     fn prim_graph_1_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -752,7 +747,7 @@ mod tests {
     #[bench]
     fn prim_graph_1_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -764,7 +759,7 @@ mod tests {
     #[bench]
     fn prim_graph_10_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -776,7 +771,7 @@ mod tests {
     #[bench]
     fn prim_graph_10_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -788,7 +783,7 @@ mod tests {
     #[bench]
     fn prim_graph_100_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -800,7 +795,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_1_2(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -812,7 +807,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_1_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -824,7 +819,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_1_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -836,7 +831,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_10_20(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -848,7 +843,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_10_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {
@@ -860,7 +855,7 @@ mod tests {
     #[bench]
     fn kruskal_graph_100_200(b: &mut Bencher) {
         let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
         b.iter(|| {

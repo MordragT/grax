@@ -8,7 +8,7 @@ use crate::{
     Direction, EdgeIndex, EdgeRef, GraphKind, NodeIndex,
 };
 
-pub trait GraphDataProvider<N, W>: Default {
+pub trait GraphDataProvider<N, W> {
     type AdjacentEdges<'a>: Iterator<Item = EdgeRef<'a, W>> + 'a
     where
         W: 'a,
@@ -76,6 +76,26 @@ pub struct AdjacencyList<const KIND: GraphKind, N, W> {
     pub(crate) nodes: Vec<N>,
     pub(crate) adjacencies: Vec<HashSet<NodeIndex>>,
     pub(crate) edges: HashMap<EdgeIndex, W>,
+}
+
+impl<const KIND: GraphKind, N, W> AdjacencyList<KIND, N, W> {
+    pub fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+            adjacencies: Vec::new(),
+            edges: HashMap::new(),
+        }
+    }
+
+    pub fn with_nodes(nodes: Vec<N>) -> Self {
+        let adjacencies = vec![HashSet::new(); nodes.len()];
+
+        Self {
+            nodes,
+            adjacencies,
+            edges: HashMap::new(),
+        }
+    }
 }
 
 impl<const KIND: GraphKind, N: PartialEq + Default, W: PartialEq + Default>

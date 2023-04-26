@@ -1,8 +1,5 @@
-use grph::{
-    deser::{EdgeList, EdgeListOptions},
-    UndirectedAdjGraph,
-};
-use std::{fs, time::Instant};
+use grph::{deser::EdgeList, UndirectedAdjGraph};
+use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     prim();
@@ -11,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
-    let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
@@ -35,7 +32,7 @@ fn prim() {
     4 6 0.7
     5 6 0.8
     6 0 0.9"#;
-    let edge_list = EdgeList::new(edge_list, EdgeListOptions { weighted: true });
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.prim();
 

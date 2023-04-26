@@ -3,137 +3,128 @@ use crate::{
     structure::{AdjacencyList, GraphDataProvider},
     Direction, GraphKind, NodeIndex,
 };
-use std::collections::{HashMap, HashSet};
-
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct EdgeListOptions {
-    pub weighted: bool,
-}
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct EdgeList {
-    list: String,
-    options: EdgeListOptions,
+pub struct EdgeList<N, W> {
+    parents: Vec<N>,
+    children: Vec<N>,
+    weights: Vec<W>,
+    node_count: usize,
 }
 
-impl EdgeList {
-    pub fn new(list: &str, options: EdgeListOptions) -> Self {
+impl<N, W> EdgeList<N, W> {
+    pub fn with(list: impl Iterator<Item = (N, N, W)>, node_count: usize) -> Self {
+        let ((parents, children), weights) =
+            list.map(|(from, to, weight)| ((from, to), weight)).unzip();
+
         Self {
-            list: list.to_owned(),
-            options,
+            parents,
+            children,
+            weights,
+            node_count,
         }
     }
 }
 
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjacencyList<KIND, usize, f64> {
-    type Error = GraphError;
+impl FromStr for EdgeList<usize, ()> {
+    type Err = GraphError;
 
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
-        if !edge_list.options.weighted {
-            return Err(GraphError::BadEdgeListFormat);
-        }
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut lines = s.lines();
 
-        let mut lines = edge_list.list.lines();
+        let node_count = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
+        let node_count = usize::from_str_radix(node_count, 10)?;
 
-        let nodes_len = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
-        let nodes_len = usize::from_str_radix(nodes_len, 10)?;
+        let edge_list = lines
+            .map(|line| -> Result<(usize, usize, ()), Self::Err> {
+                let mut split = line.split_whitespace();
+                let from = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+                let to = split.next().ok_or(GraphError::BadEdgeListFormat)?;
 
-        let mut graph = Self {
-            nodes: vec![0; nodes_len],
-            adjacencies: vec![HashSet::new(); nodes_len],
-            edges: HashMap::new(),
-        };
+                let from = from.parse::<usize>()?;
+                let to = to.parse::<usize>()?;
+                Ok((from, to, ()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
-        for line in lines {
-            let mut split = line.split_whitespace();
-            let left = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let right = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let weight = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-
-            let left = usize::from_str_radix(left, 10)?;
-            let right = usize::from_str_radix(right, 10)?;
-            let left_idx = NodeIndex(left);
-            let right_idx = NodeIndex(right);
-
-            let weight = weight.parse()?;
-
-            // panics if out of range
-            graph.nodes[left] = left;
-            graph.nodes[right] = right;
-
-            match KIND {
-                GraphKind::Directed => {
-                    graph.add_edge(left_idx, right_idx, weight, Direction::Outgoing)?;
-                }
-                GraphKind::Undirected => {
-                    graph.add_edge(left_idx, right_idx, weight, Direction::Outgoing)?;
-                    graph.add_edge(left_idx, right_idx, weight, Direction::Incoming)?;
-                }
-            }
-        }
-
-        Ok(graph)
+        Ok(Self::with(edge_list.into_iter(), node_count))
     }
 }
 
-impl<const KIND: GraphKind> TryFrom<EdgeList> for AdjacencyList<KIND, usize, ()> {
+impl FromStr for EdgeList<usize, f64> {
+    type Err = GraphError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut lines = s.lines();
+
+        let node_count = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
+        let node_count = usize::from_str_radix(node_count, 10)?;
+
+        let edge_list = lines
+            .map(|line| -> Result<(usize, usize, f64), Self::Err> {
+                let mut split = line.split_whitespace();
+                let from = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+                let to = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+                let weight = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+
+                let from = from.parse::<usize>()?;
+                let to = to.parse::<usize>()?;
+                let weight = weight.parse::<f64>()?;
+                Ok((from, to, weight))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self::with(edge_list.into_iter(), node_count))
+    }
+}
+
+impl<const KIND: GraphKind, W: Default + Copy> TryFrom<EdgeList<usize, W>>
+    for AdjacencyList<KIND, usize, W>
+{
     type Error = GraphError;
 
-    fn try_from(edge_list: EdgeList) -> Result<Self, Self::Error> {
-        if edge_list.options.weighted {
-            return Err(GraphError::BadEdgeListFormat);
-        }
+    fn try_from(edge_list: EdgeList<usize, W>) -> Result<Self, Self::Error> {
+        let EdgeList {
+            parents,
+            children,
+            weights,
+            node_count,
+        } = edge_list;
 
-        let mut lines = edge_list.list.lines();
+        let mut adj_list = AdjacencyList::with_nodes(vec![0; node_count]);
 
-        let nodes_len = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
-        let nodes_len = usize::from_str_radix(nodes_len, 10)?;
+        for ((from, to), weight) in parents
+            .into_iter()
+            .zip(children.into_iter())
+            .zip(weights.into_iter())
+        {
+            adj_list.nodes[from] = from;
+            adj_list.nodes[to] = to;
 
-        let mut graph = Self {
-            nodes: vec![0; nodes_len],
-            adjacencies: vec![HashSet::new(); nodes_len],
-            edges: HashMap::new(),
-        };
+            let from_idx = NodeIndex(from);
+            let to_idx = NodeIndex(to);
 
-        for line in lines {
-            let mut split = line.split_whitespace();
-            let left = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let right = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-
-            let left = usize::from_str_radix(left, 10)?;
-            let right = usize::from_str_radix(right, 10)?;
-            let left_idx = NodeIndex(left);
-            let right_idx = NodeIndex(right);
-
-            // panics if out of range
-            graph.nodes[left] = left;
-            graph.nodes[right] = right;
-
-            match KIND {
-                GraphKind::Directed => {
-                    graph.add_edge(left_idx, right_idx, (), Direction::Outgoing)?;
-                }
-                GraphKind::Undirected => {
-                    graph.add_edge(left_idx, right_idx, (), Direction::Outgoing)?;
-                    graph.add_edge(left_idx, right_idx, (), Direction::Incoming)?;
-                }
+            if KIND == GraphKind::Undirected {
+                adj_list.add_edge(from_idx, to_idx, weight, Direction::Incoming)?;
             }
+            adj_list.add_edge(from_idx, to_idx, weight, Direction::Outgoing)?;
         }
 
-        Ok(graph)
+        Ok(adj_list)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::{EdgeList, EdgeListOptions};
+    use super::EdgeList;
     use crate::{structure::AdjacencyList, GraphKind};
-    use std::fs;
+    use std::{fs, str::FromStr};
 
     #[test]
     fn unweighted() {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: false });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let _adj_list =
             AdjacencyList::<{ GraphKind::Directed }, usize, ()>::try_from(edge_list.clone())
                 .unwrap();
@@ -144,7 +135,7 @@ mod test {
     #[test]
     fn weighted() {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
-        let edge_list = EdgeList::new(&edge_list, EdgeListOptions { weighted: true });
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let _adj_list =
             AdjacencyList::<{ GraphKind::Directed }, usize, f64>::try_from(edge_list.clone())
                 .unwrap();
