@@ -1,6 +1,5 @@
 use crate::{
-    error::GraphError,
-    structure::{AdjacencyList, GraphDataProvider},
+    adjacency_list::AdjacencyList, error::GraphError, graph::data_provider::GraphDataProvider,
     Direction, GraphKind, NodeIndex,
 };
 use std::str::FromStr;
@@ -118,7 +117,7 @@ impl<const KIND: GraphKind, W: Default + Copy> TryFrom<EdgeList<usize, W>>
 #[cfg(test)]
 mod test {
     use super::EdgeList;
-    use crate::{structure::AdjacencyList, GraphKind};
+    use crate::{adjacency_list::AdjacencyList, GraphKind};
     use std::{fs, str::FromStr};
 
     #[test]

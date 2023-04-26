@@ -1,4 +1,4 @@
-use grph::{deser::EdgeList, UndirectedAdjGraph};
+use grph::{edge_list::EdgeList, graph::UndirectedAdjGraph};
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
