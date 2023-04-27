@@ -10,13 +10,16 @@ impl UnionFind {
         let mut root = needle;
         let mut path = vec![];
 
-        // cache in path
         while self.parent[root.0] != root {
             path.push(root);
             root = self.parent[root.0];
         }
 
         // set root of every cached index in path to "root"
+        // when union find is run for a longer time the
+        // performance might degrade as find must traverse
+        // more parents in the former loop
+        // this allows to skip intermediate nodes and improves the performance
         for index in path {
             self.parent[index.0] = root;
         }
@@ -31,6 +34,7 @@ impl UnionFind {
         }
 
         // keep depth of trees small by appending small tree to big tree
+        // ensures find operation is not doing effectively a linked list search
         if self.size[root_x.0] < self.size[root_y.0] {
             std::mem::swap(&mut root_x, &mut root_y);
         }
