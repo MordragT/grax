@@ -313,6 +313,18 @@ impl<
 
         total_weight
     }
+
+    pub fn nearest_neighbor(&self) -> W {
+        todo!()
+    }
+
+    pub fn double_tree(&self) -> W {
+        todo!()
+    }
+
+    pub fn branch_bound(&self) -> W {
+        todo!()
+    }
 }
 
 impl<const KIND: GraphKind, N: Default, W: Default> From<AdjacencyList<KIND, N, W>>
