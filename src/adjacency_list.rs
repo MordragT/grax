@@ -40,8 +40,8 @@ impl<const KIND: GraphKind, N, W> AdjacencyList<KIND, N, W> {
 impl<const KIND: GraphKind, N: PartialEq + Default, W: PartialEq + Default>
     GraphDataProviderExt<N, W> for AdjacencyList<KIND, N, W>
 {
-    fn contains_edge(&self, left: NodeIndex, right: NodeIndex) -> Option<EdgeIndex> {
-        let index = EdgeIndex::new(left, right, 0);
+    fn contains_edge(&self, from: NodeIndex, to: NodeIndex) -> Option<EdgeIndex> {
+        let index = EdgeIndex::new(from, to);
         if self.edges.contains_key(&index) {
             Some(index)
         } else {
@@ -80,7 +80,7 @@ impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
     }
     fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a> {
         self.adjacent_indices(index).map(move |child| {
-            let edge_index = EdgeIndex::new(index, child, 0);
+            let edge_index = EdgeIndex::new(index, child);
             let weight = self.weight(edge_index);
             EdgeRef::new(index, child, weight)
         })
@@ -111,7 +111,7 @@ impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
 
         assert!(self.adjacencies[from.0].insert(to));
 
-        let index = EdgeIndex::new(from, to, 0);
+        let index = EdgeIndex::new(from, to);
 
         assert!(self.edges.insert(index, weight).is_none());
 

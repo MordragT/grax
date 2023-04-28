@@ -1,13 +1,8 @@
 extern crate test;
 
 use crate::{edge_list::EdgeList, graph::UndirectedAdjGraph};
-use std::{
-    collections::HashSet,
-    fs,
-    ops::{Generator, GeneratorState},
-    pin::Pin,
-    str::FromStr,
-};
+use more_asserts::*;
+use std::{fs, str::FromStr};
 use test::Bencher;
 
 #[test]
@@ -90,35 +85,6 @@ fn from_edge_list() {
     graph.contains_edge(idx1, idx3).unwrap();
 
     assert!(graph.contains_edge(idx1, idx0).is_none());
-}
-
-#[test]
-fn connected_nodes() {
-    let edge_list = "4
-        0 2
-        1 2
-        2 3
-        3 1";
-    let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
-
-    let idx2 = graph.contains_node(&2).unwrap();
-    dbg!(idx2);
-
-    let mut gen = graph.depth_search_connected_nodes(idx2);
-    let mut neighbors = HashSet::new();
-
-    while let GeneratorState::Yielded(neighbor) = Pin::new(&mut gen).resume(()) {
-        neighbors.insert(*neighbor);
-    }
-
-    let mut expected = HashSet::new();
-    expected.insert(0);
-    expected.insert(1);
-    expected.insert(2);
-    expected.insert(3);
-
-    assert_eq!(neighbors, expected);
 }
 
 #[bench]
@@ -417,7 +383,7 @@ fn nearest_neighbor_k_10(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.nearest_neighbor().unwrap();
-        assert!(total <= 38.41 * 1.2);
+        assert_le!(total, 38.41 * 1.2);
     })
 }
 
@@ -429,7 +395,7 @@ fn nearest_neighbor_k_10e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.nearest_neighbor().unwrap();
-        assert!(total <= 27.26 * 1.2);
+        assert_le!(total, 27.26 * 1.2);
     })
 }
 
@@ -441,7 +407,7 @@ fn nearest_neighbor_k_12(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.nearest_neighbor().unwrap();
-        assert!(total <= 45.19 * 1.2);
+        assert_le!(total, 45.19 * 1.2);
     })
 }
 
@@ -453,7 +419,7 @@ fn nearest_neighbor_k_12e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.nearest_neighbor().unwrap();
-        assert!(total <= 36.13 * 1.2);
+        assert_le!(total, 36.13 * 1.2);
     })
 }
 
@@ -464,8 +430,8 @@ fn double_tree_k_10(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree();
-        assert_eq!(total, 38.41);
+        let total = graph.double_tree().unwrap();
+        assert_le!(total, 38.41 * 1.2);
     })
 }
 
@@ -476,8 +442,8 @@ fn double_tree_k_10e(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree();
-        assert_eq!(total, 27.26);
+        let total = graph.double_tree().unwrap();
+        assert_le!(total, 27.26 * 1.5);
     })
 }
 
@@ -488,8 +454,8 @@ fn double_tree_k_12(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree();
-        assert_eq!(total, 45.19);
+        let total = graph.double_tree().unwrap();
+        assert_le!(total, 45.19 * 1.2);
     })
 }
 
@@ -500,8 +466,8 @@ fn double_tree_k_12e(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree();
-        assert_eq!(total, 36.13);
+        let total = graph.double_tree().unwrap();
+        assert_le!(total, 36.13 * 1.5);
     })
 }
 

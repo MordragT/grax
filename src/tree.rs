@@ -3,15 +3,20 @@ use crate::NodeIndex;
 pub struct UnionFind {
     parent: Vec<NodeIndex>,
     rank: Vec<usize>,
+    path: Vec<NodeIndex>,
 }
 
 impl UnionFind {
+    pub fn into_root(self) -> NodeIndex {
+        self.parent[0]
+    }
+
     pub fn find(&mut self, needle: NodeIndex) -> NodeIndex {
         let mut root = needle;
-        let mut path = vec![];
+        self.path.clear();
 
         while self.parent[root.0] != root {
-            path.push(root);
+            self.path.push(root);
             root = self.parent[root.0];
         }
 
@@ -20,7 +25,7 @@ impl UnionFind {
         // performance might degrade as find must traverse
         // more parents in the former loop
         // this allows to skip intermediate nodes and improves the performance
-        for index in path {
+        for index in &self.path {
             self.parent[index.0] = root;
         }
         root
@@ -47,11 +52,15 @@ impl UnionFind {
 // Meaning that every tree == 1 node
 impl<T: Iterator<Item = NodeIndex>> From<T> for UnionFind {
     fn from(nodes: T) -> Self {
-        let mut parent: Vec<NodeIndex> = nodes.collect();
-        parent.sort();
+        let parent: Vec<NodeIndex> = nodes.collect();
+        //parent.sort();
 
         let rank = vec![1; parent.len()];
 
-        Self { parent, rank }
+        Self {
+            parent,
+            rank,
+            path: Vec::new(),
+        }
     }
 }

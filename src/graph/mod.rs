@@ -1,18 +1,13 @@
 use crate::{
     adjacency_list::AdjacencyList,
+    edge::EdgeRef,
     edge_list::EdgeList,
     error::{GraphError, GraphResult},
     tree::UnionFind,
     Direction, EdgeIndex, NodeIndex,
 };
 use priq::PriorityQueue;
-use std::{
-    cmp::Ordering,
-    collections::VecDeque,
-    fmt::Debug,
-    marker::PhantomData,
-    ops::{AddAssign, Generator},
-};
+use std::{cmp::Ordering, collections::VecDeque, fmt::Debug, marker::PhantomData, ops::AddAssign};
 
 use self::data_provider::{GraphDataProvider, GraphDataProviderExt};
 
@@ -85,100 +80,80 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
         self.data.weight_mut(index)
     }
 
-    fn depth_search(&self, root: usize, markers: &mut Vec<u32>, counter: u32) {
+    fn depth_search<M: Default + PartialEq + Copy, F>(
+        &self,
+        root: NodeIndex,
+        markers: &mut Vec<M>,
+        mark: M,
+        mut f: F,
+    ) where
+        F: FnMut(EdgeIndex),
+    {
         let mut stack = Vec::new();
         stack.push(root);
-        markers[root] = counter;
+        markers[root.0] = mark;
 
-        while let Some(idx) = stack.pop() {
-            for node in self.data.adjacent_indices(NodeIndex(idx)) {
-                if markers[node.0] == 0 {
-                    stack.push(node.0);
-                    markers[node.0] = counter;
+        while let Some(from) = stack.pop() {
+            for to in self.data.adjacent_indices(from) {
+                if markers[to.0] == M::default() {
+                    stack.push(to);
+                    markers[to.0] = mark;
+                    f(EdgeIndex::new(from, to));
                 }
             }
         }
     }
 
-    fn breadth_search(&self, root: usize, markers: &mut Vec<u32>, counter: u32) {
+    fn breadth_search<M: Default + PartialEq + Copy, F>(
+        &self,
+        root: NodeIndex,
+        markers: &mut Vec<M>,
+        mark: M,
+        mut f: F,
+    ) where
+        F: FnMut(EdgeIndex),
+    {
         let mut queue = VecDeque::new();
         queue.push_front(root);
-        markers[root] = counter;
+        markers[root.0] = mark;
 
-        while let Some(idx) = queue.pop_front() {
-            for node in self.data.adjacent_indices(NodeIndex(idx)) {
-                if markers[node.0] == 0 {
-                    queue.push_back(node.0);
-                    markers[node.0] = counter;
+        while let Some(from) = queue.pop_front() {
+            for to in self.data.adjacent_indices(from) {
+                if markers[to.0] == M::default() {
+                    queue.push_back(to);
+                    markers[to.0] = mark;
+                    f(EdgeIndex::new(from, to));
                 }
             }
         }
     }
 
-    fn search_connected_components(
-        &self,
-        search: impl Fn(&Self, usize, &mut Vec<u32>, u32),
-    ) -> u32 {
+    pub fn depth_search_connected_components(&self) -> u32 {
         let mut counter = 0;
         let mut markers = vec![0; self.data.node_count()];
 
-        for root in 0..self.data.node_count() {
-            if markers[root] == 0 {
+        for root in self.data.indices() {
+            if markers[root.0] == 0 {
                 counter += 1;
-                search(&self, root, &mut markers, counter)
+                self.depth_search(root, &mut markers, counter, |_| ());
             }
         }
 
         counter
     }
 
-    pub fn depth_search_connected_components(&self) -> u32 {
-        self.search_connected_components(Self::depth_search)
-    }
-
     pub fn breadth_search_connected_components(&self) -> u32 {
-        self.search_connected_components(Self::breadth_search)
-    }
+        let mut counter = 0;
+        let mut markers = vec![0; self.data.node_count()];
 
-    pub fn depth_search_connected_nodes(&self, root: NodeIndex) -> impl Generator<Yield = &N> + '_ {
-        move || {
-            let mut visited = vec![false; self.data.node_count()];
-            let mut stack = Vec::new();
-            visited[root.0] = true;
-            stack.push(root);
-
-            while let Some(idx) = stack.pop() {
-                yield self.get(idx);
-                for node in self.data.adjacent_indices(idx) {
-                    if visited[node.0] == false {
-                        stack.push(node);
-                        visited[node.0] = true;
-                    }
-                }
+        for root in self.data.indices() {
+            if markers[root.0] == 0 {
+                counter += 1;
+                self.breadth_search(root, &mut markers, counter, |_| ());
             }
         }
-    }
 
-    pub fn breadth_search_connected_nodes(
-        &self,
-        root: NodeIndex,
-    ) -> impl Generator<Yield = &N> + '_ {
-        move || {
-            let mut visited = vec![false; self.data.node_count()];
-            let mut queue = VecDeque::new();
-            visited[root.0] = true;
-            queue.push_back(root);
-
-            while let Some(idx) = queue.pop_front() {
-                yield self.get(idx);
-                for node in self.data.adjacent_indices(idx) {
-                    if visited[node.0] == false {
-                        queue.push_back(node);
-                        visited[node.0] = true;
-                    }
-                }
-            }
-        }
+        counter
     }
 
     pub fn node_count(&self) -> usize {
@@ -250,26 +225,30 @@ impl<
     > Graph<KIND, N, W, D>
 {
     pub fn kruskal(&self) -> W {
-        let mut priority_queue = self
-            .data
-            .edges()
-            .map(|edge| (edge.weight, (edge.from, edge.to)))
-            .collect::<Vec<_>>();
-        priority_queue.sort_unstable_by(|this, other| this.0.sort(other.0));
+        let mut total_weight = W::default();
+        self.inner_kruskal(|edge| total_weight += edge.weight.to_owned());
+        total_weight
+    }
+
+    /// Returns the root node of union find
+    fn inner_kruskal<F>(&self, mut f: F) -> NodeIndex
+    where
+        F: FnMut(EdgeRef<W>),
+    {
+        let mut priority_queue = self.data.edges().collect::<Vec<_>>();
+        priority_queue.sort_unstable_by(|this, other| this.weight.sort(other.weight));
 
         let mut union_find = UnionFind::from(self.data.indices());
-        let mut total_weight = W::default();
 
-        for (weight, (from, to)) in priority_queue {
-            if union_find.find(from) == union_find.find(to) {
+        for edge in priority_queue {
+            if union_find.find(edge.from) == union_find.find(edge.to) {
                 continue;
             }
-
-            union_find.union(from, to);
-            total_weight += weight.to_owned();
+            union_find.union(edge.from, edge.to);
+            f(edge);
         }
 
-        total_weight
+        union_find.into_root()
     }
 
     pub fn prim(&self) -> W {
@@ -318,7 +297,7 @@ impl<
 impl<
         const KIND: GraphKind,
         N: PartialEq,
-        W: PartialOrd + PartialEq + Default + AddAssign + ToOwned<Owned = W>,
+        W: Sortable + PartialOrd + PartialEq + Default + AddAssign + ToOwned<Owned = W>,
         D: GraphDataProviderExt<N, W>,
     > Graph<KIND, N, W, D>
 {
@@ -368,8 +347,21 @@ impl<
         Err(GraphError::NNAbort)
     }
 
-    pub fn double_tree(&self) -> W {
-        todo!()
+    pub fn double_tree(&self) -> GraphResult<W> {
+        let root = self.inner_kruskal(|_| ());
+        let mut visited = vec![false; self.node_count()];
+        let mut total_weight = W::default();
+
+        self.depth_search(root, &mut visited, true, |index| {
+            let weight = self.weight(index);
+            total_weight += weight.to_owned();
+        });
+
+        if visited.into_iter().all(|visit| visit == true) {
+            Ok(total_weight)
+        } else {
+            Err(GraphError::NoCycle)
+        }
     }
 
     pub fn branch_bound(&self) -> W {

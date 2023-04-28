@@ -19,4 +19,6 @@ pub enum GraphError {
     ParseFloatError(#[from] ParseFloatError),
     #[error("Could not find tsp solution with nearest neighbor")]
     NNAbort,
+    #[error("Not all nodes have been visited")]
+    NoCycle,
 }
