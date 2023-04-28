@@ -2,6 +2,7 @@
 #![feature(generators, generator_trait)]
 #![feature(test)]
 #![feature(type_alias_impl_trait)]
+#![feature(specialization)]
 
 pub use graph::{Graph, GraphKind};
 

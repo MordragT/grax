@@ -2,7 +2,7 @@ use crate::NodeIndex;
 
 pub struct UnionFind {
     parent: Vec<NodeIndex>,
-    size: Vec<usize>,
+    rank: Vec<usize>,
 }
 
 impl UnionFind {
@@ -35,11 +35,11 @@ impl UnionFind {
 
         // keep depth of trees small by appending small tree to big tree
         // ensures find operation is not doing effectively a linked list search
-        if self.size[root_x.0] < self.size[root_y.0] {
+        if self.rank[root_x.0] < self.rank[root_y.0] {
             std::mem::swap(&mut root_x, &mut root_y);
         }
         self.parent[root_y.0] = root_x;
-        self.size[root_x.0] += self.size[root_y.0];
+        self.rank[root_x.0] += self.rank[root_y.0];
     }
 }
 
@@ -50,8 +50,8 @@ impl<T: Iterator<Item = NodeIndex>> From<T> for UnionFind {
         let mut parent: Vec<NodeIndex> = nodes.collect();
         parent.sort();
 
-        let size = vec![1; parent.len()];
+        let rank = vec![1; parent.len()];
 
-        Self { parent, size }
+        Self { parent, rank }
     }
 }

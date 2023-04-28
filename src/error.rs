@@ -7,10 +7,10 @@ pub type GraphResult<T> = Result<T, GraphError>;
 
 #[derive(Debug, Error)]
 pub enum GraphError {
-    #[error("The edge between {left:?} and {right:?} already exists.")]
-    EdgeAlreadyExists { left: NodeIndex, right: NodeIndex },
-    #[error("Two sided edge forbidden between {left:?} and {right:?} in directed graph.")]
-    TwoSidedEdgeForbidden { left: NodeIndex, right: NodeIndex },
+    #[error("The edge between {from:?} and {to:?} already exists.")]
+    EdgeAlreadyExists { from: NodeIndex, to: NodeIndex },
+    #[error("Two sided edge forbidden between {from:?} and {to:?} in directed graph.")]
+    TwoSidedEdgeForbidden { from: NodeIndex, to: NodeIndex },
     #[error("The given edge list has a bad format")]
     BadEdgeListFormat,
     #[error("ParseIntError: {0}")]

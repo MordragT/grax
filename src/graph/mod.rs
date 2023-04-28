@@ -7,6 +7,7 @@ use crate::{
 };
 use priq::PriorityQueue;
 use std::{
+    cmp::Ordering,
     collections::VecDeque,
     fmt::Debug,
     marker::PhantomData,
@@ -228,10 +229,32 @@ impl<const KIND: GraphKind, N, W: Clone, D: GraphDataProvider<N, W>> Graph<KIND,
     }
 }
 
+pub trait Sortable: PartialOrd {
+    fn sort(&self, other: &Self) -> Ordering;
+}
+
+default impl<T: PartialOrd> Sortable for T {
+    default fn sort(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl Sortable for f64 {
+    fn sort(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
+}
+
+impl Sortable for f32 {
+    fn sort(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
+}
+
 impl<
         const KIND: GraphKind,
         N,
-        W: PartialOrd + Default + AddAssign + ToOwned<Owned = W>,
+        W: Sortable + Default + AddAssign + ToOwned<Owned = W>,
         D: GraphDataProvider<N, W>,
     > Graph<KIND, N, W, D>
 {
@@ -240,12 +263,13 @@ impl<
             .data
             .edges()
             .map(|edge| (edge.weight, (edge.from, edge.to)))
-            .collect::<PriorityQueue<_, _>>();
+            .collect::<Vec<_>>();
+        priority_queue.sort_unstable_by(|this, other| this.0.sort(other.0));
 
         let mut union_find = UnionFind::from(self.data.indices());
         let mut total_weight = W::default();
 
-        while let Some((weight, (from, to))) = priority_queue.pop() {
+        for (weight, (from, to)) in priority_queue {
             if union_find.find(from) == union_find.find(to) {
                 continue;
             }
@@ -279,7 +303,7 @@ impl<
                 continue;
             }
             visited[to.0] = true;
-            total_weight += weight.to_owned();
+            total_weight += weight;
 
             for edge in self.data.adjacent_edges(to) {
                 if !visited[edge.to.0] {

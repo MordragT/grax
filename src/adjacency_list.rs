@@ -95,26 +95,23 @@ impl<const KIND: GraphKind, N: Default, W: Default> GraphDataProvider<N, W>
 
     fn add_edge(
         &mut self,
-        left: NodeIndex,
-        right: NodeIndex,
+        from: NodeIndex,
+        to: NodeIndex,
         weight: W,
         direction: Direction,
     ) -> GraphResult<EdgeIndex> {
-        let (parent, child) = match direction {
-            Direction::Incoming => (right, left),
-            Direction::Outgoing => (left, right),
+        let (from, to) = match direction {
+            Direction::Incoming => (to, from),
+            Direction::Outgoing => (from, to),
         };
 
-        if self.adjacencies[parent.0].contains(&child) {
-            return Err(GraphError::EdgeAlreadyExists {
-                left: parent,
-                right: child,
-            });
+        if self.adjacencies[from.0].contains(&to) {
+            return Err(GraphError::EdgeAlreadyExists { from, to });
         }
 
-        assert!(self.adjacencies[parent.0].insert(child));
+        assert!(self.adjacencies[from.0].insert(to));
 
-        let index = EdgeIndex::new(parent, child, 0);
+        let index = EdgeIndex::new(from, to, 0);
 
         assert!(self.edges.insert(index, weight).is_none());
 
