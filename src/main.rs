@@ -12,7 +12,7 @@ fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
-    let (counter, _markers) = graph.breadth_search_connected_components();
+    let counter = graph.breadth_search_connected_components();
     let elapsed = now.elapsed();
 
     println!("Counter: {counter} in {:?}", elapsed);

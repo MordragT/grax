@@ -85,52 +85,6 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
         self.data.weight_mut(index)
     }
 
-    // TODO fix double loop
-    fn depth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
-        move || {
-            let mut visited = vec![false; self.data.node_count()];
-            let mut stack = Vec::new();
-            visited[root] = true;
-
-            for node in self.data.adjacent_indices(NodeIndex(root)) {
-                stack.push(node.0)
-            }
-
-            while let Some(idx) = stack.pop() {
-                visited[idx] = true;
-                yield self.get(NodeIndex(idx));
-                for node in self.data.adjacent_indices(NodeIndex(idx)) {
-                    if visited[idx] == false {
-                        stack.push(node.0);
-                    }
-                }
-            }
-        }
-    }
-
-    // TODO fix double loop
-    fn _breadth_search_generator(&self, root: usize) -> impl Generator<Yield = &N> + '_ {
-        move || {
-            let mut visited = vec![false; self.data.node_count()];
-            let mut queue = VecDeque::new();
-            visited[root] = true;
-
-            for node in self.data.adjacent_indices(NodeIndex(root)) {
-                queue.push_back(node.0)
-            }
-
-            while let Some(idx) = queue.pop_front() {
-                visited[idx] = true;
-                yield self.get(NodeIndex(idx));
-                for node in self.data.adjacent_indices(NodeIndex(idx)) {
-                    if visited[idx] == false {
-                        queue.push_back(node.0);
-                    }
-                }
-            }
-        }
-    }
-
     fn depth_search(&self, root: usize, markers: &mut Vec<u32>, counter: u32) {
         let mut stack = Vec::new();
         stack.push(root);
@@ -164,7 +118,7 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
     fn search_connected_components(
         &self,
         search: impl Fn(&Self, usize, &mut Vec<u32>, u32),
-    ) -> (u32, Vec<u32>) {
+    ) -> u32 {
         let mut counter = 0;
         let mut markers = vec![0; self.data.node_count()];
 
@@ -175,19 +129,56 @@ impl<const KIND: GraphKind, N, W, D: GraphDataProvider<N, W>> Graph<KIND, N, W, 
             }
         }
 
-        (counter, markers)
+        counter
     }
 
-    pub fn depth_search_connected_components(&self) -> (u32, Vec<u32>) {
+    pub fn depth_search_connected_components(&self) -> u32 {
         self.search_connected_components(Self::depth_search)
     }
 
-    pub fn breadth_search_connected_components(&self) -> (u32, Vec<u32>) {
+    pub fn breadth_search_connected_components(&self) -> u32 {
         self.search_connected_components(Self::breadth_search)
     }
 
-    pub fn neighbors(&self, index: NodeIndex) -> impl Generator<Yield = &N> + '_ {
-        self.depth_search_generator(index.0)
+    pub fn depth_search_connected_nodes(&self, root: NodeIndex) -> impl Generator<Yield = &N> + '_ {
+        move || {
+            let mut visited = vec![false; self.data.node_count()];
+            let mut stack = Vec::new();
+            visited[root.0] = true;
+            stack.push(root);
+
+            while let Some(idx) = stack.pop() {
+                yield self.get(idx);
+                for node in self.data.adjacent_indices(idx) {
+                    if visited[node.0] == false {
+                        stack.push(node);
+                        visited[node.0] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn breadth_search_connected_nodes(
+        &self,
+        root: NodeIndex,
+    ) -> impl Generator<Yield = &N> + '_ {
+        move || {
+            let mut visited = vec![false; self.data.node_count()];
+            let mut queue = VecDeque::new();
+            visited[root.0] = true;
+            queue.push_back(root);
+
+            while let Some(idx) = queue.pop_front() {
+                yield self.get(idx);
+                for node in self.data.adjacent_indices(idx) {
+                    if visited[node.0] == false {
+                        queue.push_back(node);
+                        visited[node.0] = true;
+                    }
+                }
+            }
+        }
     }
 
     pub fn node_count(&self) -> usize {

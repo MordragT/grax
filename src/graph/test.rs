@@ -93,7 +93,7 @@ fn from_edge_list() {
 }
 
 #[test]
-fn neighbors() {
+fn connected_nodes() {
     let edge_list = "4
         0 2
         1 2
@@ -103,8 +103,9 @@ fn neighbors() {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     let idx2 = graph.contains_node(&2).unwrap();
+    dbg!(idx2);
 
-    let mut gen = graph.neighbors(idx2);
+    let mut gen = graph.depth_search_connected_nodes(idx2);
     let mut neighbors = HashSet::new();
 
     while let GeneratorState::Yielded(neighbor) = Pin::new(&mut gen).resume(()) {
@@ -114,6 +115,7 @@ fn neighbors() {
     let mut expected = HashSet::new();
     expected.insert(0);
     expected.insert(1);
+    expected.insert(2);
     expected.insert(3);
 
     assert_eq!(neighbors, expected);
@@ -126,7 +128,7 @@ fn breadth_search_connected_components_graph1(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 2);
     });
 }
@@ -138,7 +140,7 @@ fn breadth_search_connected_components_graph2(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 4);
     });
 }
@@ -150,7 +152,7 @@ fn breadth_search_connected_components_graph3(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 4);
     });
 }
@@ -162,7 +164,7 @@ fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 222);
     });
 }
@@ -174,7 +176,7 @@ fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 9560);
     });
 }
@@ -186,7 +188,7 @@ fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.breadth_search_connected_components();
+        let counter = graph.breadth_search_connected_components();
         assert_eq!(counter, 306);
     });
 }
@@ -198,7 +200,7 @@ fn depth_search_connected_components_graph1(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 2);
     });
 }
@@ -210,7 +212,7 @@ fn depth_search_connected_components_graph2(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 4);
     });
 }
@@ -222,7 +224,7 @@ fn depth_search_connected_components_graph3(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 4);
     });
 }
@@ -234,7 +236,7 @@ fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 222);
     });
 }
@@ -246,7 +248,7 @@ fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 9560);
     });
 }
@@ -258,7 +260,7 @@ fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let (counter, _markers) = graph.depth_search_connected_components();
+        let counter = graph.depth_search_connected_components();
         assert_eq!(counter, 306);
     });
 }
