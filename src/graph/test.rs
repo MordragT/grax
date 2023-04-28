@@ -443,7 +443,7 @@ fn double_tree_k_10e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();
-        assert_le!(total, 27.26 * 1.5);
+        assert_le!(total, 27.26 * 1.2);
     })
 }
 
@@ -467,7 +467,7 @@ fn double_tree_k_12e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();
-        assert_le!(total, 36.13 * 1.5);
+        assert_le!(total, 36.13 * 1.2);
     })
 }
 

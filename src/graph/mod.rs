@@ -3,7 +3,7 @@ use crate::{
     edge::EdgeRef,
     edge_list::EdgeList,
     error::{GraphError, GraphResult},
-    tree::UnionFind,
+    tree::{Tree, UnionFind},
     Direction, EdgeIndex, NodeIndex,
 };
 use priq::PriorityQueue;
@@ -226,19 +226,22 @@ impl<
 {
     pub fn kruskal(&self) -> W {
         let mut total_weight = W::default();
-        self.inner_kruskal(|edge| total_weight += edge.weight.to_owned());
+        self.inner_kruskal::<true, _>(|edge| total_weight += edge.weight.to_owned());
         total_weight
     }
 
     /// Returns the root node of union find
-    fn inner_kruskal<F>(&self, mut f: F) -> NodeIndex
+    fn inner_kruskal<const PATH_COMPRESSION: bool, F>(
+        &self,
+        mut f: F,
+    ) -> UnionFind<PATH_COMPRESSION>
     where
         F: FnMut(EdgeRef<W>),
     {
         let mut priority_queue = self.data.edges().collect::<Vec<_>>();
         priority_queue.sort_unstable_by(|this, other| this.weight.sort(other.weight));
 
-        let mut union_find = UnionFind::from(self.data.indices());
+        let mut union_find = UnionFind::<PATH_COMPRESSION>::from(self.data.indices());
 
         for edge in priority_queue {
             if union_find.find(edge.from) == union_find.find(edge.to) {
@@ -248,7 +251,7 @@ impl<
             f(edge);
         }
 
-        union_find.into_root()
+        union_find
     }
 
     pub fn prim(&self) -> W {
@@ -348,20 +351,24 @@ impl<
     }
 
     pub fn double_tree(&self) -> GraphResult<W> {
-        let root = self.inner_kruskal(|_| ());
-        let mut visited = vec![false; self.node_count()];
-        let mut total_weight = W::default();
+        // TODO return Tree instead of just root.
+        let tree = self
+            .inner_kruskal::<false, _>(|_| ())
+            .expect("INTERNAL ERROR");
+        // let mut visited = vec![false; self.node_count()];
+        // let mut total_weight = W::default();
 
-        self.depth_search(root, &mut visited, true, |index| {
-            let weight = self.weight(index);
-            total_weight += weight.to_owned();
-        });
+        // self.depth_search(root, &mut visited, true, |index| {
+        //     let weight = self.weight(index);
+        //     total_weight += weight.to_owned();
+        // });
 
-        if visited.into_iter().all(|visit| visit == true) {
-            Ok(total_weight)
-        } else {
-            Err(GraphError::NoCycle)
-        }
+        // if visited.into_iter().all(|visit| visit == true) {
+        //     Ok(total_weight)
+        // } else {
+        //     Err(GraphError::NoCycle)
+        // }
+        todo!()
     }
 
     pub fn branch_bound(&self) -> W {
