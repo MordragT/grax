@@ -3,11 +3,17 @@ use crate::{
     edge::EdgeRef,
     edge_list::EdgeList,
     error::{GraphError, GraphResult},
-    tree::{Tree, UnionFind},
+    tree::{TreeAdjacencies, UnionFind},
     Direction, EdgeIndex, NodeIndex,
 };
 use priq::PriorityQueue;
-use std::{cmp::Ordering, collections::VecDeque, fmt::Debug, marker::PhantomData, ops::AddAssign};
+use std::{
+    cmp::Ordering,
+    collections::{HashSet, VecDeque},
+    fmt::Debug,
+    marker::PhantomData,
+    ops::AddAssign,
+};
 
 use self::data_provider::{GraphDataProvider, GraphDataProviderExt};
 
@@ -226,22 +232,19 @@ impl<
 {
     pub fn kruskal(&self) -> W {
         let mut total_weight = W::default();
-        self.inner_kruskal::<true, _>(|edge| total_weight += edge.weight.to_owned());
+        self.inner_kruskal(|edge| total_weight += edge.weight.to_owned());
         total_weight
     }
 
     /// Returns the root node of union find
-    fn inner_kruskal<const PATH_COMPRESSION: bool, F>(
-        &self,
-        mut f: F,
-    ) -> UnionFind<PATH_COMPRESSION>
+    fn inner_kruskal<F>(&self, mut f: F) -> UnionFind
     where
         F: FnMut(EdgeRef<W>),
     {
         let mut priority_queue = self.data.edges().collect::<Vec<_>>();
         priority_queue.sort_unstable_by(|this, other| this.weight.sort(other.weight));
 
-        let mut union_find = UnionFind::<PATH_COMPRESSION>::from(self.data.indices());
+        let mut union_find = UnionFind::from(self.data.indices());
 
         for edge in priority_queue {
             if union_find.find(edge.from) == union_find.find(edge.to) {
@@ -352,9 +355,15 @@ impl<
 
     pub fn double_tree(&self) -> GraphResult<W> {
         // TODO return Tree instead of just root.
-        let tree = self
-            .inner_kruskal::<false, _>(|_| ())
-            .expect("INTERNAL ERROR");
+        let mut adjacencies = vec![HashSet::new(); self.node_count()];
+
+        let union_find = self.inner_kruskal(|edge| {
+            adjacencies[edge.from.0].insert(edge.to);
+        });
+
+        let root = union_find.into_root();
+        let mut graph = self.clone();
+
         // let mut visited = vec![false; self.node_count()];
         // let mut total_weight = W::default();
 

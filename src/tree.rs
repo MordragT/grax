@@ -1,45 +1,34 @@
 use crate::NodeIndex;
 
-pub struct Tree {
+pub struct TreeAdjacencies {
     root: NodeIndex,
-    parent: Vec<NodeIndex>,
+    adjacencies: Vec<Vec<NodeIndex>>,
 }
 
-impl Tree {
-    pub fn new(union_find: UnionFind<false>) -> Option<Self> {
-        let root = union_find.parent[0];
-        let parent = union_find.parent;
+impl TreeAdjacencies {
+    pub fn new(root: NodeIndex, adjacencies: Vec<Vec<NodeIndex>>) -> Self {
+        Self { root, adjacencies }
     }
 }
 
-impl From<UnionFind<false>> for Tree {
-    fn from(mut union_find: UnionFind<false>) -> Self {
-        let root = union_find.find(NodeIndex(0));
-        Self {
-            root,
-            parent: union_find.parent,
-        }
-    }
-}
-
-pub struct UnionFind<const PATH_COMPRESSION: bool> {
+pub struct UnionFind {
     parent: Vec<NodeIndex>,
     rank: Vec<usize>,
     path: Vec<NodeIndex>,
 }
 
-impl<const PATH_COMPRESSION: bool> UnionFind<PATH_COMPRESSION> {
+impl UnionFind {
+    pub fn into_root(self) -> NodeIndex {
+        self.parent[0]
+    }
+
     pub fn find(&mut self, needle: NodeIndex) -> NodeIndex {
         let mut root = needle;
 
-        if PATH_COMPRESSION {
-            self.path.clear();
-        }
+        self.path.clear();
 
         while self.parent[root.0] != root {
-            if PATH_COMPRESSION {
-                self.path.push(root);
-            }
+            self.path.push(root);
             root = self.parent[root.0];
         }
 
@@ -48,10 +37,8 @@ impl<const PATH_COMPRESSION: bool> UnionFind<PATH_COMPRESSION> {
         // performance might degrade as find must traverse
         // more parents in the former loop
         // this allows to skip intermediate nodes and improves the performance
-        if PATH_COMPRESSION {
-            for index in &self.path {
-                self.parent[index.0] = root;
-            }
+        for index in &self.path {
+            self.parent[index.0] = root;
         }
         root
     }
@@ -75,9 +62,7 @@ impl<const PATH_COMPRESSION: bool> UnionFind<PATH_COMPRESSION> {
 
 // Set every parent of each tree to itself
 // Meaning that every tree == 1 node
-impl<const PATH_COMPRESSION: bool, T: Iterator<Item = NodeIndex>> From<T>
-    for UnionFind<PATH_COMPRESSION>
-{
+impl<T: Iterator<Item = NodeIndex>> From<T> for UnionFind {
     fn from(nodes: T) -> Self {
         let parent: Vec<NodeIndex> = nodes.collect();
         //parent.sort();
