@@ -313,9 +313,59 @@ impl<
 
         total_weight
     }
+}
 
-    pub fn nearest_neighbor(&self) -> W {
-        todo!()
+impl<
+        const KIND: GraphKind,
+        N: PartialEq,
+        W: PartialOrd + PartialEq + Default + AddAssign + ToOwned<Owned = W>,
+        D: GraphDataProviderExt<N, W>,
+    > Graph<KIND, N, W, D>
+{
+    pub fn nearest_neighbor(&self) -> GraphResult<W> {
+        match self.data.indices().next() {
+            Some(start) => self.nearest_neighbor_inner(start),
+            None => Ok(W::default()),
+        }
+    }
+
+    fn nearest_neighbor_inner(&self, start: NodeIndex) -> GraphResult<W> {
+        let mut visited = vec![false; self.node_count()];
+        let mut total_weight = W::default();
+
+        let mut target = (start, W::default());
+
+        loop {
+            visited[target.0 .0] = true;
+            total_weight += target.1;
+
+            let mut next = None;
+
+            for edge in self.data.adjacent_edges(target.0) {
+                if !visited[edge.to.0] {
+                    if let Some((_, weight)) = next {
+                        if weight > edge.weight {
+                            next = Some((edge.to, edge.weight));
+                        }
+                    } else {
+                        next = Some((edge.to, edge.weight));
+                    }
+                }
+            }
+
+            target = match next {
+                Some((to, weight)) => (to, weight.to_owned()),
+                None => break,
+            };
+        }
+
+        if visited.into_iter().all(|visit| visit == true) {
+            if let Some(edge_index) = self.data.contains_edge(target.0, start) {
+                total_weight += self.data.weight(edge_index).to_owned();
+                return Ok(total_weight);
+            }
+        }
+        Err(GraphError::NNAbort)
     }
 
     pub fn double_tree(&self) -> W {

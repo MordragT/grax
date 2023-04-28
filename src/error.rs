@@ -17,4 +17,6 @@ pub enum GraphError {
     ParseIntError(#[from] ParseIntError),
     #[error("ParseFloatError: {0}")]
     ParseFloatError(#[from] ParseFloatError),
+    #[error("Could not find tsp solution with nearest neighbor")]
+    NNAbort,
 }

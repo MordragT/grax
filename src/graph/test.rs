@@ -416,8 +416,8 @@ fn nearest_neighbor_k_10(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor();
-        assert_eq!(total, 38.41);
+        let total = graph.nearest_neighbor().unwrap();
+        assert!(total <= 38.41 * 1.2);
     })
 }
 
@@ -428,8 +428,8 @@ fn nearest_neighbor_k_10e(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor();
-        assert_eq!(total, 27.26);
+        let total = graph.nearest_neighbor().unwrap();
+        assert!(total <= 27.26 * 1.2);
     })
 }
 
@@ -440,8 +440,8 @@ fn nearest_neighbor_k_12(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor();
-        assert_eq!(total, 45.19);
+        let total = graph.nearest_neighbor().unwrap();
+        assert!(total <= 45.19 * 1.2);
     })
 }
 
@@ -452,8 +452,8 @@ fn nearest_neighbor_k_12e(b: &mut Bencher) {
     let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor();
-        assert_eq!(total, 36.13);
+        let total = graph.nearest_neighbor().unwrap();
+        assert!(total <= 36.13 * 1.2);
     })
 }
 

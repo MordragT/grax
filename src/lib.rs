@@ -3,6 +3,7 @@
 #![feature(test)]
 #![feature(type_alias_impl_trait)]
 #![feature(specialization)]
+#![feature(let_chains)]
 
 pub use graph::{Graph, GraphKind};
 

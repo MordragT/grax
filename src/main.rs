@@ -2,22 +2,49 @@ use grph::{edge_list::EdgeList, graph::UndirectedAdjGraph};
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    prim();
+    nearest_neighbor("data/K_10.txt", Some(38.41));
+    nearest_neighbor("data/K_10e.txt", Some(27.26));
+    nearest_neighbor("data/K_12.txt", Some(45.19));
+    nearest_neighbor("data/K_12e.txt", Some(36.133));
+    nearest_neighbor("data/K_15.txt", None);
+    nearest_neighbor("data/K_15e.txt", None);
+    nearest_neighbor("data/K_20.txt", None);
+    nearest_neighbor("data/K_30.txt", None);
+    nearest_neighbor("data/K_50.txt", None);
+    nearest_neighbor("data/K_70.txt", None);
+    nearest_neighbor("data/K_100.txt", None);
+
     Ok(())
 }
 
-fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
-    let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
+fn nearest_neighbor(path: &str, optimal: Option<f32>) {
+    let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
+    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+    let total = graph.nearest_neighbor().unwrap() as f32;
+    match optimal {
+        Some(opt) => println!("{path} with {opt}: {total}"),
+        None => println!("{path}: {total}"),
+    }
+}
 
-    let now = Instant::now();
-    let counter = graph.breadth_search_connected_components();
-    let elapsed = now.elapsed();
+fn nn() {
+    let edge_list = EdgeList::with(
+        [
+            (0, 1, 1.0),
+            (1, 2, 1.0),
+            (2, 3, 1.0),
+            (3, 0, 10.0),
+            (0, 2, 2.0),
+            (1, 3, 2.0),
+        ]
+        .into_iter(),
+        4,
+    );
+    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+    let nn = graph.nearest_neighbor().unwrap();
 
-    println!("Counter: {counter} in {:?}", elapsed);
-
-    Ok(())
+    println!("{nn}")
 }
 
 fn prim() {
@@ -41,4 +68,20 @@ fn prim() {
     let total = graph.prim();
 
     assert_eq!(total, 2.5);
+
+    let nn = graph.nearest_neighbor().unwrap();
+}
+
+fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
+    let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
+
+    let now = Instant::now();
+    let counter = graph.breadth_search_connected_components();
+    let elapsed = now.elapsed();
+
+    println!("Counter: {counter} in {:?}", elapsed);
+
+    Ok(())
 }
