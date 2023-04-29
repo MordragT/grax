@@ -1,4 +1,4 @@
-use crate::NodeIndex;
+use crate::indices::NodeIndex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Edge<W> {
@@ -25,12 +25,12 @@ impl<W: PartialOrd> PartialOrd for Edge<W> {
     }
 }
 
-impl<'a, W: ToOwned<Owned = W>> From<EdgeRef<'a, W>> for Edge<W> {
+impl<'a, W: Clone> From<EdgeRef<'a, W>> for Edge<W> {
     fn from(edge_ref: EdgeRef<'a, W>) -> Self {
         Self {
             from: edge_ref.from,
             to: edge_ref.to,
-            weight: edge_ref.weight.to_owned(),
+            weight: edge_ref.weight.clone(),
         }
     }
 }

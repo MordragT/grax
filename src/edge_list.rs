@@ -1,15 +1,12 @@
-use crate::{
-    adjacency_list::AdjacencyList, error::GraphError, graph::data_provider::GraphDataProvider,
-    Direction, GraphKind, NodeIndex,
-};
+use crate::error::GraphError;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EdgeList<N, W> {
-    parents: Vec<N>,
-    children: Vec<N>,
-    weights: Vec<W>,
-    node_count: usize,
+    pub(crate) parents: Vec<N>,
+    pub(crate) children: Vec<N>,
+    pub(crate) weights: Vec<W>,
+    pub(crate) node_count: usize,
 }
 
 impl<N, W> EdgeList<N, W> {
@@ -78,67 +75,30 @@ impl FromStr for EdgeList<usize, f64> {
     }
 }
 
-impl<const KIND: GraphKind, W: Default + Copy> TryFrom<EdgeList<usize, W>>
-    for AdjacencyList<KIND, usize, W>
-{
-    type Error = GraphError;
-
-    fn try_from(edge_list: EdgeList<usize, W>) -> Result<Self, Self::Error> {
-        let EdgeList {
-            parents,
-            children,
-            weights,
-            node_count,
-        } = edge_list;
-
-        let mut adj_list = AdjacencyList::with_nodes(vec![0; node_count]);
-
-        for ((from, to), weight) in parents
-            .into_iter()
-            .zip(children.into_iter())
-            .zip(weights.into_iter())
-        {
-            adj_list.nodes[from] = from;
-            adj_list.nodes[to] = to;
-
-            let from_idx = NodeIndex(from);
-            let to_idx = NodeIndex(to);
-
-            if KIND == GraphKind::Undirected {
-                adj_list.add_edge(from_idx, to_idx, weight, Direction::Incoming)?;
-            }
-            adj_list.add_edge(from_idx, to_idx, weight, Direction::Outgoing)?;
-        }
-
-        Ok(adj_list)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::EdgeList;
-    use crate::{adjacency_list::AdjacencyList, GraphKind};
+    use crate::adjacency_list::AdjacencyList;
     use std::{fs, str::FromStr};
 
     #[test]
     fn unweighted() {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list =
-            AdjacencyList::<{ GraphKind::Directed }, usize, ()>::try_from(edge_list.clone())
-                .unwrap();
-        let _adj_list =
-            AdjacencyList::<{ GraphKind::Undirected }, usize, ()>::try_from(edge_list).unwrap();
+        let _adj_list = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
     }
 
     #[test]
     fn weighted() {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list =
-            AdjacencyList::<{ GraphKind::Directed }, usize, f64>::try_from(edge_list.clone())
-                .unwrap();
-        let _adj_list =
-            AdjacencyList::<{ GraphKind::Undirected }, usize, f64>::try_from(edge_list).unwrap();
+        let _adj_list = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    }
+
+    #[test]
+    fn directed() {
+        let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
+        let edge_list = EdgeList::from_str(&edge_list).unwrap();
+        let _adj_list = AdjacencyList::<usize, ()>::from_edge_list(edge_list, true).unwrap();
     }
 }

@@ -1,4 +1,4 @@
-use grph::{edge_list::EdgeList, graph::UndirectedAdjGraph};
+use grph::prelude::*;
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn nearest_neighbor(path: &str, optimal: Option<f32>) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.nearest_neighbor().unwrap() as f32;
     match optimal {
         Some(opt) => println!("{path} with {opt}: {total}"),
@@ -41,7 +41,7 @@ fn nn() {
         .into_iter(),
         4,
     );
-    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let nn = graph.nearest_neighbor().unwrap();
 
     println!("{nn}")
@@ -64,7 +64,7 @@ fn prim() {
         .into_iter(),
         7,
     );
-    let graph = UndirectedAdjGraph::<usize, f64>::try_from(edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.prim();
 
     assert_eq!(total, 2.5);
@@ -75,7 +75,7 @@ fn prim() {
 fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = UndirectedAdjGraph::<usize, ()>::try_from(edge_list).unwrap();
+    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
 
     let now = Instant::now();
     let counter = graph.breadth_search_connected_components();

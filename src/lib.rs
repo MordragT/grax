@@ -4,8 +4,6 @@
 #![feature(specialization)]
 #![feature(let_chains)]
 
-pub use graph::{Graph, GraphKind};
-
 pub mod adjacency_list;
 pub mod edge;
 pub mod edge_list;
@@ -13,24 +11,27 @@ pub mod error;
 pub mod graph;
 pub mod tree;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct NodeIndex(usize);
+pub mod indices {
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+    pub struct NodeIndex(pub(crate) usize);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EdgeIndex {
-    pub(crate) from: NodeIndex,
-    pub(crate) to: NodeIndex,
-}
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct EdgeIndex {
+        pub(crate) from: NodeIndex,
+        pub(crate) to: NodeIndex,
+    }
 
-impl EdgeIndex {
-    fn new(from: NodeIndex, to: NodeIndex) -> Self {
-        Self { from, to }
+    impl EdgeIndex {
+        pub(crate) fn new(from: NodeIndex, to: NodeIndex) -> Self {
+            Self { from, to }
+        }
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Direction {
-    /// left -> right
-    Outgoing,
-    /// left <- right
-    Incoming,
+
+pub mod prelude {
+    pub use crate::adjacency_list::AdjacencyList;
+    pub use crate::edge_list::EdgeList;
+    pub use crate::error::GraphError;
+    pub use crate::graph::*;
+    pub use crate::indices::*;
 }

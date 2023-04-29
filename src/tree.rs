@@ -1,4 +1,4 @@
-use crate::NodeIndex;
+use crate::indices::NodeIndex;
 
 pub struct TreeAdjacencies {
     root: NodeIndex,

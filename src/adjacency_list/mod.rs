@@ -1,0 +1,218 @@
+use crate::{
+    edge::EdgeRef,
+    error::{GraphError, GraphResult},
+    graph::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology},
+    indices::{EdgeIndex, NodeIndex},
+    prelude::{EdgeList, Graph, Node, Weight},
+};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
+
+#[cfg(test)]
+mod test;
+
+#[derive(Default)]
+pub struct AdjacencyOptions<N> {
+    pub nodes: Option<Vec<N>>,
+    pub directed: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct AdjacencyList<N, W> {
+    pub(crate) nodes: Vec<N>,
+    pub(crate) adjacencies: Vec<HashSet<NodeIndex>>,
+    pub(crate) edges: HashMap<EdgeIndex, W>,
+    pub(crate) directed: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+enum Direction {
+    /// left -> right
+    Outgoing,
+    /// left <- right
+    Incoming,
+}
+
+impl<N, W> AdjacencyList<N, W> {
+    pub fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+            adjacencies: Vec::new(),
+            edges: HashMap::new(),
+            directed: false,
+        }
+    }
+
+    pub fn with(options: AdjacencyOptions<N>) -> Self {
+        let nodes = if let Some(nodes) = options.nodes {
+            nodes
+        } else {
+            Vec::new()
+        };
+
+        let adjacencies = vec![HashSet::new(); nodes.len()];
+
+        Self {
+            nodes,
+            adjacencies,
+            edges: HashMap::new(),
+            directed: options.directed,
+        }
+    }
+
+    fn _add_edge(
+        &mut self,
+        from: NodeIndex,
+        to: NodeIndex,
+        weight: W,
+        direction: Direction,
+    ) -> GraphResult<EdgeIndex> {
+        let (from, to) = match direction {
+            Direction::Incoming => (to, from),
+            Direction::Outgoing => (from, to),
+        };
+
+        if self.adjacencies[from.0].contains(&to) {
+            return Err(GraphError::EdgeAlreadyExists { from, to });
+        }
+
+        assert!(self.adjacencies[from.0].insert(to));
+
+        let index = EdgeIndex::new(from, to);
+
+        assert!(self.edges.insert(index, weight).is_none());
+
+        Ok(index)
+    }
+}
+
+impl<W: Clone> AdjacencyList<usize, W> {
+    pub fn from_edge_list(edge_list: EdgeList<usize, W>, directed: bool) -> GraphResult<Self> {
+        let EdgeList {
+            parents,
+            children,
+            weights,
+            node_count,
+        } = edge_list;
+
+        let options = AdjacencyOptions {
+            nodes: Some(vec![0; node_count]),
+            directed,
+        };
+        let mut adj_list = Self::with(options);
+
+        for ((from, to), weight) in parents
+            .into_iter()
+            .zip(children.into_iter())
+            .zip(weights.into_iter())
+        {
+            adj_list.nodes[from] = from;
+            adj_list.nodes[to] = to;
+
+            let from_idx = NodeIndex(from);
+            let to_idx = NodeIndex(to);
+
+            adj_list.add_edge(from_idx, to_idx, weight)?;
+        }
+
+        Ok(adj_list)
+    }
+}
+
+impl<N, W> GraphTopology<N, W> for AdjacencyList<N, W> {
+    type Indices<'a> = impl Iterator<Item = NodeIndex> where Self: 'a;
+    type Nodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
+
+    fn indices<'a>(&self) -> Self::Indices<'a> {
+        (0..self.node_count()).map(NodeIndex)
+    }
+    fn nodes<'a>(&'a self) -> Self::Nodes<'a> {
+        self.nodes.iter()
+    }
+    fn edges<'a>(&'a self) -> Self::Edges<'a> {
+        self.edges
+            .iter()
+            .map(|(index, weight)| EdgeRef::new(index.from, index.to, weight))
+    }
+
+    fn node_count(&self) -> usize {
+        self.nodes.len()
+    }
+
+    fn edge_count(&self) -> usize {
+        self.adjacencies
+            .iter()
+            .map(|adjs| adjs.len())
+            .fold(0, |a, b| a + b)
+    }
+}
+
+impl<N, W: Clone> GraphAdjacentTopology<N, W> for AdjacencyList<N, W> {
+    type AdjacentIndices<'a> = impl Iterator<Item = NodeIndex> + 'a where Self: 'a;
+    type AdjacentNodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
+    type AdjacentEdges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
+
+    fn adjacent_indices<'a>(&'a self, index: NodeIndex) -> Self::AdjacentIndices<'a> {
+        self.adjacencies[index.0].iter().cloned()
+    }
+    fn adjacent_nodes<'a>(&'a self, index: NodeIndex) -> Self::AdjacentNodes<'a> {
+        self.adjacent_indices(index).map(|index| self.get(index))
+    }
+    fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a> {
+        self.adjacent_indices(index).map(move |child| {
+            let edge_index = EdgeIndex::new(index, child);
+            let weight = self.weight(edge_index);
+            EdgeRef::new(index, child, weight)
+        })
+    }
+}
+
+impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
+    fn add_node(&mut self, node: N) -> NodeIndex {
+        let index = self.nodes.len();
+        self.nodes.push(node);
+        self.adjacencies.push(HashSet::new());
+        NodeIndex(index)
+    }
+
+    fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, weight: W) -> GraphResult<EdgeIndex> {
+        if !self.directed {
+            self._add_edge(from, to, weight.clone(), Direction::Incoming)?;
+        }
+        self._add_edge(from, to, weight, Direction::Outgoing)
+    }
+
+    fn get(&self, index: NodeIndex) -> &N {
+        &self.nodes[index.0]
+    }
+
+    fn get_mut(&mut self, index: NodeIndex) -> &mut N {
+        &mut self.nodes[index.0]
+    }
+
+    fn weight(&self, index: EdgeIndex) -> &W {
+        &self.edges[&index]
+    }
+
+    fn weight_mut(&mut self, index: EdgeIndex) -> &mut W {
+        self.edges
+            .get_mut(&index)
+            .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
+    }
+}
+
+impl<N: PartialEq, W> GraphCompare<N, W> for AdjacencyList<N, W> {
+    fn contains_edge(&self, from: NodeIndex, to: NodeIndex) -> Option<EdgeIndex> {
+        let index = EdgeIndex::new(from, to);
+        if self.edges.contains_key(&index) {
+            Some(index)
+        } else {
+            None
+        }
+    }
+}
+
+impl<N: Node, W: Weight> Graph<N, W> for AdjacencyList<N, W> {}
