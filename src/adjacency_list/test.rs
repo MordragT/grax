@@ -427,7 +427,7 @@ fn nearest_neighbor_k_12e(b: &mut Bencher) {
 fn double_tree_k_10(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();
@@ -439,7 +439,7 @@ fn double_tree_k_10(b: &mut Bencher) {
 fn double_tree_k_10e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();
@@ -451,7 +451,7 @@ fn double_tree_k_10e(b: &mut Bencher) {
 fn double_tree_k_12(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();
@@ -463,7 +463,7 @@ fn double_tree_k_12(b: &mut Bencher) {
 fn double_tree_k_12e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap();

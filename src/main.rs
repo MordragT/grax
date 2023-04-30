@@ -2,17 +2,31 @@ use grph::prelude::*;
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    nearest_neighbor("data/K_10.txt", Some(38.41));
-    nearest_neighbor("data/K_10e.txt", Some(27.26));
-    nearest_neighbor("data/K_12.txt", Some(45.19));
-    nearest_neighbor("data/K_12e.txt", Some(36.133));
-    nearest_neighbor("data/K_15.txt", None);
-    nearest_neighbor("data/K_15e.txt", None);
-    nearest_neighbor("data/K_20.txt", None);
-    nearest_neighbor("data/K_30.txt", None);
-    nearest_neighbor("data/K_50.txt", None);
-    nearest_neighbor("data/K_70.txt", None);
-    nearest_neighbor("data/K_100.txt", None);
+    // nearest_neighbor("data/K_10.txt", Some(38.41));
+    // nearest_neighbor("data/K_10e.txt", Some(27.26));
+    // nearest_neighbor("data/K_12.txt", Some(45.19));
+    // nearest_neighbor("data/K_12e.txt", Some(36.133));
+    // nearest_neighbor("data/K_15.txt", None);
+    // nearest_neighbor("data/K_15e.txt", None);
+    // nearest_neighbor("data/K_20.txt", None);
+    // nearest_neighbor("data/K_30.txt", None);
+    // nearest_neighbor("data/K_50.txt", None);
+    // nearest_neighbor("data/K_70.txt", None);
+    // nearest_neighbor("data/K_100.txt", None);
+
+    //double_tree("data/K_10.txt", Some(38.41));
+    // double_tree("data/K_10e.txt", Some(27.26));
+    // double_tree("data/K_12.txt", Some(45.19));
+    // double_tree("data/K_12e.txt", Some(36.133));
+    // double_tree("data/K_15.txt", None);
+    // double_tree("data/K_15e.txt", None);
+    // double_tree("data/K_20.txt", None);
+    // double_tree("data/K_30.txt", None);
+    // double_tree("data/K_50.txt", None);
+    // double_tree("data/K_70.txt", None);
+    // double_tree("data/K_100.txt", None);
+
+    db();
 
     Ok(())
 }
@@ -26,6 +40,36 @@ fn nearest_neighbor(path: &str, optimal: Option<f32>) {
         Some(opt) => println!("{path} with {opt}: {total}"),
         None => println!("{path}: {total}"),
     }
+}
+
+fn double_tree(path: &str, optimal: Option<f32>) {
+    let edge_list = fs::read_to_string(path).unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let total = graph.double_tree().unwrap() as f32;
+    match optimal {
+        Some(opt) => println!("{path} with {opt}: {total}"),
+        None => println!("{path}: {total}"),
+    }
+}
+
+fn db() {
+    let edge_list = EdgeList::with(
+        [
+            (0, 1, 1.0),
+            (1, 2, 1.0),
+            (2, 3, 1.0),
+            (3, 0, 10.0),
+            (0, 2, 2.0),
+            (1, 3, 2.0),
+        ]
+        .into_iter(),
+        4,
+    );
+    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let total = graph.double_tree().unwrap();
+
+    println!("{total}")
 }
 
 fn nn() {

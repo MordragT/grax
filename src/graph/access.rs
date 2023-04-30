@@ -9,6 +9,9 @@ pub trait GraphAccess<N, W> {
     fn add_node(&mut self, node: N) -> NodeIndex;
     fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, weight: W) -> GraphResult<EdgeIndex>;
 
+    fn retain_edges(&mut self, edges: impl Iterator<Item = EdgeIndex>);
+    fn retain_nodes(&mut self, nodes: impl Iterator<Item = NodeIndex>);
+
     fn get(&self, index: NodeIndex) -> &N;
     fn get_mut(&mut self, index: NodeIndex) -> &mut N;
 

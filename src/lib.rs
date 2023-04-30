@@ -3,6 +3,7 @@
 #![feature(type_alias_impl_trait)]
 #![feature(specialization)]
 #![feature(let_chains)]
+#![feature(array_windows)]
 
 pub mod adjacency_list;
 pub mod edge;
@@ -12,6 +13,8 @@ pub mod graph;
 pub mod tree;
 
 pub mod indices {
+    use crate::edge::{Edge, EdgeRef};
+
     #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
     pub struct NodeIndex(pub(crate) usize);
 
@@ -24,6 +27,24 @@ pub mod indices {
     impl EdgeIndex {
         pub(crate) fn new(from: NodeIndex, to: NodeIndex) -> Self {
             Self { from, to }
+        }
+    }
+
+    impl<'a, W> From<EdgeRef<'a, W>> for EdgeIndex {
+        fn from(edge: EdgeRef<'a, W>) -> Self {
+            Self {
+                from: edge.from,
+                to: edge.to,
+            }
+        }
+    }
+
+    impl<W> From<Edge<W>> for EdgeIndex {
+        fn from(edge: Edge<W>) -> Self {
+            Self {
+                from: edge.from,
+                to: edge.to,
+            }
         }
     }
 }

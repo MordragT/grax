@@ -13,6 +13,18 @@ impl<W> Edge<W> {
     }
 }
 
+impl<W> Edge<W> {
+    pub fn rev(self) -> Self {
+        let Self { from, to, weight } = self;
+
+        Self {
+            from: to,
+            to: from,
+            weight,
+        }
+    }
+}
+
 impl<W: Ord> Ord for Edge<W> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.weight.cmp(&other.weight)
@@ -35,11 +47,23 @@ impl<'a, W: Clone> From<EdgeRef<'a, W>> for Edge<W> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EdgeRef<'a, W> {
     pub from: NodeIndex,
     pub to: NodeIndex,
     pub weight: &'a W,
+}
+
+impl<'a, W> EdgeRef<'a, W> {
+    pub fn rev(self) -> Self {
+        let Self { from, to, weight } = self;
+
+        Self {
+            from: to,
+            to: from,
+            weight,
+        }
+    }
 }
 
 impl<'a, W> EdgeRef<'a, W> {

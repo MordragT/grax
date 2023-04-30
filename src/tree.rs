@@ -1,16 +1,6 @@
 use crate::indices::NodeIndex;
 
-pub struct TreeAdjacencies {
-    root: NodeIndex,
-    adjacencies: Vec<Vec<NodeIndex>>,
-}
-
-impl TreeAdjacencies {
-    pub fn new(root: NodeIndex, adjacencies: Vec<Vec<NodeIndex>>) -> Self {
-        Self { root, adjacencies }
-    }
-}
-
+#[derive(Debug)]
 pub struct UnionFind {
     parent: Vec<NodeIndex>,
     rank: Vec<usize>,
@@ -18,8 +8,12 @@ pub struct UnionFind {
 }
 
 impl UnionFind {
-    pub fn into_root(self) -> NodeIndex {
+    pub fn root(&self) -> NodeIndex {
         self.parent[0]
+    }
+
+    pub fn rank(&self, index: NodeIndex) -> usize {
+        self.rank[index.0]
     }
 
     pub fn find(&mut self, needle: NodeIndex) -> NodeIndex {

@@ -185,6 +185,22 @@ impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
         self._add_edge(from, to, weight, Direction::Outgoing)
     }
 
+    fn retain_nodes(&mut self, nodes: impl Iterator<Item = NodeIndex>) {
+        todo!()
+    }
+
+    fn retain_edges(&mut self, edges: impl Iterator<Item = EdgeIndex>) {
+        let retain = edges.collect::<HashSet<_>>();
+
+        self.edges.retain(|index, _weight| retain.contains(index));
+        for (from, adj_nodes) in self.adjacencies.iter_mut().enumerate() {
+            adj_nodes.retain(|to| {
+                let index = EdgeIndex::new(NodeIndex(from), *to);
+                retain.contains(&index)
+            })
+        }
+    }
+
     fn get(&self, index: NodeIndex) -> &N {
         &self.nodes[index.0]
     }

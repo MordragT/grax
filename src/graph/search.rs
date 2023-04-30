@@ -12,6 +12,7 @@ pub trait GraphSearch<N, W>: GraphTopology<N, W> + GraphAdjacentTopology<N, W> +
         for root in self.indices() {
             if markers[root.0] == 0 {
                 counter += 1;
+                markers[root.0] = counter;
                 self.depth_search(root, &mut markers, counter, |_| ());
             }
         }
@@ -46,18 +47,17 @@ pub(crate) trait PrivateGraphSearch<N, W>:
         mark: M,
         mut f: F,
     ) where
-        F: FnMut(EdgeIndex),
+        F: FnMut(NodeIndex),
     {
         let mut stack = Vec::new();
         stack.push(root);
-        markers[root.0] = mark;
 
         while let Some(from) = stack.pop() {
+            f(from);
             for to in self.adjacent_indices(from) {
                 if markers[to.0] == M::default() {
                     stack.push(to);
                     markers[to.0] = mark;
-                    f(EdgeIndex::new(from, to));
                 }
             }
         }
@@ -70,18 +70,17 @@ pub(crate) trait PrivateGraphSearch<N, W>:
         mark: M,
         mut f: F,
     ) where
-        F: FnMut(EdgeIndex),
+        F: FnMut(NodeIndex),
     {
         let mut queue = VecDeque::new();
         queue.push_front(root);
-        markers[root.0] = mark;
 
         while let Some(from) = queue.pop_front() {
+            f(from);
             for to in self.adjacent_indices(from) {
                 if markers[to.0] == M::default() {
                     queue.push_back(to);
                     markers[to.0] = mark;
-                    f(EdgeIndex::new(from, to));
                 }
             }
         }
