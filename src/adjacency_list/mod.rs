@@ -6,7 +6,7 @@ use crate::{
     prelude::{EdgeList, Graph, Node, Weight},
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt::Debug,
 };
 
@@ -23,7 +23,7 @@ pub struct AdjacencyOptions<N> {
 pub struct AdjacencyList<N, W> {
     pub(crate) nodes: Vec<N>,
     pub(crate) adjacencies: Vec<Vec<NodeIndex>>,
-    pub(crate) edges: HashMap<EdgeIndex, W>,
+    pub(crate) edges: BTreeMap<EdgeIndex, W>,
     pub(crate) directed: bool,
 }
 
@@ -32,7 +32,7 @@ impl<N, W> AdjacencyList<N, W> {
         Self {
             nodes: Vec::new(),
             adjacencies: Vec::new(),
-            edges: HashMap::new(),
+            edges: BTreeMap::new(),
             directed: false,
         }
     }
@@ -49,7 +49,7 @@ impl<N, W> AdjacencyList<N, W> {
         Self {
             nodes,
             adjacencies,
-            edges: HashMap::new(),
+            edges: BTreeMap::new(),
             directed: options.directed,
         }
     }
