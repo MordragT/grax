@@ -1,7 +1,10 @@
 use super::topology::{GraphAdjacentTopology, GraphTopology};
 use crate::{edge::EdgeRef, indices::NodeIndex, tree::UnionFind};
 use priq::PriorityQueue;
-use std::{cmp::Ordering, ops::AddAssign};
+use std::{
+    cmp::Ordering,
+    ops::{Add, AddAssign},
+};
 
 pub trait Sortable: PartialOrd {
     fn sort(&self, other: &Self) -> Ordering;
@@ -25,7 +28,7 @@ impl Sortable for f32 {
     }
 }
 
-pub trait GraphMst<N, W: Sortable + Default + AddAssign + Clone>:
+pub trait GraphMst<N, W: Sortable + Default + Add<W, Output = W> + AddAssign + Clone>:
     GraphTopology<N, W> + GraphAdjacentTopology<N, W> + Sized
 {
     fn kruskal(&self) -> W {
@@ -40,9 +43,45 @@ pub trait GraphMst<N, W: Sortable + Default + AddAssign + Clone>:
             None => W::default(),
         }
     }
+
+    fn djikstra(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+        let mut priority_queue = PriorityQueue::new();
+        let mut distances = vec![None; self.node_count()];
+
+        distances[from.0] = Some(W::default());
+        priority_queue.put(W::default(), from);
+
+        while let Some((dist, node)) = priority_queue.pop() {
+            if node == to {
+                return Some(dist);
+            }
+
+            for edge in self.adjacent_edges(node) {
+                let next_dist = dist.clone() + edge.weight.to_owned();
+
+                let visited_or_geq = match &distances[edge.to.0] {
+                    Some(d) => next_dist >= d.to_owned(),
+                    None => false,
+                };
+
+                if !visited_or_geq {
+                    distances[edge.to.0] = Some(next_dist.clone());
+                    priority_queue.put(next_dist, edge.to);
+                }
+            }
+        }
+
+        None
+    }
 }
 
-impl<N, W: Sortable + Default + AddAssign + Clone, T: PrivateGraphMst<N, W>> GraphMst<N, W> for T {}
+impl<
+        N,
+        W: Sortable + Default + Add<W, Output = W> + AddAssign + Clone,
+        T: PrivateGraphMst<N, W>,
+    > GraphMst<N, W> for T
+{
+}
 
 pub(crate) trait PrivateGraphMst<N, W: Sortable + Default + AddAssign + Clone>:
     GraphTopology<N, W> + GraphAdjacentTopology<N, W>
@@ -53,7 +92,7 @@ pub(crate) trait PrivateGraphMst<N, W: Sortable + Default + AddAssign + Clone>:
         F: FnMut(EdgeRef<W>),
     {
         let mut priority_queue = self.edges().collect::<Vec<_>>();
-        priority_queue.sort_unstable_by(|this, other| this.weight.sort(other.weight));
+        priority_queue.sort_by(|this, other| this.weight.sort(other.weight));
 
         let mut union_find = UnionFind::from(self.indices());
 

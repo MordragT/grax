@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // nearest_neighbor("data/K_70.txt", None);
     // nearest_neighbor("data/K_100.txt", None);
 
-    //double_tree("data/K_10.txt", Some(38.41));
+    double_tree("data/K_10.txt", Some(38.41));
     // double_tree("data/K_10e.txt", Some(27.26));
     // double_tree("data/K_12.txt", Some(45.19));
     // double_tree("data/K_12e.txt", Some(36.133));
@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // double_tree("data/K_70.txt", None);
     // double_tree("data/K_100.txt", None);
 
-    db();
+    // db();
 
     Ok(())
 }

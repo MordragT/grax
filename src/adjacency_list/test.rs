@@ -35,14 +35,14 @@ fn add_edge() {
     let mut graph = AdjacencyList::<u32, ()>::new();
     let idx1 = graph.add_node(1);
     let idx2 = graph.add_node(2);
-    let idx3 = graph.add_node(3);
+    let _idx3 = graph.add_node(3);
 
     let _ = graph.add_edge(idx1, idx2, ()).unwrap();
 
     graph.contains_edge(idx1, idx2).unwrap();
-    graph.contains_edge(idx2, idx1).unwrap();
+    //graph.contains_edge(idx2, idx1).unwrap();
 
-    assert!(graph.contains_edge(idx3, idx2).is_none());
+    assert!(graph.contains_edge(idx2, idx1).is_none());
 }
 
 #[test]
@@ -85,6 +85,26 @@ fn from_edge_list() {
     graph.contains_edge(idx1, idx3).unwrap();
 
     assert!(graph.contains_edge(idx1, idx0).is_none());
+}
+
+#[test]
+fn djikstra() {
+    let edge_list = EdgeList::with(
+        [
+            (0, 1, 1.0),
+            (0, 2, 3.0),
+            (1, 2, 1.0),
+            (2, 3, 4.0),
+            (3, 0, 1.5),
+        ]
+        .into_iter(),
+        4,
+    );
+
+    let graph = AdjacencyList::<usize, f32>::from_edge_list(edge_list, false).unwrap();
+    let dist = graph.djikstra(NodeIndex(0), NodeIndex(2));
+
+    assert_eq!(dist, Some(2.0));
 }
 
 #[bench]

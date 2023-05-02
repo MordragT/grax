@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::indices::{EdgeIndex, NodeIndex};
+use crate::indices::NodeIndex;
 
 use super::topology::{GraphAdjacentTopology, GraphTopology};
 
@@ -12,7 +12,6 @@ pub trait GraphSearch<N, W>: GraphTopology<N, W> + GraphAdjacentTopology<N, W> +
         for root in self.indices() {
             if markers[root.0] == 0 {
                 counter += 1;
-                markers[root.0] = counter;
                 self.depth_search(root, &mut markers, counter, |_| ());
             }
         }
@@ -51,6 +50,7 @@ pub(crate) trait PrivateGraphSearch<N, W>:
     {
         let mut stack = Vec::new();
         stack.push(root);
+        markers[root.0] = mark;
 
         while let Some(from) = stack.pop() {
             f(from);
@@ -74,6 +74,7 @@ pub(crate) trait PrivateGraphSearch<N, W>:
     {
         let mut queue = VecDeque::new();
         queue.push_front(root);
+        markers[root.0] = mark;
 
         while let Some(from) = queue.pop_front() {
             f(from);

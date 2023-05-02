@@ -19,6 +19,7 @@ pub trait GraphTopology<N, W> {
 
     fn node_count(&self) -> usize;
     fn edge_count(&self) -> usize;
+    fn directed(&self) -> bool;
 }
 
 pub trait GraphAdjacentTopology<N, W> {

@@ -1,21 +1,32 @@
 use crate::{
+    adjacency_list::AdjacencyOptions,
     error::{GraphError, GraphResult},
     indices::NodeIndex,
-    prelude::EdgeIndex,
+    prelude::AdjacencyList,
 };
-use std::{collections::HashSet, ops::AddAssign};
+use std::ops::{Add, AddAssign};
 
 use super::{
     access::{GraphAccess, GraphCompare},
     mst::{PrivateGraphMst, Sortable},
     search::PrivateGraphSearch,
     topology::{GraphAdjacentTopology, GraphTopology},
+    GraphMst,
 };
 
 // Sortable + PartialEq
 
-pub trait GraphTsp<N: PartialEq, W: Sortable + PartialOrd + Default + AddAssign + Clone>:
-    GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W> + Sized
+pub trait GraphTsp<
+    N: PartialEq,
+    W: Sortable + PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone,
+>:
+    GraphTopology<N, W>
+    + GraphAdjacentTopology<N, W>
+    + GraphAccess<N, W>
+    + GraphCompare<N, W>
+    + GraphMst<N, W>
+    + Sized
+    + Clone
 {
     fn nearest_neighbor(&self) -> GraphResult<W> {
         match self.indices().next() {
@@ -25,53 +36,33 @@ pub trait GraphTsp<N: PartialEq, W: Sortable + PartialOrd + Default + AddAssign 
     }
 
     fn double_tree(&mut self) -> GraphResult<W> {
-        let mut edges = HashSet::<EdgeIndex>::new();
+        let mut mst = AdjacencyList::with(AdjacencyOptions {
+            directed: self.directed(),
+            nodes: Some(self.nodes().collect()),
+        });
 
         let union_find = self._kruskal(|edge| {
-            edges.insert(edge.clone().into());
-            edges.insert(edge.rev().into());
+            mst.add_edge(edge.from, edge.to, edge.weight.clone())
+                .unwrap();
+            mst.add_edge(edge.to, edge.from, edge.weight.clone())
+                .unwrap();
         });
         let root = union_find.root();
-
-        // müssen edges wirklich entfernt werden ?
-        self.retain_edges(edges.into_iter());
 
         let mut euler_tour = vec![];
         let mut visited = vec![false; self.node_count()];
 
-        let mut branch = Vec::new();
-        let mut parent = root;
-        self.depth_search(root, &mut visited, true, |index| {
-            // if rank is higher than rank of parent
-            // or if index points to leaf (which is the same in the next step ?):
-            // add nodes to euler
-            let index_rank = union_find.rank(index);
-            let parent_rank = union_find.rank(parent);
-
-            if index_rank > parent_rank {
-                branch.reverse();
-                for idx in branch.drain(..) {
-                    euler_tour.push(idx);
-                }
-            }
-            branch.push(index);
-            parent = index;
+        mst.depth_search(root, &mut visited, true, |index| {
+            euler_tour.push(index);
         });
 
-        branch.reverse();
-        for idx in branch.drain(..) {
-            euler_tour.push(idx);
-        }
-        // euler_tour.push(root);
-
-        dbg!(&euler_tour);
+        euler_tour.push(root);
 
         let mut total_weight = W::default();
         for [from, to] in euler_tour.array_windows::<2>() {
-            dbg!(from, to);
-            let weight = match self.contains_edge(*from, *to) {
-                Some(index) => self.weight(index).clone(),
-                None => unreachable!(),
+            let weight = match mst.contains_edge(*from, *to) {
+                Some(index) => mst.weight(index).clone(),
+                None => self.djikstra(*from, *to).ok_or(GraphError::NoCycle)?,
             };
             total_weight += weight;
         }
@@ -90,8 +81,12 @@ pub trait GraphTsp<N: PartialEq, W: Sortable + PartialOrd + Default + AddAssign 
 
 impl<
         N: PartialEq,
-        W: PartialOrd + Default + AddAssign + Clone + Sortable,
-        T: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>,
+        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable,
+        T: GraphTopology<N, W>
+            + GraphAdjacentTopology<N, W>
+            + GraphAccess<N, W>
+            + GraphCompare<N, W>
+            + Clone,
     > GraphTsp<N, W> for T
 {
 }

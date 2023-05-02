@@ -1,4 +1,4 @@
-use std::ops::AddAssign;
+use std::ops::{Add, AddAssign};
 
 pub use access::{GraphAccess, GraphCompare};
 pub use mst::{GraphMst, Sortable};
@@ -24,6 +24,6 @@ pub trait Graph<N: Node, W: Weight>:
 pub trait Node: Default + PartialEq {}
 
 impl<T: Default + PartialEq> Node for T {}
-pub trait Weight: Sortable + Default + AddAssign + Clone {}
+pub trait Weight: Sortable + Default + Add<Self, Output = Self> + AddAssign + Clone {}
 
-impl<T: Sortable + Default + AddAssign + Clone> Weight for T {}
+impl<T: Sortable + Default + Add<T, Output = T> + AddAssign + Clone> Weight for T {}

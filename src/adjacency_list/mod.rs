@@ -19,20 +19,12 @@ pub struct AdjacencyOptions<N> {
     pub directed: bool,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct AdjacencyList<N, W> {
     pub(crate) nodes: Vec<N>,
-    pub(crate) adjacencies: Vec<HashSet<NodeIndex>>,
+    pub(crate) adjacencies: Vec<Vec<NodeIndex>>,
     pub(crate) edges: HashMap<EdgeIndex, W>,
     pub(crate) directed: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum Direction {
-    /// left -> right
-    Outgoing,
-    /// left <- right
-    Incoming,
 }
 
 impl<N, W> AdjacencyList<N, W> {
@@ -52,7 +44,7 @@ impl<N, W> AdjacencyList<N, W> {
             Vec::new()
         };
 
-        let adjacencies = vec![HashSet::new(); nodes.len()];
+        let adjacencies = vec![Vec::new(); nodes.len()];
 
         Self {
             nodes,
@@ -60,31 +52,6 @@ impl<N, W> AdjacencyList<N, W> {
             edges: HashMap::new(),
             directed: options.directed,
         }
-    }
-
-    fn _add_edge(
-        &mut self,
-        from: NodeIndex,
-        to: NodeIndex,
-        weight: W,
-        direction: Direction,
-    ) -> GraphResult<EdgeIndex> {
-        let (from, to) = match direction {
-            Direction::Incoming => (to, from),
-            Direction::Outgoing => (from, to),
-        };
-
-        if self.adjacencies[from.0].contains(&to) {
-            return Err(GraphError::EdgeAlreadyExists { from, to });
-        }
-
-        assert!(self.adjacencies[from.0].insert(to));
-
-        let index = EdgeIndex::new(from, to);
-
-        assert!(self.edges.insert(index, weight).is_none());
-
-        Ok(index)
     }
 }
 
@@ -113,6 +80,10 @@ impl<W: Clone> AdjacencyList<usize, W> {
 
             let from_idx = NodeIndex(from);
             let to_idx = NodeIndex(to);
+
+            if !directed {
+                adj_list.add_edge(to_idx, from_idx, weight.clone())?;
+            }
 
             adj_list.add_edge(from_idx, to_idx, weight)?;
         }
@@ -148,6 +119,10 @@ impl<N, W> GraphTopology<N, W> for AdjacencyList<N, W> {
             .map(|adjs| adjs.len())
             .fold(0, |a, b| a + b)
     }
+
+    fn directed(&self) -> bool {
+        self.directed
+    }
 }
 
 impl<N, W: Clone> GraphAdjacentTopology<N, W> for AdjacencyList<N, W> {
@@ -174,15 +149,22 @@ impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
     fn add_node(&mut self, node: N) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(node);
-        self.adjacencies.push(HashSet::new());
+        self.adjacencies.push(Vec::new());
         NodeIndex(index)
     }
 
     fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, weight: W) -> GraphResult<EdgeIndex> {
-        if !self.directed {
-            self._add_edge(from, to, weight.clone(), Direction::Incoming)?;
+        if self.adjacencies[from.0].contains(&to) {
+            return Err(GraphError::EdgeAlreadyExists { from, to });
         }
-        self._add_edge(from, to, weight, Direction::Outgoing)
+
+        self.adjacencies[from.0].push(to);
+
+        let index = EdgeIndex::new(from, to);
+
+        assert!(self.edges.insert(index, weight).is_none());
+
+        Ok(index)
     }
 
     fn retain_nodes(&mut self, nodes: impl Iterator<Item = NodeIndex>) {
@@ -231,4 +213,4 @@ impl<N: PartialEq, W> GraphCompare<N, W> for AdjacencyList<N, W> {
     }
 }
 
-impl<N: Node, W: Weight> Graph<N, W> for AdjacencyList<N, W> {}
+impl<N: Node + Clone, W: Weight> Graph<N, W> for AdjacencyList<N, W> {}
