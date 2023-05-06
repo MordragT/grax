@@ -15,16 +15,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // nearest_neighbor("data/K_100.txt", None);
 
     double_tree("data/K_10.txt", Some(38.41));
-    // double_tree("data/K_10e.txt", Some(27.26));
-    // double_tree("data/K_12.txt", Some(45.19));
-    // double_tree("data/K_12e.txt", Some(36.133));
-    // double_tree("data/K_15.txt", None);
-    // double_tree("data/K_15e.txt", None);
-    // double_tree("data/K_20.txt", None);
-    // double_tree("data/K_30.txt", None);
-    // double_tree("data/K_50.txt", None);
-    // double_tree("data/K_70.txt", None);
-    // double_tree("data/K_100.txt", None);
+    double_tree("data/K_10e.txt", Some(27.26));
+    double_tree("data/K_12.txt", Some(45.19));
+    double_tree("data/K_12e.txt", Some(36.133));
+    double_tree("data/K_15.txt", None);
+    double_tree("data/K_15e.txt", None);
+    double_tree("data/K_20.txt", None);
+    double_tree("data/K_30.txt", None);
+    double_tree("data/K_50.txt", None);
+    double_tree("data/K_70.txt", None);
+    double_tree("data/K_100.txt", None);
 
     // db();
 

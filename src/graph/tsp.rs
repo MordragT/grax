@@ -1,5 +1,6 @@
 use crate::{
     adjacency_list::AdjacencyOptions,
+    edge::EdgeRef,
     error::{GraphError, GraphResult},
     indices::NodeIndex,
     prelude::AdjacencyList,
@@ -74,8 +75,11 @@ pub trait GraphTsp<
         }
     }
 
-    fn branch_bound(&self) -> W {
-        todo!()
+    fn branch_bound(&self) -> GraphResult<W> {
+        match self.indices().next() {
+            Some(start) => self._branch_bound(start),
+            None => Ok(W::default()),
+        }
     }
 }
 
@@ -91,9 +95,49 @@ impl<
 {
 }
 
-trait PrivateGraphTsp<N: PartialEq, W: PartialOrd + Default + AddAssign + Clone>:
-    GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>
+trait PrivateGraphTsp<
+    N: PartialEq,
+    W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone,
+>: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>
 {
+    fn _branch_bound(&self, start: NodeIndex) -> GraphResult<W> {
+        let mut stack = Vec::new();
+        let mut total_cost = self._nearest_neighbor(start)?;
+
+        stack.push((W::default(), vec![start], vec![false; self.node_count()]));
+
+        while let Some((cost, path, visited)) = stack.pop() {
+            let node = path
+                .last()
+                .expect("INTERNAL: Path always expected to have atleast one element");
+
+            for EdgeRef {
+                from: _,
+                to,
+                weight,
+            } in self.adjacent_edges(*node)
+            {
+                let cost = cost.clone() + weight.clone();
+
+                if !visited[to.0] && cost < total_cost {
+                    let mut visited = visited.clone();
+                    visited[to.0] = true;
+
+                    let mut path = path.clone();
+                    path.push(to);
+
+                    if visited.iter().all(|v| *v == true) {
+                        total_cost = cost;
+                    } else {
+                        stack.push((cost, path, visited));
+                    }
+                }
+            }
+        }
+
+        Ok(total_cost)
+    }
+
     fn _nearest_neighbor(&self, start: NodeIndex) -> GraphResult<W> {
         let mut visited = vec![false; self.node_count()];
         let mut total_weight = W::default();
@@ -136,7 +180,7 @@ trait PrivateGraphTsp<N: PartialEq, W: PartialOrd + Default + AddAssign + Clone>
 
 impl<
         N: PartialEq,
-        W: PartialOrd + Default + AddAssign + Clone,
+        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone,
         T: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>,
     > PrivateGraphTsp<N, W> for T
 {

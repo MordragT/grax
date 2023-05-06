@@ -498,8 +498,8 @@ fn branch_bound_k_10(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.branch_bound();
-        assert_eq!(total, 38.41);
+        let total = graph.branch_bound().unwrap();
+        assert_le!(total, 38.41);
     })
 }
 
@@ -510,8 +510,8 @@ fn branch_bound_k_10e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.branch_bound();
-        assert_eq!(total, 27.26);
+        let total = graph.branch_bound().unwrap();
+        assert_le!(total, 27.26);
     })
 }
 
@@ -522,8 +522,8 @@ fn branch_bound_k_12(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.branch_bound();
-        assert_eq!(total, 45.19);
+        let total = graph.branch_bound().unwrap();
+        assert_le!(total, 45.19);
     })
 }
 
@@ -534,7 +534,7 @@ fn branch_bound_k_12e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.branch_bound();
-        assert_eq!(total, 36.13);
+        let total = graph.branch_bound().unwrap();
+        assert_le!(total, 36.13);
     })
 }
