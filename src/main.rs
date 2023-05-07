@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn nearest_neighbor(path: &str, optimal: Option<f32>) {
+pub fn nearest_neighbor(path: &str, optimal: Option<f32>) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
@@ -42,7 +42,7 @@ fn nearest_neighbor(path: &str, optimal: Option<f32>) {
     }
 }
 
-fn double_tree(path: &str, optimal: Option<f32>) {
+pub fn double_tree(path: &str, optimal: Option<f32>) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
@@ -53,7 +53,7 @@ fn double_tree(path: &str, optimal: Option<f32>) {
     }
 }
 
-fn db() {
+pub fn db() {
     let edge_list = EdgeList::with(
         [
             (0, 1, 1.0),
@@ -72,7 +72,7 @@ fn db() {
     println!("{total}")
 }
 
-fn nn() {
+pub fn nn() {
     let edge_list = EdgeList::with(
         [
             (0, 1, 1.0),
@@ -91,7 +91,7 @@ fn nn() {
     println!("{nn}")
 }
 
-fn prim() {
+pub fn prim() {
     let edge_list = EdgeList::with(
         [
             (1, 2, 0.2),
@@ -112,11 +112,9 @@ fn prim() {
     let total = graph.prim();
 
     assert_eq!(total, 2.5);
-
-    let nn = graph.nearest_neighbor().unwrap();
 }
 
-fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
+pub fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();

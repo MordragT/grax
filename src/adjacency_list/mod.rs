@@ -6,7 +6,7 @@ use crate::{
     prelude::{EdgeList, Graph, Node, Weight},
 };
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashSet},
     fmt::Debug,
 };
 
