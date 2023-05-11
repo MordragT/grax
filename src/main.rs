@@ -2,7 +2,7 @@ use grph::prelude::*;
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // nearest_neighbor("data/K_10.txt", Some(38.41));
+    nearest_neighbor("data/K_10.txt", Some(38.41));
     // nearest_neighbor("data/K_10e.txt", Some(27.26));
     // nearest_neighbor("data/K_12.txt", Some(45.19));
     // nearest_neighbor("data/K_12e.txt", Some(36.133));
@@ -15,20 +15,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // nearest_neighbor("data/K_100.txt", None);
 
     double_tree("data/K_10.txt", Some(38.41));
-    double_tree("data/K_10e.txt", Some(27.26));
-    double_tree("data/K_12.txt", Some(45.19));
-    double_tree("data/K_12e.txt", Some(36.133));
-    double_tree("data/K_15.txt", None);
-    double_tree("data/K_15e.txt", None);
-    double_tree("data/K_20.txt", None);
-    double_tree("data/K_30.txt", None);
-    double_tree("data/K_50.txt", None);
-    double_tree("data/K_70.txt", None);
-    double_tree("data/K_100.txt", None);
+    // double_tree("data/K_10e.txt", Some(27.26));
+    // double_tree("data/K_12.txt", Some(45.19));
+    // double_tree("data/K_12e.txt", Some(36.133));
+    // double_tree("data/K_15.txt", None);
+    // double_tree("data/K_15e.txt", None);
+    // double_tree("data/K_20.txt", None);
+    // double_tree("data/K_30.txt", None);
+    // double_tree("data/K_50.txt", None);
+    // double_tree("data/K_70.txt", None);
+    // double_tree("data/K_100.txt", None);
+
+    branch_bound("data/K_10.txt");
 
     // db();
 
+    // depth_search("data/K_10.txt");
+
     Ok(())
+}
+
+pub fn branch_bound(path: &str) {
+    let edge_list = fs::read_to_string(path).unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let total = graph.branch_bound().unwrap() as f32;
+    println!("bb: {path}: {total}");
 }
 
 pub fn nearest_neighbor(path: &str, optimal: Option<f32>) {
@@ -37,8 +49,8 @@ pub fn nearest_neighbor(path: &str, optimal: Option<f32>) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.nearest_neighbor().unwrap() as f32;
     match optimal {
-        Some(opt) => println!("{path} with {opt}: {total}"),
-        None => println!("{path}: {total}"),
+        Some(opt) => println!("nn: {path} with {opt}: {total}"),
+        None => println!("nn: {path}: {total}"),
     }
 }
 
@@ -48,8 +60,8 @@ pub fn double_tree(path: &str, optimal: Option<f32>) {
     let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.double_tree().unwrap() as f32;
     match optimal {
-        Some(opt) => println!("{path} with {opt}: {total}"),
-        None => println!("{path}: {total}"),
+        Some(opt) => println!("dt: {path} with {opt}: {total}"),
+        None => println!("dt: {path}: {total}"),
     }
 }
 
@@ -126,4 +138,14 @@ pub fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     println!("Counter: {counter} in {:?}", elapsed);
 
     Ok(())
+}
+
+pub fn depth_search(path: &str) {
+    let edge_list = fs::read_to_string(path).unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+
+    let connected_components = graph.depth_search_connected_components();
+
+    println!("Connected Components: {connected_components}");
 }

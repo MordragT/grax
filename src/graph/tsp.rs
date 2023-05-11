@@ -1,6 +1,6 @@
 use crate::{
     adjacency_list::AdjacencyOptions,
-    edge::EdgeRef,
+    edge::{Edge, EdgeRef},
     error::{GraphError, GraphResult},
     indices::NodeIndex,
     prelude::AdjacencyList,
@@ -141,35 +141,49 @@ trait PrivateGraphTsp<
     fn _nearest_neighbor(&self, start: NodeIndex) -> GraphResult<W> {
         let mut visited = vec![false; self.node_count()];
         let mut total_weight = W::default();
+        let mut route = vec![(start, W::default())];
+        let mut prev = start;
 
-        let mut target = (start, W::default());
+        while let Some((node, weight)) = route.last() {
+            visited[node.0] = true;
+            total_weight += weight.to_owned();
 
-        loop {
-            visited[target.0 .0] = true;
-            total_weight += target.1;
+            if visited.iter().all(|v| *v) {
+                break;
+            }
 
-            let mut next = None;
+            let mut min_edge: Option<Edge<W>> = None;
 
-            for edge in self.adjacent_edges(target.0) {
-                if !visited[edge.to.0] {
-                    if let Some((_, weight)) = next {
-                        if weight > edge.weight {
-                            next = Some((edge.to, edge.weight));
+            for edge in self.adjacent_edges(*node) {
+                if !visited[edge.to.0] && edge.to != prev {
+                    if let Some(min) = &min_edge {
+                        if min.weight > *edge.weight {
+                            min_edge = Some(edge.into());
                         }
                     } else {
-                        next = Some((edge.to, edge.weight));
+                        min_edge = Some(edge.into());
                     }
                 }
             }
 
-            target = match next {
-                Some((to, weight)) => (to, weight.to_owned()),
-                None => break,
-            };
+            match min_edge {
+                Some(edge) => {
+                    route.push((edge.to, edge.weight));
+                    prev = edge.to;
+                }
+                None => {
+                    let dead_end = match route.pop() {
+                        Some((end, _)) => end,
+                        None => break,
+                    };
+                    visited[dead_end.0] = false;
+                    prev = dead_end;
+                }
+            }
         }
 
         if visited.into_iter().all(|visit| visit == true) {
-            if let Some(edge_index) = self.contains_edge(target.0, start) {
+            if let Some(edge_index) = self.contains_edge(route.last().unwrap().0, start) {
                 total_weight += self.weight(edge_index).to_owned();
                 return Ok(total_weight);
             }
