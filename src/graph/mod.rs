@@ -9,8 +9,8 @@ pub use topology::{GraphAdjacentTopology, GraphTopology};
 use crate::{
     algorithms::{
         branch_bound, branch_bound_rec, breadth_search_connected_components, brute_force,
-        depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor, prim,
-        Tour,
+        depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor,
+        nearest_neighbor_from_first, prim, Tour,
     },
     error::GraphResult,
     prelude::NodeIndex,
@@ -96,11 +96,15 @@ pub trait Graph<N: Node, W: Weight>:
         breadth_search_connected_components(self)
     }
 
-    fn nearest_neighbor(&self) -> Option<W> {
-        nearest_neighbor(self)
+    fn nearest_neighbor(&self, start: NodeIndex) -> Option<Tour<W>> {
+        nearest_neighbor(self, start)
     }
 
-    fn double_tree(&self) -> GraphResult<W> {
+    fn nearest_neighbor_from_first(&self) -> Option<Tour<W>> {
+        nearest_neighbor_from_first(self)
+    }
+
+    fn double_tree(&self) -> Option<Tour<W>> {
         double_tree(self)
     }
 
@@ -112,7 +116,7 @@ pub trait Graph<N: Node, W: Weight>:
         branch_bound_rec(self)
     }
 
-    fn brute_force(&self) -> Option<W> {
+    fn brute_force(&self) -> Option<Tour<W>> {
         brute_force(self)
     }
 }

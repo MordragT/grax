@@ -1,22 +1,22 @@
-use super::dijkstra;
+use super::{dijkstra, Tour};
 use crate::{
     edge::EdgeRef,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
 };
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor<N, W, G>(graph: &G) -> Option<W>
+pub fn nearest_neighbor_from_first<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
     match graph.indices().next() {
-        Some(start) => _nearest_neighbor(graph, start),
+        Some(start) => nearest_neighbor(graph, start),
         None => None,
     }
 }
 
-pub(crate) fn _nearest_neighbor<N, W, G>(graph: &G, start: NodeIndex) -> Option<W>
+pub fn nearest_neighbor<N, W, G>(graph: &G, start: NodeIndex) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -89,10 +89,11 @@ where
         None => return None,
     }
 
-    let total_weight = path.into_iter().fold(W::default(), |mut accu, (_, w)| {
+    let (route, weight): (_, Vec<_>) = path.into_iter().unzip();
+    let weight = weight.into_iter().fold(W::default(), |mut accu, w| {
         accu += w;
         accu
     });
 
-    Some(total_weight)
+    Some(Tour::new(route, weight))
 }

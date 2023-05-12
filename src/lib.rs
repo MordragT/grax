@@ -3,6 +3,7 @@
 #![feature(type_alias_impl_trait)]
 #![feature(specialization)]
 #![feature(let_chains)]
+#![feature(if_let_guard)]
 #![feature(array_windows)]
 
 pub mod adjacency_list;

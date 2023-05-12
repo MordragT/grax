@@ -1,4 +1,4 @@
-use super::{_nearest_neighbor, dijkstra, Tour};
+use super::{dijkstra, nearest_neighbor, Tour};
 use crate::{
     edge::EdgeRef,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
@@ -23,7 +23,9 @@ where
 {
     match graph.indices().next() {
         Some(start) => {
-            let mut baseline = _nearest_neighbor(graph, start).unwrap_or(Maximum::max());
+            let mut baseline = nearest_neighbor(graph, start)
+                .map(|tour| tour.weight)
+                .unwrap_or(Maximum::max());
             let mut path = vec![start];
             let mut visited = vec![false; graph.node_count()];
             let cost = W::default();
@@ -50,7 +52,9 @@ where
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
     let mut stack = Vec::new();
-    let mut total_cost = _nearest_neighbor(graph, start).unwrap_or(Maximum::max());
+    let mut total_cost = nearest_neighbor(graph, start)
+        .map(|tour| tour.weight)
+        .unwrap_or(Maximum::max());
     let mut route = Vec::new();
 
     let mut visited = vec![false; graph.node_count()];

@@ -2,16 +2,14 @@ use std::ops::{Add, AddAssign};
 
 use crate::{
     adjacency_list::AdjacencyOptions,
-    error::GraphResult,
     prelude::{
-        AdjacencyList, GraphAccess, GraphAdjacentTopology, GraphCompare, GraphError, GraphTopology,
-        Sortable,
+        AdjacencyList, GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology, Sortable,
     },
 };
 
-use super::{_depth_search, _kruskal, dijkstra};
+use super::{_depth_search, _kruskal, dijkstra, Tour};
 
-pub fn double_tree<N, W, G>(graph: &G) -> GraphResult<W>
+pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     N: PartialEq,
     W: Default + Sortable + Copy + AddAssign + Add<W, Output = W>,
@@ -28,27 +26,28 @@ where
     });
     let root = union_find.root();
 
-    let mut euler_tour = vec![];
+    let mut route = vec![];
     let mut visited = vec![false; graph.node_count()];
 
     _depth_search(&mst, root, &mut visited, true, |index| {
-        euler_tour.push(index);
+        route.push(index);
     });
 
-    euler_tour.push(root);
+    route.push(root);
 
     let mut total_weight = W::default();
-    for [from, to] in euler_tour.array_windows::<2>() {
+    for [from, to] in route.array_windows::<2>() {
         let weight = match mst.contains_edge(*from, *to) {
             Some(index) => *mst.weight(index),
-            None => dijkstra(graph, *from, *to).ok_or(GraphError::NoCycle)?,
+            None if let Some(weight) = dijkstra(graph, *from, *to) => weight,
+            _ => return None,
         };
         total_weight += weight;
     }
 
     if visited.into_iter().all(|visit| visit == true) {
-        Ok(total_weight)
+        Some(Tour::new(route, total_weight))
     } else {
-        Err(GraphError::NoCycle)
+        None
     }
 }

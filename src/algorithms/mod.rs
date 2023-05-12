@@ -35,3 +35,18 @@ impl<W> Tour<W> {
         self.route.iter().map(|index| graph.node(*index))
     }
 }
+
+pub struct Distances<W> {
+    distances: Vec<Option<W>>,
+    pub from: NodeIndex,
+}
+
+impl<W> Distances<W> {
+    pub fn new(from: NodeIndex, distances: Vec<Option<W>>) -> Self {
+        Self { distances, from }
+    }
+
+    pub fn to(&self, to: NodeIndex) -> Option<&W> {
+        self.distances[to.0].as_ref()
+    }
+}

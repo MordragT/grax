@@ -1,7 +1,9 @@
 use crate::prelude::{GraphAccess, GraphCompare, GraphTopology, Maximum, NodeIndex};
 use std::ops::AddAssign;
 
-pub fn brute_force<N, W, G>(graph: &G) -> Option<W>
+use super::Tour;
+
+pub fn brute_force<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     N: PartialEq,
     W: Default + Maximum + PartialOrd + AddAssign + Copy,
@@ -40,6 +42,6 @@ where
     if best_weight == W::max() {
         None
     } else {
-        Some(best_weight)
+        Some(Tour::new(best_path, best_weight))
     }
 }

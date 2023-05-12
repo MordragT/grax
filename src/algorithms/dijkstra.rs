@@ -3,7 +3,17 @@ use crate::indices::NodeIndex;
 use priq::PriorityQueue;
 use std::ops::Add;
 
+use super::Distances;
+
 pub fn dijkstra<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<W>
+where
+    W: Default + Sortable + Copy + Add<W, Output = W>,
+    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+{
+    dijkstra_distances(graph, from, to).distances[to.0]
+}
+
+pub fn dijkstra_distances<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Distances<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -16,7 +26,7 @@ where
 
     while let Some((dist, node)) = priority_queue.pop() {
         if node == to {
-            return Some(dist);
+            return Distances::new(from, distances);
         }
 
         for edge in graph.adjacent_edges(node) {
@@ -34,5 +44,5 @@ where
         }
     }
 
-    None
+    Distances::new(from, distances)
 }

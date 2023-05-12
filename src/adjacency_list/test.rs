@@ -402,7 +402,7 @@ fn nearest_neighbor_k_10(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor().unwrap();
+        let total = graph.nearest_neighbor_from_first().unwrap().weight;
         assert_le!(total, 38.41 * 1.2);
     })
 }
@@ -414,7 +414,7 @@ fn nearest_neighbor_k_10e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor().unwrap();
+        let total = graph.nearest_neighbor_from_first().unwrap().weight;
         assert_le!(total, 27.26 * 1.2);
     })
 }
@@ -426,7 +426,7 @@ fn nearest_neighbor_k_12(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor().unwrap();
+        let total = graph.nearest_neighbor_from_first().unwrap().weight;
         assert_le!(total, 45.19 * 1.2);
     })
 }
@@ -438,7 +438,7 @@ fn nearest_neighbor_k_12e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.nearest_neighbor().unwrap();
+        let total = graph.nearest_neighbor_from_first().unwrap().weight;
         assert_le!(total, 36.13 * 1.2);
     })
 }
@@ -450,7 +450,7 @@ fn double_tree_k_10(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree().unwrap();
+        let total = graph.double_tree().unwrap().weight;
         assert_le!(total, 38.41 * 1.2);
     })
 }
@@ -462,7 +462,7 @@ fn double_tree_k_10e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree().unwrap();
+        let total = graph.double_tree().unwrap().weight;
         assert_le!(total, 27.26 * 1.2);
     })
 }
@@ -474,7 +474,7 @@ fn double_tree_k_12(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree().unwrap();
+        let total = graph.double_tree().unwrap().weight;
         assert_le!(total, 45.19 * 1.2);
     })
 }
@@ -486,7 +486,7 @@ fn double_tree_k_12e(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let total = graph.double_tree().unwrap();
+        let total = graph.double_tree().unwrap().weight;
         assert_le!(total, 36.13 * 1.2);
     })
 }
