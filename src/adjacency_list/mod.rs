@@ -134,7 +134,7 @@ impl<N, W: Clone> GraphAdjacentTopology<N, W> for AdjacencyList<N, W> {
         self.adjacencies[index.0].iter().cloned()
     }
     fn adjacent_nodes<'a>(&'a self, index: NodeIndex) -> Self::AdjacentNodes<'a> {
-        self.adjacent_indices(index).map(|index| self.get(index))
+        self.adjacent_indices(index).map(|index| self.node(index))
     }
     fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a> {
         self.adjacent_indices(index).map(move |child| {
@@ -183,11 +183,11 @@ impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
         }
     }
 
-    fn get(&self, index: NodeIndex) -> &N {
+    fn node(&self, index: NodeIndex) -> &N {
         &self.nodes[index.0]
     }
 
-    fn get_mut(&mut self, index: NodeIndex) -> &mut N {
+    fn node_mut(&mut self, index: NodeIndex) -> &mut N {
         &mut self.nodes[index.0]
     }
 

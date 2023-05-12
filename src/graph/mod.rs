@@ -10,6 +10,7 @@ use crate::{
     algorithms::{
         branch_bound, branch_bound_rec, breadth_search_connected_components, brute_force,
         depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor, prim,
+        Tour,
     },
     error::GraphResult,
     prelude::NodeIndex,
@@ -103,11 +104,11 @@ pub trait Graph<N: Node, W: Weight>:
         double_tree(self)
     }
 
-    fn branch_bound(&self) -> Option<W> {
+    fn branch_bound(&self) -> Option<Tour<W>> {
         branch_bound(self)
     }
 
-    fn branch_bound_rec(&self) -> Option<W> {
+    fn branch_bound_rec(&self) -> Option<Tour<W>> {
         branch_bound_rec(self)
     }
 

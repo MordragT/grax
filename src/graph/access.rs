@@ -12,14 +12,14 @@ pub trait GraphAccess<N, W> {
     fn retain_edges(&mut self, edges: impl Iterator<Item = EdgeIndex>);
     fn retain_nodes(&mut self, nodes: impl Iterator<Item = NodeIndex>);
 
-    fn get(&self, index: NodeIndex) -> &N;
-    fn get_mut(&mut self, index: NodeIndex) -> &mut N;
+    fn node(&self, index: NodeIndex) -> &N;
+    fn node_mut(&mut self, index: NodeIndex) -> &mut N;
 
     fn weight(&self, index: EdgeIndex) -> &W;
     fn weight_mut(&mut self, index: EdgeIndex) -> &mut W;
 
     fn update_node(&mut self, index: NodeIndex, node: N) -> N {
-        std::mem::replace(self.get_mut(index), node)
+        std::mem::replace(self.node_mut(index), node)
     }
     fn update_edge(&mut self, index: EdgeIndex, weight: W) -> W {
         std::mem::replace(self.weight_mut(index), weight)

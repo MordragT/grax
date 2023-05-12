@@ -56,7 +56,7 @@ pub fn branch_bound(path: &str) {
 
     let now = Instant::now();
 
-    let total = graph.branch_bound().unwrap() as f32;
+    let total = graph.branch_bound().unwrap().weight as f32;
 
     println!("bb: {path}: {total} in {:?}", now.elapsed());
 }

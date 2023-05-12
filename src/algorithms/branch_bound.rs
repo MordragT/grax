@@ -1,11 +1,11 @@
-use super::{_nearest_neighbor, dijkstra};
+use super::{_nearest_neighbor, dijkstra, Tour};
 use crate::{
     edge::EdgeRef,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
 };
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<N, W, G>(graph: &G) -> Option<W>
+pub fn branch_bound<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -16,7 +16,7 @@ where
     }
 }
 
-pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<W>
+pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable + Maximum,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -38,19 +38,20 @@ where
                 &mut baseline,
             );
 
-            Some(baseline)
+            Some(Tour::new(path, baseline))
         }
         None => None,
     }
 }
 
-pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex) -> W
+pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex) -> Tour<W>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
     let mut stack = Vec::new();
     let mut total_cost = _nearest_neighbor(graph, start).unwrap_or(Maximum::max());
+    let mut route = Vec::new();
 
     let mut visited = vec![false; graph.node_count()];
     visited[start.0] = true;
@@ -83,6 +84,7 @@ where
 
                         if cost < total_cost {
                             total_cost = cost;
+                            std::mem::swap(&mut path, &mut route);
                         }
                     }
                 } else {
@@ -92,7 +94,7 @@ where
         }
     }
 
-    total_cost
+    Tour::new(route, total_cost)
 }
 
 pub(crate) fn _branch_bound_rec<N, W, G>(
