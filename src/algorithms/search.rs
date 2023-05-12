@@ -1,4 +1,4 @@
-use super::topology::{GraphAdjacentTopology, GraphTopology};
+use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
 use std::collections::VecDeque;
 

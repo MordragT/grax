@@ -6,19 +6,17 @@ use std::{
 pub use access::{GraphAccess, GraphCompare};
 pub use topology::{GraphAdjacentTopology, GraphTopology};
 
-use crate::{error::GraphResult, prelude::NodeIndex};
-
-use self::{
-    mst::{dijkstra, kruskal, prim},
-    search::{breadth_search_connected_components, depth_search_connected_components},
-    tsp::{branch_bound, brute_force, double_tree, nearest_neighbor},
+use crate::{
+    algorithms::{
+        branch_bound, breadth_search_connected_components, brute_force,
+        depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor, prim,
+    },
+    error::GraphResult,
+    prelude::NodeIndex,
 };
 
 mod access;
-pub mod mst;
-pub mod search;
 mod topology;
-pub mod tsp;
 
 pub trait Sortable: PartialOrd {
     fn sort(&self, other: &Self) -> Ordering;
