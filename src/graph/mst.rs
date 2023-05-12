@@ -1,32 +1,13 @@
-use super::topology::{GraphAdjacentTopology, GraphTopology};
+use super::{
+    topology::{GraphAdjacentTopology, GraphTopology},
+    Sortable,
+};
 use crate::{edge::EdgeRef, indices::NodeIndex, tree::UnionFind};
 use priq::PriorityQueue;
 use std::{
     cmp::Ordering,
     ops::{Add, AddAssign},
 };
-
-pub trait Sortable: PartialOrd {
-    fn sort(&self, other: &Self) -> Ordering;
-}
-
-default impl<T: PartialOrd> Sortable for T {
-    default fn sort(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
-    }
-}
-
-impl Sortable for f64 {
-    fn sort(&self, other: &Self) -> Ordering {
-        self.total_cmp(other)
-    }
-}
-
-impl Sortable for f32 {
-    fn sort(&self, other: &Self) -> Ordering {
-        self.total_cmp(other)
-    }
-}
 
 pub trait GraphMst<N, W: Sortable + Default + Add<W, Output = W> + AddAssign + Clone>:
     GraphTopology<N, W> + GraphAdjacentTopology<N, W> + Sized

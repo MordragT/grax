@@ -5,21 +5,24 @@ use crate::{
     indices::NodeIndex,
     prelude::AdjacencyList,
 };
-use std::ops::{Add, AddAssign};
+use std::{
+    collections::VecDeque,
+    ops::{Add, AddAssign},
+};
 
 use super::{
     access::{GraphAccess, GraphCompare},
-    mst::{PrivateGraphMst, Sortable},
+    mst::PrivateGraphMst,
     search::PrivateGraphSearch,
     topology::{GraphAdjacentTopology, GraphTopology},
-    GraphMst,
+    GraphMst, Maximum, Sortable,
 };
 
 // Sortable + PartialEq
 
 pub trait GraphTsp<
     N: PartialEq,
-    W: Sortable + PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone,
+    W: Sortable + Maximum + PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone,
 >:
     GraphTopology<N, W>
     + GraphAdjacentTopology<N, W>
@@ -81,11 +84,49 @@ pub trait GraphTsp<
             None => Ok(W::default()),
         }
     }
+
+    fn brute_force(&self) -> Option<W> {
+        let mut best_path = Vec::new();
+        let mut best_weight = W::max();
+
+        let start = (0..self.node_count()).map(NodeIndex).collect::<Vec<_>>();
+
+        for perm in permute::permutations_of(&start) {
+            let mut perm = perm.map(ToOwned::to_owned).collect::<Vec<_>>();
+            perm.push(perm[0]);
+
+            let edges = perm
+                .array_windows::<2>()
+                .map(|w| self.contains_edge(w[0], w[1]))
+                .collect::<Option<Vec<_>>>();
+
+            if let Some(edges) = edges {
+                let total_weight = edges
+                    .into_iter()
+                    .map(|edge| self.weight(edge).to_owned())
+                    .fold(W::default(), |mut accu, w| {
+                        accu += w;
+                        accu
+                    });
+
+                if total_weight < best_weight {
+                    best_path = perm.clone();
+                    best_weight = total_weight;
+                }
+            }
+        }
+
+        if best_weight == W::max() {
+            None
+        } else {
+            Some(best_weight)
+        }
+    }
 }
 
 impl<
         N: PartialEq,
-        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable,
+        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable + Maximum,
         T: GraphTopology<N, W>
             + GraphAdjacentTopology<N, W>
             + GraphAccess<N, W>
@@ -97,7 +138,7 @@ impl<
 
 trait PrivateGraphTsp<
     N: PartialEq,
-    W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable,
+    W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable + Maximum,
 >:
     GraphTopology<N, W>
     + GraphAdjacentTopology<N, W>
@@ -161,23 +202,22 @@ trait PrivateGraphTsp<
 
         while let Some((node, _)) = path.last() && path.len() < self.node_count() {
 
-            let mut min_edge = None;
+            let mut min_node = None;
+            let mut min_weight = W::max();
 
             for EdgeRef { from:_, to, weight } in self.adjacent_edges(*node) {
                 if states[to.0] == Status::Unvisited && to != prev {
-                    if let Some((_, min_weight)) = &min_edge {
-                        if min_weight > weight {
-                            min_edge = Some((to, weight.to_owned()));
-                        }
-                    } else {
-                        min_edge = Some((to, weight.to_owned()));
+                    let weight = weight.to_owned();
+                    if min_weight > weight {
+                        min_node = Some(to);
+                        min_weight = weight;
                     }
                 }
             }
 
-            match min_edge {
-                Some((next, weight)) => {
-                    path.push((next, weight));
+            match min_node {
+                Some(next) => {
+                    path.push((next, min_weight));
                     states[next.0] = Status::Visited;
                     prev = next;
                 }
@@ -226,7 +266,7 @@ trait PrivateGraphTsp<
 
 impl<
         N: PartialEq,
-        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable,
+        W: PartialOrd + Default + Add<W, Output = W> + AddAssign + Clone + Sortable + Maximum,
         T: GraphTopology<N, W>
             + GraphAdjacentTopology<N, W>
             + GraphAccess<N, W>

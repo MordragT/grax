@@ -28,11 +28,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     branch_bound("data/K_10.txt");
 
+    brute_force("data/K_10.txt");
+
     // db();
 
     // depth_search("data/K_10.txt");
 
     Ok(())
+}
+
+pub fn brute_force(path: &str) {
+    let edge_list = fs::read_to_string(path).unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let total = graph.brute_force().unwrap() as f32;
+    println!("bf: {path}: {total}");
 }
 
 pub fn branch_bound(path: &str) {
