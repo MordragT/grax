@@ -3,7 +3,7 @@ use crate::{
     error::{GraphError, GraphResult},
     graph::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology},
     indices::{EdgeIndex, NodeIndex},
-    prelude::{EdgeList, Graph, Node, Weight},
+    prelude::{EdgeList, Graph, Node, Weight, WeightlessGraph},
 };
 use std::{
     collections::{BTreeMap, HashSet},
@@ -214,3 +214,5 @@ impl<N: PartialEq, W> GraphCompare<N, W> for AdjacencyList<N, W> {
 }
 
 impl<N: Node + Clone, W: Weight> Graph<N, W> for AdjacencyList<N, W> {}
+
+impl<N> WeightlessGraph<N> for AdjacencyList<N, ()> {}

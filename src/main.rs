@@ -26,8 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // double_tree("data/K_70.txt");
     // double_tree("data/K_100.txt");
 
-    branch_bound("data/K_10.txt", true);
-    branch_bound("data/K_10.txt", false);
+    branch_bound("data/K_10.txt");
 
     brute_force("data/K_10.txt");
 
@@ -50,14 +49,14 @@ pub fn brute_force(path: &str) {
     println!("bf: {path}: {total} in {:?}", now.elapsed());
 }
 
-pub fn branch_bound(path: &str, compare: bool) {
+pub fn branch_bound(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     let now = Instant::now();
 
-    let total = graph.branch_bound(compare).unwrap() as f32;
+    let total = graph.branch_bound().unwrap() as f32;
 
     println!("bb: {path}: {total} in {:?}", now.elapsed());
 }
@@ -76,7 +75,7 @@ pub fn nearest_neighbor(path: &str) {
 pub fn double_tree(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.double_tree().unwrap() as f32;
 
     let now = Instant::now();
@@ -97,7 +96,7 @@ pub fn db() {
         .into_iter(),
         4,
     );
-    let mut graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
     let total = graph.double_tree().unwrap();
 
     println!("{total}")

@@ -4,16 +4,21 @@ use std::{
 };
 
 pub use access::{GraphAccess, GraphCompare};
-pub use mst::GraphMst;
-pub use search::GraphSearch;
 pub use topology::{GraphAdjacentTopology, GraphTopology};
-pub use tsp::GraphTsp;
+
+use crate::{error::GraphResult, prelude::NodeIndex};
+
+use self::{
+    mst::{dijkstra, kruskal, prim},
+    search::{breadth_search_connected_components, depth_search_connected_components},
+    tsp::{branch_bound, brute_force, double_tree, nearest_neighbor},
+};
 
 mod access;
-mod mst;
-mod search;
+pub mod mst;
+pub mod search;
 mod topology;
-mod tsp;
+pub mod tsp;
 
 pub trait Sortable: PartialOrd {
     fn sort(&self, other: &Self) -> Ordering;
@@ -59,21 +64,61 @@ impl Maximum for u32 {
     }
 }
 
+pub trait WeightlessGraph<N>: GraphTopology<N, ()> + GraphAdjacentTopology<N, ()> + Sized {
+    fn depth_search_connected_components(&self) -> u32 {
+        depth_search_connected_components(self)
+    }
+
+    fn breadth_search_connected_components(&self) -> u32 {
+        breadth_search_connected_components(self)
+    }
+}
+
 pub trait Graph<N: Node, W: Weight>:
-    GraphAccess<N, W>
-    + GraphMst<N, W>
-    + GraphSearch<N, W>
-    + GraphTopology<N, W>
-    + GraphAdjacentTopology<N, W>
-    + GraphTsp<N, W>
+    GraphAccess<N, W> + GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphCompare<N, W> + Sized
 {
+    fn dijkstra(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+        dijkstra(self, from, to)
+    }
+
+    fn kruskal(&self) -> W {
+        kruskal(self)
+    }
+
+    fn prim(&self) -> W {
+        prim(self)
+    }
+
+    fn depth_search_connected_components(&self) -> u32 {
+        depth_search_connected_components(self)
+    }
+
+    fn breadth_search_connected_components(&self) -> u32 {
+        breadth_search_connected_components(self)
+    }
+
+    fn nearest_neighbor(&self) -> Option<W> {
+        nearest_neighbor(self)
+    }
+
+    fn double_tree(&self) -> GraphResult<W> {
+        double_tree(self)
+    }
+
+    fn branch_bound(&self) -> GraphResult<W> {
+        branch_bound(self)
+    }
+
+    fn brute_force(&self) -> Option<W> {
+        brute_force(self)
+    }
 }
 pub trait Node: Default + PartialEq {}
 
 impl<T: Default + PartialEq> Node for T {}
 pub trait Weight:
-    Sortable + Maximum + Default + Add<Self, Output = Self> + AddAssign + Clone
+    Sortable + Maximum + Default + Add<Self, Output = Self> + AddAssign + Copy
 {
 }
 
-impl<T: Sortable + Maximum + Default + Add<T, Output = T> + AddAssign + Clone> Weight for T {}
+impl<T: Sortable + Maximum + Default + Add<T, Output = T> + AddAssign + Copy> Weight for T {}
