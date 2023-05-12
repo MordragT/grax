@@ -39,7 +39,7 @@ pub trait GraphTsp<
         }
     }
 
-    fn double_tree(&mut self) -> GraphResult<W> {
+    fn double_tree(&self) -> GraphResult<W> {
         let mut mst = AdjacencyList::with(AdjacencyOptions {
             directed: self.directed(),
             nodes: Some(self.nodes().collect()),
@@ -78,9 +78,9 @@ pub trait GraphTsp<
         }
     }
 
-    fn branch_bound(&self) -> GraphResult<W> {
+    fn branch_bound(&self, compare: bool) -> GraphResult<W> {
         match self.indices().next() {
-            Some(start) => self._branch_bound(start),
+            Some(start) => self._branch_bound(start, compare),
             None => Ok(W::default()),
         }
     }
@@ -147,7 +147,7 @@ trait PrivateGraphTsp<
     + PrivateGraphMst<N, W>
     + Sized
 {
-    fn _branch_bound(&self, start: NodeIndex) -> GraphResult<W> {
+    fn _branch_bound(&self, start: NodeIndex, compare: bool) -> GraphResult<W> {
         let mut stack = Vec::new();
         let mut total_cost = self._nearest_neighbor(start).unwrap();
 
@@ -169,7 +169,7 @@ trait PrivateGraphTsp<
             {
                 let cost = cost.clone() + weight.clone();
 
-                if !visited[to.0] && cost < total_cost {
+                if !visited[to.0] && (cost < total_cost || !compare) {
                     let mut visited = visited.clone();
                     visited[to.0] = true;
 
