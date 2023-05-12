@@ -16,24 +16,21 @@ mod test;
 #[derive(Default)]
 pub struct AdjacencyOptions<N> {
     pub nodes: Option<Vec<N>>,
-    pub directed: bool,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct AdjacencyList<N, W> {
+pub struct AdjacencyList<N, W, const DIRECTED: bool = false> {
     pub(crate) nodes: Vec<N>,
     pub(crate) adjacencies: Vec<Vec<NodeIndex>>,
     pub(crate) edges: BTreeMap<EdgeIndex, W>,
-    pub(crate) directed: bool,
 }
 
-impl<N, W> AdjacencyList<N, W> {
+impl<N, W, const DIRECTED: bool> AdjacencyList<N, W, DIRECTED> {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
             adjacencies: Vec::new(),
             edges: BTreeMap::new(),
-            directed: false,
         }
     }
 
@@ -50,13 +47,16 @@ impl<N, W> AdjacencyList<N, W> {
             nodes,
             adjacencies,
             edges: BTreeMap::new(),
-            directed: options.directed,
         }
     }
 }
 
-impl<W: Copy> AdjacencyList<usize, W> {
-    pub fn from_edge_list(edge_list: EdgeList<usize, W>, directed: bool) -> GraphResult<Self> {
+impl<W: Copy, const DIRECTED: bool> TryFrom<EdgeList<usize, W, DIRECTED>>
+    for AdjacencyList<usize, W, DIRECTED>
+{
+    type Error = GraphError;
+
+    fn try_from(edge_list: EdgeList<usize, W, DIRECTED>) -> Result<Self, Self::Error> {
         let EdgeList {
             parents,
             children,
@@ -66,7 +66,6 @@ impl<W: Copy> AdjacencyList<usize, W> {
 
         let options = AdjacencyOptions {
             nodes: Some(vec![0; node_count]),
-            directed,
         };
         let mut adj_list = Self::with(options);
 
@@ -81,7 +80,7 @@ impl<W: Copy> AdjacencyList<usize, W> {
             let from_idx = NodeIndex(from);
             let to_idx = NodeIndex(to);
 
-            if !directed {
+            if !DIRECTED {
                 adj_list.add_edge(to_idx, from_idx, weight)?;
             }
 
@@ -92,7 +91,7 @@ impl<W: Copy> AdjacencyList<usize, W> {
     }
 }
 
-impl<N, W> GraphTopology<N, W> for AdjacencyList<N, W> {
+impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyList<N, W, DIRECTED> {
     type Indices<'a> = impl Iterator<Item = NodeIndex> where Self: 'a;
     type Nodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
     type Edges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
@@ -121,11 +120,13 @@ impl<N, W> GraphTopology<N, W> for AdjacencyList<N, W> {
     }
 
     fn directed(&self) -> bool {
-        self.directed
+        DIRECTED
     }
 }
 
-impl<N, W: Clone> GraphAdjacentTopology<N, W> for AdjacencyList<N, W> {
+impl<N, W: Clone, const DIRECTED: bool> GraphAdjacentTopology<N, W>
+    for AdjacencyList<N, W, DIRECTED>
+{
     type AdjacentIndices<'a> = impl Iterator<Item = NodeIndex> + 'a where Self: 'a;
     type AdjacentNodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
     type AdjacentEdges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
@@ -145,7 +146,7 @@ impl<N, W: Clone> GraphAdjacentTopology<N, W> for AdjacencyList<N, W> {
     }
 }
 
-impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
+impl<N, W: Clone, const DIRECTED: bool> GraphAccess<N, W> for AdjacencyList<N, W, DIRECTED> {
     fn add_node(&mut self, node: N) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(node);
@@ -202,7 +203,7 @@ impl<N, W: Clone> GraphAccess<N, W> for AdjacencyList<N, W> {
     }
 }
 
-impl<N: PartialEq, W> GraphCompare<N, W> for AdjacencyList<N, W> {
+impl<N: PartialEq, W, const DIRECTED: bool> GraphCompare<N, W> for AdjacencyList<N, W, DIRECTED> {
     fn contains_edge(&self, from: NodeIndex, to: NodeIndex) -> Option<EdgeIndex> {
         let index = EdgeIndex::new(from, to);
         if self.edges.contains_key(&index) {
@@ -213,6 +214,9 @@ impl<N: PartialEq, W> GraphCompare<N, W> for AdjacencyList<N, W> {
     }
 }
 
-impl<N: Node + Clone, W: Weight> Graph<N, W> for AdjacencyList<N, W> {}
+impl<N: Node + Clone, W: Weight, const DIRECTED: bool> Graph<N, W>
+    for AdjacencyList<N, W, DIRECTED>
+{
+}
 
 impl<N> WeightlessGraph<N> for AdjacencyList<N, ()> {}

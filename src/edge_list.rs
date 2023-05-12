@@ -2,14 +2,14 @@ use crate::error::GraphError;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct EdgeList<N, W> {
+pub struct EdgeList<N, W, const DIRECTED: bool = false> {
     pub(crate) parents: Vec<N>,
     pub(crate) children: Vec<N>,
     pub(crate) weights: Vec<W>,
     pub(crate) node_count: usize,
 }
 
-impl<N, W> EdgeList<N, W> {
+impl<N, W, const DIRECTED: bool> EdgeList<N, W, DIRECTED> {
     pub fn with(list: impl Iterator<Item = (N, N, W)>, node_count: usize) -> Self {
         let ((parents, children), weights) =
             list.map(|(from, to, weight)| ((from, to), weight)).unzip();
@@ -48,7 +48,7 @@ impl FromStr for EdgeList<usize, ()> {
     }
 }
 
-impl FromStr for EdgeList<usize, f64> {
+impl<const DIRECTED: bool> FromStr for EdgeList<usize, f64, DIRECTED> {
     type Err = GraphError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -85,20 +85,19 @@ mod test {
     fn unweighted() {
         let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+        let _adj_list = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
     }
 
     #[test]
     fn weighted() {
         let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+        let _adj_list = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     }
-
     #[test]
     fn directed() {
-        let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
+        let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, ()>::from_edge_list(edge_list, true).unwrap();
+        let _adj_list = AdjacencyList::<usize, f64, true>::try_from(edge_list).unwrap();
     }
 }

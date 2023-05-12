@@ -65,7 +65,7 @@ fn from_edge_list() {
         2 3
         3 1";
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     assert_eq!(graph.node_count(), 4);
 
@@ -101,39 +101,17 @@ fn djikstra() {
         4,
     );
 
-    let graph = AdjacencyList::<usize, f32>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f32>::try_from(edge_list).unwrap();
     let dist = graph.dijkstra(NodeIndex(0), NodeIndex(2));
 
     assert_eq!(dist, Some(2.0));
-}
-
-#[test]
-fn kruskal_mst() {
-    let edge_list = EdgeList::with(
-        [
-            (0, 1, 1.0),
-            (0, 2, 3.0),
-            (1, 2, 1.0),
-            (2, 3, 4.0),
-            (3, 0, 1.5),
-        ]
-        .into_iter(),
-        4,
-    );
-
-    let graph = AdjacencyList::<usize, f32>::from_edge_list(edge_list, false).unwrap();
-    let mst = graph.kruskal_mst();
-
-    dbg!(mst);
-
-    assert!(false);
 }
 
 #[bench]
 fn breadth_search_connected_components_graph1(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -145,7 +123,7 @@ fn breadth_search_connected_components_graph1(b: &mut Bencher) {
 fn breadth_search_connected_components_graph2(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -157,7 +135,7 @@ fn breadth_search_connected_components_graph2(b: &mut Bencher) {
 fn breadth_search_connected_components_graph3(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -169,7 +147,7 @@ fn breadth_search_connected_components_graph3(b: &mut Bencher) {
 fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -181,7 +159,7 @@ fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
 fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -193,7 +171,7 @@ fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
 fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.breadth_search_connected_components();
@@ -205,7 +183,7 @@ fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
 fn depth_search_connected_components_graph1(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -217,7 +195,7 @@ fn depth_search_connected_components_graph1(b: &mut Bencher) {
 fn depth_search_connected_components_graph2(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph2.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -229,7 +207,7 @@ fn depth_search_connected_components_graph2(b: &mut Bencher) {
 fn depth_search_connected_components_graph3(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph3.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -241,7 +219,7 @@ fn depth_search_connected_components_graph3(b: &mut Bencher) {
 fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_gross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -253,7 +231,7 @@ fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
 fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -265,7 +243,7 @@ fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
 fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph_ganzganzgross.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let counter = graph.depth_search_connected_components();
@@ -277,7 +255,7 @@ fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
 fn prim_graph_1_2(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -289,7 +267,7 @@ fn prim_graph_1_2(b: &mut Bencher) {
 fn prim_graph_1_20(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -301,7 +279,7 @@ fn prim_graph_1_20(b: &mut Bencher) {
 fn prim_graph_1_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -313,7 +291,7 @@ fn prim_graph_1_200(b: &mut Bencher) {
 fn prim_graph_10_20(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -325,7 +303,7 @@ fn prim_graph_10_20(b: &mut Bencher) {
 fn prim_graph_10_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -337,7 +315,7 @@ fn prim_graph_10_200(b: &mut Bencher) {
 fn prim_graph_100_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.prim() as f32;
@@ -349,7 +327,7 @@ fn prim_graph_100_200(b: &mut Bencher) {
 fn kruskal_graph_1_2(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -361,7 +339,7 @@ fn kruskal_graph_1_2(b: &mut Bencher) {
 fn kruskal_graph_1_20(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_20.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -373,7 +351,7 @@ fn kruskal_graph_1_20(b: &mut Bencher) {
 fn kruskal_graph_1_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_1_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -385,7 +363,7 @@ fn kruskal_graph_1_200(b: &mut Bencher) {
 fn kruskal_graph_10_20(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_10_20.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -397,7 +375,7 @@ fn kruskal_graph_10_20(b: &mut Bencher) {
 fn kruskal_graph_10_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_10_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -409,7 +387,7 @@ fn kruskal_graph_10_200(b: &mut Bencher) {
 fn kruskal_graph_100_200(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/G_100_200.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let count = graph.kruskal_weight() as f32;
@@ -421,7 +399,7 @@ fn kruskal_graph_100_200(b: &mut Bencher) {
 fn nearest_neighbor_k_10(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.nearest_neighbor_from_first().unwrap().weight;
@@ -433,7 +411,7 @@ fn nearest_neighbor_k_10(b: &mut Bencher) {
 fn nearest_neighbor_k_10e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.nearest_neighbor_from_first().unwrap().weight;
@@ -445,7 +423,7 @@ fn nearest_neighbor_k_10e(b: &mut Bencher) {
 fn nearest_neighbor_k_12(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.nearest_neighbor_from_first().unwrap().weight;
@@ -457,7 +435,7 @@ fn nearest_neighbor_k_12(b: &mut Bencher) {
 fn nearest_neighbor_k_12e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.nearest_neighbor_from_first().unwrap().weight;
@@ -469,7 +447,7 @@ fn nearest_neighbor_k_12e(b: &mut Bencher) {
 fn double_tree_k_10(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap().weight;
@@ -481,7 +459,7 @@ fn double_tree_k_10(b: &mut Bencher) {
 fn double_tree_k_10e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap().weight;
@@ -493,7 +471,7 @@ fn double_tree_k_10e(b: &mut Bencher) {
 fn double_tree_k_12(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap().weight;
@@ -505,7 +483,7 @@ fn double_tree_k_12(b: &mut Bencher) {
 fn double_tree_k_12e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.double_tree().unwrap().weight;
@@ -517,7 +495,7 @@ fn double_tree_k_12e(b: &mut Bencher) {
 fn branch_bound_k_10(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap().weight as f32;
@@ -529,7 +507,7 @@ fn branch_bound_k_10(b: &mut Bencher) {
 fn branch_bound_k_10e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap().weight as f32;
@@ -541,7 +519,7 @@ fn branch_bound_k_10e(b: &mut Bencher) {
 fn branch_bound_k_12(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap().weight as f32;
@@ -553,7 +531,7 @@ fn branch_bound_k_12(b: &mut Bencher) {
 fn branch_bound_k_12e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap().weight as f32;
@@ -565,7 +543,7 @@ fn branch_bound_k_12e(b: &mut Bencher) {
 fn branch_bound_rec_k_10(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound_rec().unwrap().weight as f32;
@@ -577,7 +555,7 @@ fn branch_bound_rec_k_10(b: &mut Bencher) {
 fn branch_bound_rec_k_10e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_10e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound_rec().unwrap().weight as f32;
@@ -589,7 +567,7 @@ fn branch_bound_rec_k_10e(b: &mut Bencher) {
 fn branch_bound_rec_k_12(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound_rec().unwrap().weight as f32;
@@ -601,10 +579,34 @@ fn branch_bound_rec_k_12(b: &mut Bencher) {
 fn branch_bound_rec_k_12e(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/K_12e.txt").unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
         let total = graph.branch_bound_rec().unwrap().weight as f32;
         assert_eq!(total, 36.13);
+    })
+}
+
+#[bench]
+fn dijkstra_g_1_2_directed(b: &mut Bencher) {
+    let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64, true>::try_from(edge_list).unwrap();
+
+    b.iter(|| {
+        let total = graph.dijkstra(NodeIndex(0), NodeIndex(1)).unwrap();
+        assert_eq!(total as f32, 5.56283)
+    })
+}
+
+#[bench]
+fn dijkstra_g_1_2_undirected(b: &mut Bencher) {
+    let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
+
+    b.iter(|| {
+        let total = graph.dijkstra(NodeIndex(0), NodeIndex(1)).unwrap();
+        assert_eq!(total as f32, 2.36802)
     })
 }

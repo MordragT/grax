@@ -1,6 +1,6 @@
 use crate::adjacency_list::AdjacencyOptions;
 use crate::graph::{GraphAccess, GraphTopology, Sortable};
-use crate::prelude::{AdjacencyList, NodeIndex};
+use crate::prelude::AdjacencyList;
 use crate::{edge::EdgeRef, tree::UnionFind};
 use std::ops::AddAssign;
 
@@ -22,7 +22,6 @@ where
     G: GraphTopology<N, W>,
 {
     let mut mst = AdjacencyList::with(AdjacencyOptions {
-        directed: graph.directed(),
         nodes: Some(graph.nodes().collect()),
     });
 

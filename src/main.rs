@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 pub fn brute_force(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
 
@@ -52,7 +52,7 @@ pub fn brute_force(path: &str) {
 pub fn branch_bound(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
 
@@ -64,7 +64,7 @@ pub fn branch_bound(path: &str) {
 pub fn nearest_neighbor(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.nearest_neighbor_from_first().unwrap().weight as f32;
 
     let now = Instant::now();
@@ -75,7 +75,7 @@ pub fn nearest_neighbor(path: &str) {
 pub fn double_tree(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.double_tree().unwrap().weight as f32;
 
     let now = Instant::now();
@@ -96,7 +96,7 @@ pub fn db() {
         .into_iter(),
         4,
     );
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.double_tree().unwrap().weight;
 
     println!("{total}")
@@ -115,7 +115,7 @@ pub fn nn() {
         .into_iter(),
         4,
     );
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     let nn = graph.nearest_neighbor_from_first().unwrap().weight;
 
     println!("{nn}")
@@ -138,7 +138,7 @@ pub fn prim() {
         .into_iter(),
         7,
     );
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
     let total = graph.prim();
 
     assert_eq!(total, 2.5);
@@ -147,7 +147,7 @@ pub fn prim() {
 pub fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let edge_list = fs::read_to_string("data/Graph_ganzgross.txt")?;
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, ()>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
     let counter = graph.breadth_search_connected_components();
@@ -161,7 +161,7 @@ pub fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
 pub fn depth_search(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
-    let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     let connected_components = graph.depth_search_connected_components();
 
