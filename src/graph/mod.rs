@@ -8,7 +8,7 @@ pub use topology::{GraphAdjacentTopology, GraphTopology};
 
 use crate::{
     algorithms::{
-        branch_bound, breadth_search_connected_components, brute_force,
+        branch_bound, branch_bound_rec, breadth_search_connected_components, brute_force,
         depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor, prim,
     },
     error::GraphResult,
@@ -105,6 +105,10 @@ pub trait Graph<N: Node, W: Weight>:
 
     fn branch_bound(&self) -> Option<W> {
         branch_bound(self)
+    }
+
+    fn branch_bound_rec(&self) -> Option<W> {
+        branch_bound_rec(self)
     }
 
     fn brute_force(&self) -> Option<W> {
