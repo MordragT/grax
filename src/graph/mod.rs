@@ -8,10 +8,10 @@ pub use topology::{GraphAdjacentTopology, GraphTopology};
 
 use crate::{
     algorithms::{
-        branch_bound, branch_bound_rec, breadth_search_connected_components, brute_force,
-        depth_search_connected_components, dijkstra, dijkstra_distances, double_tree, kruskal_mst,
-        kruskal_weight, nearest_neighbor, nearest_neighbor_from_first, prim, Distances,
-        MinimumSpanningTree, Tour,
+        bellman_ford, bellman_ford_between, branch_bound, branch_bound_rec,
+        breadth_search_connected_components, brute_force, depth_search_connected_components,
+        dijkstra, dijkstra_between, double_tree, kruskal_mst, kruskal_weight, nearest_neighbor,
+        nearest_neighbor_from_first, prim, Distances, MinimumSpanningTree, Tour,
     },
     prelude::NodeIndex,
 };
@@ -76,12 +76,20 @@ pub trait WeightlessGraph<N>: GraphTopology<N, ()> + GraphAdjacentTopology<N, ()
 pub trait Graph<N: Node, W: Weight>:
     GraphAccess<N, W> + GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphCompare<N, W> + Sized
 {
-    fn dijkstra(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
-        dijkstra(self, from, to)
+    fn bellman_ford_between(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+        bellman_ford_between(self, from, to)
     }
 
-    fn dijkstra_distances(&self, from: NodeIndex, to: NodeIndex) -> Distances<W> {
-        dijkstra_distances(self, from, to)
+    fn bellman_ford(&self, start: NodeIndex) -> Distances<W> {
+        bellman_ford(self, start)
+    }
+
+    fn dijkstra_between(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+        dijkstra_between(self, from, to)
+    }
+
+    fn dijkstra(&self, from: NodeIndex, to: NodeIndex) -> Distances<W> {
+        dijkstra(self, from, to)
     }
 
     fn kruskal_weight(&self) -> W {

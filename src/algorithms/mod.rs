@@ -1,3 +1,4 @@
+pub use bellman_ford::*;
 pub use branch_bound::*;
 pub use brute_force::*;
 pub use dijkstra::*;
@@ -9,6 +10,7 @@ pub use search::*;
 
 use crate::prelude::{AdjacencyList, GraphAccess, NodeIndex};
 
+mod bellman_ford;
 mod branch_bound;
 mod brute_force;
 mod dijkstra;
@@ -48,7 +50,7 @@ impl<W> Tour<W> {
 
 #[derive(Debug)]
 pub struct Distances<W> {
-    distances: Vec<Option<W>>,
+    pub distances: Vec<Option<W>>,
     pub from: NodeIndex,
 }
 
@@ -64,12 +66,12 @@ impl<W> Distances<W> {
 
 #[derive(Debug)]
 pub struct MinimumSpanningTree<N, W> {
-    pub graph: AdjacencyList<N, W>,
+    pub tree: AdjacencyList<N, W>,
     pub root: NodeIndex,
 }
 
 impl<N, W> MinimumSpanningTree<N, W> {
-    pub fn new(graph: AdjacencyList<N, W>, root: NodeIndex) -> Self {
-        Self { graph, root }
+    pub fn new(tree: AdjacencyList<N, W>, root: NodeIndex) -> Self {
+        Self { tree, root }
     }
 }

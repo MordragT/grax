@@ -1,4 +1,4 @@
-use super::{dijkstra, nearest_neighbor, Tour};
+use super::{dijkstra_between, nearest_neighbor, Tour};
 use crate::{
     edge::EdgeRef,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
@@ -83,7 +83,9 @@ where
                 path.push(to);
 
                 if visited.iter().all(|v| *v == true) {
-                    if let Some(cost_to_start) = dijkstra(graph, path[path.len() - 1], start) {
+                    if let Some(cost_to_start) =
+                        dijkstra_between(graph, path[path.len() - 1], start)
+                    {
                         let cost = cost + cost_to_start;
 
                         if cost < total_cost {
@@ -113,7 +115,7 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
-    if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra(graph, node, start) {
+    if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;
         if total_cost < *baseline {
             *baseline = total_cost;

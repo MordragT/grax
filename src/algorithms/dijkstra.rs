@@ -5,15 +5,15 @@ use std::ops::Add;
 
 use super::Distances;
 
-pub fn dijkstra<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<W>
+pub fn dijkstra_between<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
-    dijkstra_distances(graph, from, to).distances[to.0]
+    dijkstra(graph, from, to).distances[to.0]
 }
 
-pub fn dijkstra_distances<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Distances<W>
+pub fn dijkstra<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Distances<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,

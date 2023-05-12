@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign};
 
 use crate::prelude::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology, Sortable};
 
-use super::{depth_search_tour, dijkstra, kruskal_mst, MinimumSpanningTree, Tour};
+use super::{depth_search_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
 
 pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
@@ -10,7 +10,7 @@ where
     W: Default + Sortable + Copy + AddAssign + Add<W, Output = W>,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphCompare<N, W>,
 {
-    let MinimumSpanningTree { graph: mst, root } = kruskal_mst(graph);
+    let MinimumSpanningTree { tree: mst, root } = kruskal_mst(graph);
 
     let mut route = depth_search_tour(&mst, root).route;
     route.push(root);
@@ -23,7 +23,7 @@ where
     for [from, to] in route.array_windows::<2>() {
         let weight = match mst.contains_edge(*from, *to) {
             Some(index) => *mst.weight(index),
-            None if let Some(weight) = dijkstra(graph, *from, *to) => weight,
+            None if let Some(weight) = dijkstra_between(graph, *from, *to) => weight,
             _ => return None,
         };
         total_weight += weight;

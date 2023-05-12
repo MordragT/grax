@@ -102,7 +102,7 @@ fn djikstra() {
     );
 
     let graph = AdjacencyList::<usize, f32>::try_from(edge_list).unwrap();
-    let dist = graph.dijkstra(NodeIndex(0), NodeIndex(2));
+    let dist = graph.dijkstra_between(NodeIndex(0), NodeIndex(2));
 
     assert_eq!(dist, Some(2.0));
 }
@@ -594,7 +594,7 @@ fn dijkstra_g_1_2_directed(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64, true>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.dijkstra(NodeIndex(0), NodeIndex(1)).unwrap();
+        let total = graph.dijkstra_between(NodeIndex(0), NodeIndex(1)).unwrap();
         assert_eq!(total as f32, 5.56283)
     })
 }
@@ -606,7 +606,35 @@ fn dijkstra_g_1_2_undirected(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
     b.iter(|| {
-        let total = graph.dijkstra(NodeIndex(0), NodeIndex(1)).unwrap();
+        let total = graph.dijkstra_between(NodeIndex(0), NodeIndex(1)).unwrap();
+        assert_eq!(total as f32, 2.36802)
+    })
+}
+
+#[bench]
+fn bellman_ford_g_1_2_directed(b: &mut Bencher) {
+    let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64, true>::try_from(edge_list).unwrap();
+
+    b.iter(|| {
+        let total = graph
+            .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+            .unwrap();
+        assert_eq!(total as f32, 5.56283)
+    })
+}
+
+#[bench]
+fn bellman_ford_g_1_2_undirected(b: &mut Bencher) {
+    let edge_list = fs::read_to_string("data/G_1_2.txt").unwrap();
+    let edge_list = EdgeList::from_str(&edge_list).unwrap();
+    let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
+
+    b.iter(|| {
+        let total = graph
+            .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+            .unwrap();
         assert_eq!(total as f32, 2.36802)
     })
 }

@@ -1,4 +1,4 @@
-use super::{dijkstra, Tour};
+use super::{dijkstra_between, Tour};
 use crate::{
     edge::EdgeRef,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
@@ -84,7 +84,7 @@ where
         .into_iter()
         .all(|visit| visit == Status::Visited || visit == Status::Diverged));
 
-    match dijkstra(graph, prev, start) {
+    match dijkstra_between(graph, prev, start) {
         Some(weight) => path.push((start, weight)),
         None => return None,
     }
