@@ -103,7 +103,7 @@ pub trait Graph<N: Node, W: Weight>:
         double_tree(self)
     }
 
-    fn branch_bound(&self) -> GraphResult<W> {
+    fn branch_bound(&self) -> Option<W> {
         branch_bound(self)
     }
 

@@ -1,29 +1,28 @@
 use super::{_nearest_neighbor, dijkstra};
 use crate::{
     edge::EdgeRef,
-    error::GraphResult,
     prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
 };
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<N, W, G>(graph: &G) -> GraphResult<W>
+pub fn branch_bound<N, W, G>(graph: &G) -> Option<W>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
     match graph.indices().next() {
-        Some(start) => _branch_bound(graph, start, true),
-        None => Ok(W::default()),
+        Some(start) => Some(_branch_bound(graph, start)),
+        None => None,
     }
 }
 
-pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex, compare: bool) -> GraphResult<W>
+pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex) -> W
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
     let mut stack = Vec::new();
-    let mut total_cost = _nearest_neighbor(graph, start).unwrap();
+    let mut total_cost = _nearest_neighbor(graph, start).unwrap_or(Maximum::max());
 
     let mut visited = vec![false; graph.node_count()];
     visited[start.0] = true;
@@ -41,9 +40,9 @@ where
             weight,
         } in graph.adjacent_edges(*node)
         {
-            let cost = cost.clone() + weight.clone();
+            let cost = cost + *weight;
 
-            if !visited[to.0] && (cost < total_cost || !compare) {
+            if !visited[to.0] && cost < total_cost {
                 let mut visited = visited.clone();
                 visited[to.0] = true;
 
@@ -65,5 +64,28 @@ where
         }
     }
 
-    Ok(total_cost)
+    total_cost
+}
+
+pub(crate) fn _branch_bound_rec<N, W, G>(
+    graph: &G,
+    node: NodeIndex,
+    path: &Vec<NodeIndex>,
+    visited: &Vec<bool>,
+    mut cost: W,
+    baseline: &mut W,
+) where
+    W: Copy + Add<W, Output = W> + PartialOrd,
+    G: GraphAdjacentTopology<N, W>,
+{
+    for EdgeRef {
+        from: _,
+        to,
+        weight,
+    } in graph.adjacent_edges(node)
+    {
+        let combined_cost = cost + *weight;
+
+        if !visited[to.0] && combined_cost < *baseline {}
+    }
 }

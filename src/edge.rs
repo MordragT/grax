@@ -37,12 +37,12 @@ impl<W: PartialOrd> PartialOrd for Edge<W> {
     }
 }
 
-impl<'a, W: Clone> From<EdgeRef<'a, W>> for Edge<W> {
+impl<'a, W: Copy> From<EdgeRef<'a, W>> for Edge<W> {
     fn from(edge_ref: EdgeRef<'a, W>) -> Self {
         Self {
             from: edge_ref.from,
             to: edge_ref.to,
-            weight: edge_ref.weight.clone(),
+            weight: *edge_ref.weight,
         }
     }
 }

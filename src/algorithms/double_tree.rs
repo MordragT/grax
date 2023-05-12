@@ -23,10 +23,8 @@ where
     });
 
     let union_find = _kruskal(graph, |edge| {
-        mst.add_edge(edge.from, edge.to, edge.weight.clone())
-            .unwrap();
-        mst.add_edge(edge.to, edge.from, edge.weight.clone())
-            .unwrap();
+        mst.add_edge(edge.from, edge.to, *edge.weight).unwrap();
+        mst.add_edge(edge.to, edge.from, *edge.weight).unwrap();
     });
     let root = union_find.root();
 
@@ -42,7 +40,7 @@ where
     let mut total_weight = W::default();
     for [from, to] in euler_tour.array_windows::<2>() {
         let weight = match mst.contains_edge(*from, *to) {
-            Some(index) => mst.weight(index).clone(),
+            Some(index) => *mst.weight(index),
             None => dijkstra(graph, *from, *to).ok_or(GraphError::NoCycle)?,
         };
         total_weight += weight;

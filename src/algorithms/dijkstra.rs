@@ -20,7 +20,7 @@ where
         }
 
         for edge in graph.adjacent_edges(node) {
-            let next_dist = dist.clone() + *edge.weight;
+            let next_dist = dist + *edge.weight;
 
             let visited_or_geq = match &distances[edge.to.0] {
                 Some(d) => next_dist >= *d,
@@ -28,7 +28,7 @@ where
             };
 
             if !visited_or_geq {
-                distances[edge.to.0] = Some(next_dist.clone());
+                distances[edge.to.0] = Some(next_dist);
                 priority_queue.put(next_dist, edge.to);
             }
         }

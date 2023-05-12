@@ -55,7 +55,7 @@ impl<N, W> AdjacencyList<N, W> {
     }
 }
 
-impl<W: Clone> AdjacencyList<usize, W> {
+impl<W: Copy> AdjacencyList<usize, W> {
     pub fn from_edge_list(edge_list: EdgeList<usize, W>, directed: bool) -> GraphResult<Self> {
         let EdgeList {
             parents,
@@ -82,7 +82,7 @@ impl<W: Clone> AdjacencyList<usize, W> {
             let to_idx = NodeIndex(to);
 
             if !directed {
-                adj_list.add_edge(to_idx, from_idx, weight.clone())?;
+                adj_list.add_edge(to_idx, from_idx, weight)?;
             }
 
             adj_list.add_edge(from_idx, to_idx, weight)?;
