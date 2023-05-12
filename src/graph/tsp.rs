@@ -151,7 +151,10 @@ trait PrivateGraphTsp<
         let mut stack = Vec::new();
         let mut total_cost = self._nearest_neighbor(start).unwrap();
 
-        stack.push((W::default(), vec![start], vec![false; self.node_count()]));
+        let mut visited = vec![false; self.node_count()];
+        visited[start.0] = true;
+
+        stack.push((W::default(), vec![start], visited));
 
         while let Some((cost, path, visited)) = stack.pop() {
             let node = path
@@ -174,7 +177,13 @@ trait PrivateGraphTsp<
                     path.push(to);
 
                     if visited.iter().all(|v| *v == true) {
-                        total_cost = cost;
+                        if let Some(cost_to_start) = self.djikstra(path[path.len() - 1], start) {
+                            let cost = cost + cost_to_start;
+
+                            if cost < total_cost {
+                                total_cost = cost;
+                            }
+                        }
                     } else {
                         stack.push((cost, path, visited));
                     }

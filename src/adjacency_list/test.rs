@@ -499,7 +499,7 @@ fn branch_bound_k_10(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap();
-        assert_le!(total, 38.41);
+        assert_eq!(total, 38.41);
     })
 }
 
@@ -511,7 +511,7 @@ fn branch_bound_k_10e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap();
-        assert_le!(total, 27.26);
+        assert_eq!(total, 27.26);
     })
 }
 
@@ -523,7 +523,7 @@ fn branch_bound_k_12(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap();
-        assert_le!(total, 45.19);
+        assert_eq!(total, 45.19);
     })
 }
 
@@ -535,6 +535,6 @@ fn branch_bound_k_12e(b: &mut Bencher) {
 
     b.iter(|| {
         let total = graph.branch_bound().unwrap();
-        assert_le!(total, 36.13);
+        assert_eq!(total, 36.13);
     })
 }
