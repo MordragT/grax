@@ -1,13 +1,8 @@
 use std::ops::{Add, AddAssign};
 
-use crate::{
-    adjacency_list::AdjacencyOptions,
-    prelude::{
-        AdjacencyList, GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology, Sortable,
-    },
-};
+use crate::prelude::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology, Sortable};
 
-use super::{_depth_search, _kruskal, dijkstra, Tour};
+use super::{depth_search_tour, dijkstra, kruskal_mst, MinimumSpanningTree, Tour};
 
 pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
@@ -15,25 +10,14 @@ where
     W: Default + Sortable + Copy + AddAssign + Add<W, Output = W>,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphCompare<N, W>,
 {
-    let mut mst = AdjacencyList::with(AdjacencyOptions {
-        directed: graph.directed(),
-        nodes: Some(graph.nodes().collect()),
-    });
+    let MinimumSpanningTree { graph: mst, root } = kruskal_mst(graph);
 
-    let union_find = _kruskal(graph, |edge| {
-        mst.add_edge(edge.from, edge.to, *edge.weight).unwrap();
-        mst.add_edge(edge.to, edge.from, *edge.weight).unwrap();
-    });
-    let root = union_find.root();
-
-    let mut route = vec![];
-    let mut visited = vec![false; graph.node_count()];
-
-    _depth_search(&mst, root, &mut visited, true, |index| {
-        route.push(index);
-    });
-
+    let mut route = depth_search_tour(&mst, root).route;
     route.push(root);
+
+    if route.len() != graph.node_count() + 1 {
+        return None;
+    }
 
     let mut total_weight = W::default();
     for [from, to] in route.array_windows::<2>() {
@@ -45,9 +29,5 @@ where
         total_weight += weight;
     }
 
-    if visited.into_iter().all(|visit| visit == true) {
-        Some(Tour::new(route, total_weight))
-    } else {
-        None
-    }
+    Some(Tour::new(route, total_weight))
 }

@@ -107,6 +107,28 @@ fn djikstra() {
     assert_eq!(dist, Some(2.0));
 }
 
+#[test]
+fn kruskal_mst() {
+    let edge_list = EdgeList::with(
+        [
+            (0, 1, 1.0),
+            (0, 2, 3.0),
+            (1, 2, 1.0),
+            (2, 3, 4.0),
+            (3, 0, 1.5),
+        ]
+        .into_iter(),
+        4,
+    );
+
+    let graph = AdjacencyList::<usize, f32>::from_edge_list(edge_list, false).unwrap();
+    let mst = graph.kruskal_mst();
+
+    dbg!(mst);
+
+    assert!(false);
+}
+
 #[bench]
 fn breadth_search_connected_components_graph1(b: &mut Bencher) {
     let edge_list = fs::read_to_string("data/Graph1.txt").unwrap();
@@ -330,7 +352,7 @@ fn kruskal_graph_1_2(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 287.32286);
     })
 }
@@ -342,7 +364,7 @@ fn kruskal_graph_1_20(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 36.86275);
     })
 }
@@ -354,7 +376,7 @@ fn kruskal_graph_1_200(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 12.68182);
     })
 }
@@ -366,7 +388,7 @@ fn kruskal_graph_10_20(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 2785.62417);
     })
 }
@@ -378,7 +400,7 @@ fn kruskal_graph_10_200(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 372.14417);
     })
 }
@@ -390,7 +412,7 @@ fn kruskal_graph_100_200(b: &mut Bencher) {
     let graph = AdjacencyList::<usize, f64>::from_edge_list(edge_list, false).unwrap();
 
     b.iter(|| {
-        let count = graph.kruskal() as f32;
+        let count = graph.kruskal_weight() as f32;
         assert_eq!(count, 27550.51488);
     })
 }

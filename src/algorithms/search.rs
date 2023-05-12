@@ -2,6 +2,8 @@ use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
 use std::collections::VecDeque;
 
+use super::Tour;
+
 pub fn depth_search_connected_components<N, W, G>(graph: &G) -> u32
 where
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -34,6 +36,32 @@ where
     }
 
     counter
+}
+
+pub fn depth_search_tour<N, W, G>(graph: &G, root: NodeIndex) -> Tour<()>
+where
+    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+{
+    let mut markers = vec![false; graph.node_count()];
+    let mut route = vec![];
+
+    _depth_search(graph, root, &mut markers, true, |index| {
+        route.push(dbg!(index))
+    });
+
+    Tour::new(route, ())
+}
+
+pub fn breadth_search_tour<N, W, G>(graph: &G, root: NodeIndex) -> Tour<()>
+where
+    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+{
+    let mut markers = vec![false; graph.node_count()];
+    let mut route = vec![];
+
+    _breadth_search(graph, root, &mut markers, true, |index| route.push(index));
+
+    Tour::new(route, ())
 }
 
 pub(crate) fn _depth_search<N, W, G, M, F>(

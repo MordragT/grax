@@ -9,10 +9,10 @@ pub use topology::{GraphAdjacentTopology, GraphTopology};
 use crate::{
     algorithms::{
         branch_bound, branch_bound_rec, breadth_search_connected_components, brute_force,
-        depth_search_connected_components, dijkstra, double_tree, kruskal, nearest_neighbor,
-        nearest_neighbor_from_first, prim, Tour,
+        depth_search_connected_components, dijkstra, dijkstra_distances, double_tree, kruskal_mst,
+        kruskal_weight, nearest_neighbor, nearest_neighbor_from_first, prim, Distances,
+        MinimumSpanningTree, Tour,
     },
-    error::GraphResult,
     prelude::NodeIndex,
 };
 
@@ -80,8 +80,16 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
-    fn kruskal(&self) -> W {
-        kruskal(self)
+    fn dijkstra_distances(&self, from: NodeIndex, to: NodeIndex) -> Distances<W> {
+        dijkstra_distances(self, from, to)
+    }
+
+    fn kruskal_weight(&self) -> W {
+        kruskal_weight(self)
+    }
+
+    fn kruskal_mst(&self) -> MinimumSpanningTree<&N, W> {
+        kruskal_mst(self)
     }
 
     fn prim(&self) -> W {

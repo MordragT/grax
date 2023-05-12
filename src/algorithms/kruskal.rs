@@ -1,8 +1,12 @@
-use crate::graph::{GraphTopology, Sortable};
+use crate::adjacency_list::AdjacencyOptions;
+use crate::graph::{GraphAccess, GraphTopology, Sortable};
+use crate::prelude::{AdjacencyList, NodeIndex};
 use crate::{edge::EdgeRef, tree::UnionFind};
 use std::ops::AddAssign;
 
-pub fn kruskal<N, W, G>(graph: &G) -> W
+use super::MinimumSpanningTree;
+
+pub fn kruskal_weight<N, W, G>(graph: &G) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
     G: GraphTopology<N, W>,
@@ -10,6 +14,25 @@ where
     let mut total_weight = W::default();
     _kruskal(graph, |edge| total_weight += *edge.weight);
     total_weight
+}
+
+pub fn kruskal_mst<N, W, G>(graph: &G) -> MinimumSpanningTree<&N, W>
+where
+    W: Default + Sortable + AddAssign + Copy,
+    G: GraphTopology<N, W>,
+{
+    let mut mst = AdjacencyList::with(AdjacencyOptions {
+        directed: graph.directed(),
+        nodes: Some(graph.nodes().collect()),
+    });
+
+    let union_find = _kruskal(graph, |edge| {
+        mst.add_edge(edge.from, edge.to, *edge.weight).unwrap();
+        mst.add_edge(edge.to, edge.from, *edge.weight).unwrap();
+    });
+    let root = union_find.root();
+
+    MinimumSpanningTree::new(mst, root)
 }
 
 pub(crate) fn _kruskal<N, W, G, F>(graph: &G, mut f: F) -> UnionFind
