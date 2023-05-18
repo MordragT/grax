@@ -22,8 +22,9 @@ where
     let mut cost_table = vec![None; graph.node_count()];
     cost_table[start.0] = Some(W::default());
 
-    // todo improve performance by returning early when cost_table doesn't change anymore
     for _ in 1..graph.node_count() {
+        let mut updated = false;
+
         for index in graph.indices() {
             if let Some(cost) = cost_table[index.0] {
                 for EdgeRef {
@@ -36,17 +37,24 @@ where
                     let to_cost = cost_table[to.0];
 
                     match to_cost {
-                        Some(c) => {
-                            if c > combined_cost {
-                                cost_table[to.0] = Some(combined_cost);
-                            }
+                        Some(c) if c > combined_cost => {
+                            cost_table[to.0] = Some(combined_cost);
+                            updated = true;
                         }
-                        None => cost_table[to.0] = Some(combined_cost),
+                        None => {
+                            cost_table[to.0] = Some(combined_cost);
+                            updated = true;
+                        }
+                        _ => (),
                     }
                 }
             } else {
                 continue;
             }
+        }
+
+        if !updated {
+            break;
         }
     }
     Distances::new(start, cost_table)
