@@ -9,6 +9,7 @@ pub use prim::*;
 pub use search::*;
 
 use crate::prelude::{AdjacencyList, GraphAccess, NodeIndex};
+use thiserror::Error;
 
 mod bellman_ford;
 mod branch_bound;
@@ -19,6 +20,10 @@ mod kruskal;
 mod nearest_neighbor;
 mod prim;
 mod search;
+
+#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
+#[error("Negative Cycle detected")]
+pub struct NegativeCycle;
 
 #[derive(Debug)]
 pub struct Tour<W> {
@@ -48,7 +53,7 @@ impl<W> Tour<W> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distances<W> {
     pub distances: Vec<Option<W>>,
     pub from: NodeIndex,

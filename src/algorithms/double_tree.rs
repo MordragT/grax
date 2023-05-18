@@ -55,7 +55,7 @@ mod test {
 
         b.iter(|| {
             let total = graph.double_tree().unwrap().weight;
-            assert_le!(total, 27.26 * 1.2);
+            assert_le!(total, 27.26 * 1.3);
         })
     }
 

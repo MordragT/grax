@@ -1,4 +1,4 @@
-use super::Distances;
+use super::{Distances, NegativeCycle};
 use crate::edge::EdgeRef;
 use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
@@ -9,12 +9,12 @@ where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
-    let distances = bellman_ford(graph, from);
-
-    distances.distances[to.0]
+    bellman_ford(graph, from)
+        .ok()
+        .and_then(|d| d.distances[to.0])
 }
 
-pub fn bellman_ford<N, W, G>(graph: &G, start: NodeIndex) -> Distances<W>
+pub fn bellman_ford<N, W, G>(graph: &G, start: NodeIndex) -> Result<Distances<W>, NegativeCycle>
 where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -22,8 +22,10 @@ where
     let mut cost_table = vec![None; graph.node_count()];
     cost_table[start.0] = Some(W::default());
 
-    for _ in 1..graph.node_count() {
-        let mut updated = false;
+    let mut updated = false;
+
+    for _ in 0..graph.node_count() {
+        updated = false;
 
         for index in graph.indices() {
             if let Some(cost) = cost_table[index.0] {
@@ -57,7 +59,12 @@ where
             break;
         }
     }
-    Distances::new(start, cost_table)
+
+    if updated {
+        Err(NegativeCycle)
+    } else {
+        Ok(Distances::new(start, cost_table))
+    }
 }
 
 #[cfg(test)]
@@ -65,7 +72,7 @@ mod test {
     extern crate test;
 
     use crate::{
-        algorithms::bellman_ford_between,
+        algorithms::NegativeCycle,
         prelude::*,
         test::{digraph, undigraph},
     };
@@ -76,7 +83,9 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, NodeIndex(0), NodeIndex(1)).unwrap();
+            let total = graph
+                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -86,7 +95,9 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, NodeIndex(0), NodeIndex(1)).unwrap();
+            let total = graph
+                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -96,7 +107,9 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
+            let total = graph
+                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -106,7 +119,9 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
+            let total = graph
+                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -116,9 +131,8 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
-            // cycle
-            assert_eq!(total as f32, 2.0)
+            let result = graph.bellman_ford(NodeIndex(2));
+            assert_eq!(result, Err(NegativeCycle))
         })
     }
 }

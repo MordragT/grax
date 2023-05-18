@@ -11,7 +11,7 @@ use crate::{
         bellman_ford, bellman_ford_between, branch_bound, branch_bound_rec,
         breadth_search_connected_components, brute_force, depth_search_connected_components,
         dijkstra, dijkstra_between, double_tree, kruskal_mst, kruskal_weight, nearest_neighbor,
-        nearest_neighbor_from_first, prim, Distances, MinimumSpanningTree, Tour,
+        nearest_neighbor_from_first, prim, Distances, MinimumSpanningTree, NegativeCycle, Tour,
     },
     prelude::NodeIndex,
 };
@@ -80,7 +80,7 @@ pub trait Graph<N: Node, W: Weight>:
         bellman_ford_between(self, from, to)
     }
 
-    fn bellman_ford(&self, start: NodeIndex) -> Distances<W> {
+    fn bellman_ford(&self, start: NodeIndex) -> Result<Distances<W>, NegativeCycle> {
         bellman_ford(self, start)
     }
 

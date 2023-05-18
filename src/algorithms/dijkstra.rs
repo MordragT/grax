@@ -99,6 +99,7 @@ mod test {
     }
 
     #[bench]
+    #[should_panic]
     fn dijkstra_wege_3_di_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
