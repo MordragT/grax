@@ -146,7 +146,7 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
 mod test {
     extern crate test;
 
-    use crate::{prelude::*, test::undigraph};
+    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::undigraph};
     use test::Bencher;
 
     #[bench]
@@ -222,6 +222,86 @@ mod test {
     #[bench]
     fn branch_bound_rec_k_12e_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            assert_eq!(total, 36.13);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_k_10_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound().unwrap().weight as f32;
+            assert_eq!(total, 38.41);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_k_10e_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound().unwrap().weight as f32;
+            assert_eq!(total, 27.26);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_k_12_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound().unwrap().weight as f32;
+            assert_eq!(total, 45.19);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_k_12e_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound().unwrap().weight as f32;
+            assert_eq!(total, 36.13);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_rec_k_10_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            assert_eq!(total, 38.41);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_rec_k_10e_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            assert_eq!(total, 27.26);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_rec_k_12_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
+
+        b.iter(|| {
+            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            assert_eq!(total, 45.19);
+        })
+    }
+
+    #[bench]
+    fn branch_bound_rec_k_12e_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = graph.branch_bound_rec().unwrap().weight as f32;

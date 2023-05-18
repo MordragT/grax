@@ -1,39 +1,29 @@
 use crate::{
+    adjacency_list::AdjacencyOptions,
     edge::EdgeRef,
-    error::{GraphError, GraphResult},
-    graph::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology},
-    indices::{EdgeIndex, NodeIndex},
-    prelude::{EdgeList, Graph, Node, Weight, WeightlessGraph},
+    error::GraphResult,
+    prelude::{
+        EdgeIndex, EdgeList, Graph, GraphAccess, GraphAdjacentTopology, GraphCompare, GraphError,
+        GraphTopology, Node, NodeIndex, Weight, WeightlessGraph,
+    },
 };
-use std::{
-    collections::{BTreeMap, HashSet},
-    fmt::Debug,
-};
-
-#[cfg(test)]
-mod test;
-
-#[derive(Default)]
-pub struct AdjacencyOptions<N> {
-    pub nodes: Option<Vec<N>>,
-}
 
 #[derive(Debug, Default, Clone)]
-pub struct AdjacencyList<N, W, const DIRECTED: bool = false> {
+pub struct AdjacencyMatrix<N, W, const DIRECTED: bool = false> {
     pub(crate) nodes: Vec<N>,
-    pub(crate) adjacencies: Vec<Vec<NodeIndex>>,
-    pub(crate) edges: BTreeMap<EdgeIndex, W>,
+    pub(crate) adjacencies: Vec<Vec<Option<W>>>,
 }
 
-impl<N, W, const DIRECTED: bool> AdjacencyList<N, W, DIRECTED> {
+impl<N, W, const DIRECTED: bool> AdjacencyMatrix<N, W, DIRECTED> {
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
             adjacencies: Vec::new(),
-            edges: BTreeMap::new(),
         }
     }
+}
 
+impl<N, W: Clone, const DIRECTED: bool> AdjacencyMatrix<N, W, DIRECTED> {
     pub fn with(options: AdjacencyOptions<N>) -> Self {
         let nodes = if let Some(nodes) = options.nodes {
             nodes
@@ -41,18 +31,14 @@ impl<N, W, const DIRECTED: bool> AdjacencyList<N, W, DIRECTED> {
             Vec::new()
         };
 
-        let adjacencies = vec![Vec::new(); nodes.len()];
+        let adjacencies = vec![vec![None; nodes.len()]; nodes.len()];
 
-        Self {
-            nodes,
-            adjacencies,
-            edges: BTreeMap::new(),
-        }
+        Self { nodes, adjacencies }
     }
 }
 
 impl<W: Copy, const DIRECTED: bool> TryFrom<EdgeList<usize, W, DIRECTED>>
-    for AdjacencyList<usize, W, DIRECTED>
+    for AdjacencyMatrix<usize, W, DIRECTED>
 {
     type Error = GraphError;
 
@@ -67,31 +53,31 @@ impl<W: Copy, const DIRECTED: bool> TryFrom<EdgeList<usize, W, DIRECTED>>
         let options = AdjacencyOptions {
             nodes: Some(vec![0; node_count]),
         };
-        let mut adj_list = Self::with(options);
+        let mut adj_mat = Self::with(options);
 
         for ((from, to), weight) in parents
             .into_iter()
             .zip(children.into_iter())
             .zip(weights.into_iter())
         {
-            adj_list.nodes[from] = from;
-            adj_list.nodes[to] = to;
+            adj_mat.nodes[from] = from;
+            adj_mat.nodes[to] = to;
 
             let from_idx = NodeIndex(from);
             let to_idx = NodeIndex(to);
 
             if !DIRECTED {
-                adj_list.add_edge(to_idx, from_idx, weight)?;
+                adj_mat.add_edge(to_idx, from_idx, weight)?;
             }
 
-            adj_list.add_edge(from_idx, to_idx, weight)?;
+            adj_mat.add_edge(from_idx, to_idx, weight)?;
         }
 
-        Ok(adj_list)
+        Ok(adj_mat)
     }
 }
 
-impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyList<N, W, DIRECTED> {
+impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyMatrix<N, W, DIRECTED> {
     type Indices<'a> = impl Iterator<Item = NodeIndex> where Self: 'a;
     type Nodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
     type Edges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
@@ -103,9 +89,22 @@ impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyList<N, W, DIR
         self.nodes.iter()
     }
     fn edges<'a>(&'a self) -> Self::Edges<'a> {
-        self.edges
+        self.adjacencies
             .iter()
-            .map(|(index, weight)| EdgeRef::new(index.from, index.to, weight))
+            .enumerate()
+            .map(|(from, neigh)| {
+                neigh
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(move |(to, weight)| {
+                        if let Some(weight) = weight {
+                            Some(EdgeRef::new(NodeIndex(from), NodeIndex(to), weight))
+                        } else {
+                            None
+                        }
+                    })
+            })
+            .flatten()
     }
 
     fn node_count(&self) -> usize {
@@ -113,10 +112,7 @@ impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyList<N, W, DIR
     }
 
     fn edge_count(&self) -> usize {
-        self.adjacencies
-            .iter()
-            .map(|adjs| adjs.len())
-            .fold(0, |a, b| a + b)
+        todo!()
     }
 
     fn directed(&self) -> bool {
@@ -125,47 +121,57 @@ impl<N, W, const DIRECTED: bool> GraphTopology<N, W> for AdjacencyList<N, W, DIR
 }
 
 impl<N, W: Clone, const DIRECTED: bool> GraphAdjacentTopology<N, W>
-    for AdjacencyList<N, W, DIRECTED>
+    for AdjacencyMatrix<N, W, DIRECTED>
 {
     type AdjacentIndices<'a> = impl Iterator<Item = NodeIndex> + 'a where Self: 'a;
     type AdjacentNodes<'a> = impl Iterator<Item = &'a N> where Self: 'a;
     type AdjacentEdges<'a> = impl Iterator<Item = EdgeRef<'a, W>> where Self: 'a;
 
     fn adjacent_indices<'a>(&'a self, index: NodeIndex) -> Self::AdjacentIndices<'a> {
-        self.adjacencies[index.0].iter().cloned()
+        self.adjacencies[index.0]
+            .iter()
+            .enumerate()
+            .filter_map(|(to, weight)| {
+                if weight.is_some() {
+                    Some(NodeIndex(to))
+                } else {
+                    None
+                }
+            })
     }
     fn adjacent_nodes<'a>(&'a self, index: NodeIndex) -> Self::AdjacentNodes<'a> {
         self.adjacent_indices(index).map(|index| self.node(index))
     }
-    fn adjacent_edges<'a>(&'a self, index: NodeIndex) -> Self::AdjacentEdges<'a> {
-        self.adjacent_indices(index).map(move |child| {
-            let edge_index = EdgeIndex::new(index, child);
-            let weight = self.weight(edge_index);
-            EdgeRef::new(index, child, weight)
-        })
+    fn adjacent_edges<'a>(&'a self, from: NodeIndex) -> Self::AdjacentEdges<'a> {
+        self.adjacencies[from.0]
+            .iter()
+            .enumerate()
+            .filter_map(move |(to, weight)| {
+                if let Some(weight) = weight {
+                    Some(EdgeRef::new(from, NodeIndex(to), weight))
+                } else {
+                    None
+                }
+            })
     }
 }
 
-impl<N, W: Clone, const DIRECTED: bool> GraphAccess<N, W> for AdjacencyList<N, W, DIRECTED> {
+impl<N, W: Clone, const DIRECTED: bool> GraphAccess<N, W> for AdjacencyMatrix<N, W, DIRECTED> {
     fn add_node(&mut self, node: N) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(node);
-        self.adjacencies.push(Vec::new());
+        self.adjacencies.push(vec![None; index]);
         NodeIndex(index)
     }
 
     fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, weight: W) -> GraphResult<EdgeIndex> {
-        if self.adjacencies[from.0].contains(&to) {
+        if self.adjacencies[from.0][to.0].is_some() {
             return Err(GraphError::EdgeAlreadyExists { from, to });
         }
 
-        self.adjacencies[from.0].push(to);
+        self.adjacencies[from.0][to.0] = Some(weight);
 
-        let index = EdgeIndex::new(from, to);
-
-        assert!(self.edges.insert(index, weight).is_none());
-
-        Ok(index)
+        Ok(EdgeIndex::new(from, to))
     }
 
     fn node(&self, index: NodeIndex) -> &N {
@@ -177,21 +183,22 @@ impl<N, W: Clone, const DIRECTED: bool> GraphAccess<N, W> for AdjacencyList<N, W
     }
 
     fn weight(&self, index: EdgeIndex) -> &W {
-        &self.edges[&index]
+        self.adjacencies[index.from.0][index.to.0]
+            .as_ref()
+            .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
     }
 
     fn weight_mut(&mut self, index: EdgeIndex) -> &mut W {
-        self.edges
-            .get_mut(&index)
+        self.adjacencies[index.from.0][index.to.0]
+            .as_mut()
             .expect("INTERNAL: Broken EdgeIndex: cannot get weight")
     }
 }
 
-impl<N: PartialEq, W, const DIRECTED: bool> GraphCompare<N, W> for AdjacencyList<N, W, DIRECTED> {
+impl<N: PartialEq, W, const DIRECTED: bool> GraphCompare<N, W> for AdjacencyMatrix<N, W, DIRECTED> {
     fn contains_edge(&self, from: NodeIndex, to: NodeIndex) -> Option<EdgeIndex> {
-        let index = EdgeIndex::new(from, to);
-        if self.edges.contains_key(&index) {
-            Some(index)
+        if self.adjacencies[from.0][to.0].is_some() {
+            Some(EdgeIndex { from, to })
         } else {
             None
         }
@@ -199,8 +206,8 @@ impl<N: PartialEq, W, const DIRECTED: bool> GraphCompare<N, W> for AdjacencyList
 }
 
 impl<N: Node + Clone, W: Weight, const DIRECTED: bool> Graph<N, W>
-    for AdjacencyList<N, W, DIRECTED>
+    for AdjacencyMatrix<N, W, DIRECTED>
 {
 }
 
-impl<N> WeightlessGraph<N> for AdjacencyList<N, ()> {}
+impl<N> WeightlessGraph<N> for AdjacencyMatrix<N, ()> {}

@@ -117,11 +117,11 @@ pub(crate) fn _breadth_search<N, W, G, M, F>(
 #[cfg(test)]
 mod test {
     extern crate test;
-    use crate::{prelude::*, test::weightless_undigraph};
+    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::weightless_undigraph};
     use test::Bencher;
 
     #[bench]
-    fn breadth_search_connected_components_graph1(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph1_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph1.txt").unwrap();
 
         b.iter(|| {
@@ -131,7 +131,7 @@ mod test {
     }
 
     #[bench]
-    fn breadth_search_connected_components_graph2(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph2_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph2.txt").unwrap();
 
         b.iter(|| {
@@ -141,7 +141,7 @@ mod test {
     }
 
     #[bench]
-    fn breadth_search_connected_components_graph3(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph3_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph3.txt").unwrap();
 
         b.iter(|| {
@@ -151,7 +151,7 @@ mod test {
     }
 
     #[bench]
-    fn breadth_search_connected_components_graph_gross(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
 
         b.iter(|| {
@@ -161,7 +161,7 @@ mod test {
     }
 
     #[bench]
-    fn breadth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
 
         b.iter(|| {
@@ -171,7 +171,7 @@ mod test {
     }
 
     #[bench]
-    fn breadth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
+    fn breadth_search_connected_components_graph_ganz_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> =
             weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
 
@@ -182,7 +182,7 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph1(b: &mut Bencher) {
+    fn depth_search_connected_components_graph1_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph1.txt").unwrap();
 
         b.iter(|| {
@@ -192,7 +192,7 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph2(b: &mut Bencher) {
+    fn depth_search_connected_components_graph2_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph2.txt").unwrap();
 
         b.iter(|| {
@@ -202,7 +202,7 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph3(b: &mut Bencher) {
+    fn depth_search_connected_components_graph3_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph3.txt").unwrap();
 
         b.iter(|| {
@@ -212,7 +212,7 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph_gross(b: &mut Bencher) {
+    fn depth_search_connected_components_graph_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
 
         b.iter(|| {
@@ -222,7 +222,7 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph_ganz_gross(b: &mut Bencher) {
+    fn depth_search_connected_components_graph_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
 
         b.iter(|| {
@@ -232,8 +232,132 @@ mod test {
     }
 
     #[bench]
-    fn depth_search_connected_components_graph_ganz_ganz_gross(b: &mut Bencher) {
+    fn depth_search_connected_components_graph_ganz_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> =
+            weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 306);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph1_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph1.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 2);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph2_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph2.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph3_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph3.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 222);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph_ganz_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> =
+            weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 9560);
+        });
+    }
+
+    #[bench]
+    fn breadth_search_connected_components_graph_ganz_ganz_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> =
+            weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.breadth_search_connected_components();
+            assert_eq!(counter, 306);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph1_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph1.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 2);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph2_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph2.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph3_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph3.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 222);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph_ganz_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> =
+            weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let counter = graph.depth_search_connected_components();
+            assert_eq!(counter, 9560);
+        });
+    }
+
+    #[bench]
+    fn depth_search_connected_components_graph_ganz_ganz_gross_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> =
             weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
 
         b.iter(|| {

@@ -7,6 +7,7 @@
 #![feature(array_windows)]
 
 pub mod adjacency_list;
+pub mod adjacency_matrix;
 pub mod algorithms;
 pub mod edge;
 pub mod edge_list;
