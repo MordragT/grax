@@ -29,6 +29,10 @@ where
             return Distances::new(from, distances);
         }
 
+        if let Some(d) = distances[node.0] && dist > d {
+            continue;
+        }
+
         for edge in graph.adjacent_edges(node) {
             let next_dist = dist + *edge.weight;
 
