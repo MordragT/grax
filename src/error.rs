@@ -21,4 +21,6 @@ pub enum GraphError {
     NNAbort,
     #[error("Not all nodes have been visited")]
     NoCycle,
+    #[error("IoError: {0}")]
+    Io(#[from] std::io::Error),
 }

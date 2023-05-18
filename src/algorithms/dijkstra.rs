@@ -46,3 +46,66 @@ where
 
     Distances::new(from, distances)
 }
+
+#[cfg(test)]
+mod test {
+    extern crate test;
+
+    use crate::{
+        algorithms::dijkstra_between,
+        prelude::*,
+        test::{digraph, undigraph},
+    };
+    use test::Bencher;
+
+    #[bench]
+    fn dijkstra_g_1_2_di_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _, true> = digraph("data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let total = dijkstra_between(&graph, NodeIndex(0), NodeIndex(1)).unwrap();
+            assert_eq!(total as f32, 5.56283)
+        })
+    }
+
+    #[bench]
+    fn dijkstra_g_1_2_undi_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let total = dijkstra_between(&graph, NodeIndex(0), NodeIndex(1)).unwrap();
+            assert_eq!(total as f32, 2.36802)
+        })
+    }
+
+    #[bench]
+    fn dijkstra_wege_1_di_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _, true> = digraph("data/Wege1.txt").unwrap();
+
+        b.iter(|| {
+            let total = dijkstra_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
+            assert_eq!(total as f32, 6.0)
+        })
+    }
+
+    #[bench]
+    fn dijkstra_wege_2_di_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _, true> = digraph("data/Wege2.txt").unwrap();
+
+        b.iter(|| {
+            let total = dijkstra_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
+            assert_eq!(total as f32, 2.0)
+        })
+    }
+
+    #[bench]
+    fn dijkstra_wege_3_di_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _, true> = digraph("data/Wege3.txt").unwrap();
+
+        b.iter(|| {
+            let total = dijkstra_between(&graph, NodeIndex(2), NodeIndex(0)).unwrap();
+            // cycle
+            assert_eq!(total as f32, 2.0)
+        })
+    }
+}

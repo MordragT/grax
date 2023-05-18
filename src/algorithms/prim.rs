@@ -52,3 +52,70 @@ where
 
     total_weight
 }
+
+#[cfg(test)]
+mod test {
+    extern crate test;
+    use crate::{prelude::*, test::undigraph};
+    use test::Bencher;
+
+    #[bench]
+    fn prim_graph_1_2_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 287.32286);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_1_20_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_1_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 36.86275);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_1_200_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_1_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_10_20_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_10_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_10_200_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_10_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_100_200_adj_list(b: &mut Bencher) {
+        let graph: AdjacencyList<_, _> = undigraph("data/G_100_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
+}
