@@ -1,6 +1,10 @@
+use crate::edge::EdgeRef;
 use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
-use std::collections::VecDeque;
+use crate::prelude::{EdgeIndex, GraphAccess, GraphCompare, Sortable};
+use std::collections::{BTreeMap, VecDeque};
+use std::ops::{Add, AddAssign, Sub};
+use std::process::Output;
 
 use super::{ConnectedComponents, Tour};
 
@@ -42,24 +46,6 @@ where
     ConnectedComponents::new(components)
 }
 
-pub fn bfs_augmenting_path<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<Tour<()>>
-where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
-{
-    let mut markers = vec![false; graph.node_count()];
-    let mut route = Vec::new();
-
-    for node in _bfs(graph, from, &mut markers, true) {
-        route.push(node);
-
-        if node == to {
-            return Some(Tour::new(route, ()));
-        }
-    }
-
-    None
-}
-
 pub fn dfs_tour<N, W, G>(graph: &G, from: NodeIndex) -> Tour<()>
 where
     G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
@@ -95,6 +81,60 @@ where
 //     let mut markers = vec![false; graph.node_count()];
 //     _bfs(graph, from, &mut markers, true)
 // }
+
+pub(crate) fn _bfs_augmenting_path<N, W, G>(
+    graph: &G,
+    source: NodeIndex,
+    sink: NodeIndex,
+    capacities: &mut BTreeMap<EdgeIndex, (W, W)>,
+) -> Option<Tour<W>>
+where
+    N: PartialEq,
+    W: Sortable + Default + Clone + Sub<W, Output = W> + AddAssign,
+    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>,
+{
+    let mut bottleneck: Option<W> = None;
+    let mut queue = VecDeque::new();
+    let mut route = Vec::new();
+
+    queue.push_front(source);
+
+    while let Some(from) = queue.pop_front() {
+        let mut edges = graph.adjacent_edges(from).collect::<Vec<_>>();
+        edges.sort_by(|edge, other| edge.weight.sort(other.weight));
+        route.push(from);
+
+        for EdgeRef { from, to, weight } in edges {
+            let index = EdgeIndex::new(from, to);
+
+            let residual_capacity = if let Some((current, max)) = capacities.get(&index).cloned() {
+                if current >= max {
+                    continue;
+                } else {
+                    max - current
+                }
+            } else {
+                capacities.insert(index, (W::default(), weight.clone()));
+                weight.clone()
+            };
+
+            match bottleneck {
+                Some(ref b) if b < &residual_capacity => (),
+                _ => bottleneck = Some(residual_capacity),
+            }
+
+            queue.push_back(to);
+
+            if to == sink {
+                route.push(to);
+                queue.clear();
+                break;
+            }
+        }
+    }
+
+    bottleneck.map(|b| Tour::new(route, b))
+}
 
 pub(crate) fn _dfs<'a, N, W, G, M>(
     graph: &'a G,
