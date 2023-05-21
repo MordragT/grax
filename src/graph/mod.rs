@@ -8,10 +8,11 @@ pub use topology::{GraphAdjacentTopology, GraphTopology};
 
 use crate::{
     algorithms::{
-        bellman_ford, bellman_ford_between, branch_bound, branch_bound_rec,
-        breadth_search_connected_components, brute_force, depth_search_connected_components,
-        dijkstra, dijkstra_between, double_tree, kruskal_mst, kruskal_weight, nearest_neighbor,
-        nearest_neighbor_from_first, prim, Distances, MinimumSpanningTree, NegativeCycle, Tour,
+        bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
+        branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra,
+        dijkstra_between, double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
+        nearest_neighbor_from_first, prim, ConnectedComponents, Distances, MinimumSpanningTree,
+        NegativeCycle, Tour,
     },
     prelude::NodeIndex,
 };
@@ -64,12 +65,20 @@ impl Maximum for u32 {
 }
 
 pub trait WeightlessGraph<N>: GraphTopology<N, ()> + GraphAdjacentTopology<N, ()> + Sized {
-    fn depth_search_connected_components(&self) -> u32 {
-        depth_search_connected_components(self)
+    fn dfs_connected_components(&self) -> ConnectedComponents {
+        dfs_connected_components(self)
     }
 
-    fn breadth_search_connected_components(&self) -> u32 {
-        breadth_search_connected_components(self)
+    fn bfs_connected_components(&self) -> ConnectedComponents {
+        bfs_connected_components(self)
+    }
+
+    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        dfs_tour(self, from)
+    }
+
+    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        bfs_tour(self, from)
     }
 }
 
@@ -92,6 +101,10 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
+    fn edmonds_karp(&self, from: NodeIndex, to: NodeIndex) -> W {
+        edmonds_karp(self, from, to)
+    }
+
     fn kruskal_weight(&self) -> W {
         kruskal_weight(self)
     }
@@ -104,12 +117,20 @@ pub trait Graph<N: Node, W: Weight>:
         prim(self)
     }
 
-    fn depth_search_connected_components(&self) -> u32 {
-        depth_search_connected_components(self)
+    fn dfs_connected_components(&self) -> ConnectedComponents {
+        dfs_connected_components(self)
     }
 
-    fn breadth_search_connected_components(&self) -> u32 {
-        breadth_search_connected_components(self)
+    fn bfs_connected_components(&self) -> ConnectedComponents {
+        bfs_connected_components(self)
+    }
+
+    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        dfs_tour(self, from)
+    }
+
+    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        bfs_tour(self, from)
     }
 
     fn nearest_neighbor(&self, start: NodeIndex) -> Option<Tour<W>> {

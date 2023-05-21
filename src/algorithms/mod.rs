@@ -3,6 +3,7 @@ pub use branch_bound::*;
 pub use brute_force::*;
 pub use dijkstra::*;
 pub use double_tree::*;
+pub use edmonds_karp::*;
 pub use kruskal::*;
 pub use nearest_neighbor::*;
 pub use prim::*;
@@ -16,6 +17,7 @@ mod branch_bound;
 mod brute_force;
 mod dijkstra;
 mod double_tree;
+mod edmonds_karp;
 mod kruskal;
 mod nearest_neighbor;
 mod prim;
@@ -24,6 +26,20 @@ mod search;
 #[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
 #[error("Negative Cycle detected")]
 pub struct NegativeCycle;
+
+pub struct ConnectedComponents {
+    components: Vec<Vec<NodeIndex>>,
+}
+
+impl ConnectedComponents {
+    pub fn new(components: Vec<Vec<NodeIndex>>) -> Self {
+        Self { components }
+    }
+
+    pub fn count(&self) -> usize {
+        self.components.len()
+    }
+}
 
 #[derive(Debug)]
 pub struct Tour<W> {

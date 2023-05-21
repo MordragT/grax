@@ -2,7 +2,7 @@ use std::ops::{Add, AddAssign};
 
 use crate::prelude::{GraphAccess, GraphAdjacentTopology, GraphCompare, GraphTopology, Sortable};
 
-use super::{depth_search_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
+use super::{dfs_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
 
 pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
@@ -12,7 +12,7 @@ where
 {
     let MinimumSpanningTree { tree: mst, root } = kruskal_mst(graph);
 
-    let mut route = depth_search_tour(&mst, root).route;
+    let mut route = dfs_tour(&mst, root).route;
     route.push(root);
 
     if route.len() != graph.node_count() + 1 {
