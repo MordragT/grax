@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    ops::{Add, AddAssign},
+    ops::{Add, AddAssign, Sub},
 };
 
 pub use access::{GraphAccess, GraphCompare};
@@ -161,8 +161,18 @@ pub trait Node: Default + PartialEq {}
 
 impl<T: Default + PartialEq> Node for T {}
 pub trait Weight:
-    Sortable + Maximum + Default + Add<Self, Output = Self> + AddAssign + Copy
+    Sortable
+    + Maximum
+    + Default
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + AddAssign
+    + Copy
 {
 }
 
-impl<T: Sortable + Maximum + Default + Add<T, Output = T> + AddAssign + Copy> Weight for T {}
+impl<
+        T: Sortable + Maximum + Default + Add<T, Output = T> + Sub<T, Output = T> + AddAssign + Copy,
+    > Weight for T
+{
+}

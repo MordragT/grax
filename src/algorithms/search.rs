@@ -1,10 +1,9 @@
 use crate::edge::EdgeRef;
 use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
-use crate::prelude::{EdgeIndex, GraphAccess, GraphCompare, Sortable};
-use std::collections::{BTreeMap, VecDeque};
-use std::ops::{Add, AddAssign, Sub};
-use std::process::Output;
+use crate::prelude::{EdgeIndex, Sortable};
+use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::ops::{AddAssign, Sub};
 
 use super::{ConnectedComponents, Tour};
 
@@ -86,54 +85,39 @@ pub(crate) fn _bfs_augmenting_path<N, W, G>(
     graph: &G,
     source: NodeIndex,
     sink: NodeIndex,
-    capacities: &mut BTreeMap<EdgeIndex, (W, W)>,
-) -> Option<Tour<W>>
+    full_edges: &HashSet<EdgeIndex>,
+) -> Option<Tour<()>>
 where
     N: PartialEq,
     W: Sortable + Default + Clone + Sub<W, Output = W> + AddAssign,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphAccess<N, W> + GraphCompare<N, W>,
+    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
 {
-    let mut bottleneck: Option<W> = None;
     let mut queue = VecDeque::new();
     let mut route = Vec::new();
+    let mut visited = HashSet::new();
 
     queue.push_front(source);
 
     while let Some(from) = queue.pop_front() {
-        let mut edges = graph.adjacent_edges(from).collect::<Vec<_>>();
-        edges.sort_by(|edge, other| edge.weight.sort(other.weight));
         route.push(from);
+        if from == sink {
+            return Some(Tour::new(route, ()));
+        }
+
+        let mut edges = graph.adjacent_edges(from).collect::<Vec<_>>();
+        edges.sort_by(|edge, other| other.weight.sort(edge.weight));
 
         for EdgeRef { from, to, weight } in edges {
             let index = EdgeIndex::new(from, to);
 
-            let residual_capacity = if let Some((current, max)) = capacities.get(&index).cloned() {
-                if current >= max {
-                    continue;
-                } else {
-                    max - current
-                }
-            } else {
-                capacities.insert(index, (W::default(), weight.clone()));
-                weight.clone()
-            };
-
-            match bottleneck {
-                Some(ref b) if b < &residual_capacity => (),
-                _ => bottleneck = Some(residual_capacity),
-            }
-
-            queue.push_back(to);
-
-            if to == sink {
-                route.push(to);
-                queue.clear();
-                break;
+            if !visited.contains(&index) && !full_edges.contains(&index) {
+                queue.push_back(to);
+                visited.insert(index);
             }
         }
     }
 
-    bottleneck.map(|b| Tour::new(route, b))
+    None
 }
 
 pub(crate) fn _dfs<'a, N, W, G, M>(
@@ -351,38 +335,6 @@ mod test {
     }
 
     #[bench]
-    fn bfs_connected_components_graph_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.bfs_connected_components().count();
-            assert_eq!(counter, 222);
-        });
-    }
-
-    #[bench]
-    fn bfs_connected_components_graph_ganz_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> =
-            weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.bfs_connected_components().count();
-            assert_eq!(counter, 9560);
-        });
-    }
-
-    #[bench]
-    fn bfs_connected_components_graph_ganz_ganz_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> =
-            weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.bfs_connected_components().count();
-            assert_eq!(counter, 306);
-        });
-    }
-
-    #[bench]
     fn dfs_connected_components_graph1_adj_mat(b: &mut Bencher) {
         let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph1.txt").unwrap();
 
@@ -409,38 +361,6 @@ mod test {
         b.iter(|| {
             let counter = graph.dfs_connected_components().count();
             assert_eq!(counter, 4);
-        });
-    }
-
-    #[bench]
-    fn dfs_connected_components_graph_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("data/Graph_gross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.dfs_connected_components().count();
-            assert_eq!(counter, 222);
-        });
-    }
-
-    #[bench]
-    fn dfs_connected_components_graph_ganz_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> =
-            weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.dfs_connected_components().count();
-            assert_eq!(counter, 9560);
-        });
-    }
-
-    #[bench]
-    fn dfs_connected_components_graph_ganz_ganz_gross_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> =
-            weightless_undigraph("data/Graph_ganzganzgross.txt").unwrap();
-
-        b.iter(|| {
-            let counter = graph.dfs_connected_components().count();
-            assert_eq!(counter, 306);
         });
     }
 }

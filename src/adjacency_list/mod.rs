@@ -5,10 +5,7 @@ use crate::{
     indices::{EdgeIndex, NodeIndex},
     prelude::{EdgeList, Graph, Node, Weight, WeightlessGraph},
 };
-use std::{
-    collections::{BTreeMap, HashSet},
-    fmt::Debug,
-};
+use std::{collections::BTreeMap, fmt::Debug};
 
 #[cfg(test)]
 mod test;

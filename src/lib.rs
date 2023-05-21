@@ -31,6 +31,10 @@ pub mod indices {
         pub(crate) fn new(from: NodeIndex, to: NodeIndex) -> Self {
             Self { from, to }
         }
+
+        pub fn contains(&self, index: NodeIndex) -> bool {
+            self.from == index || self.to == index
+        }
     }
 
     impl<'a, W> From<EdgeRef<'a, W>> for EdgeIndex {

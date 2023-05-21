@@ -52,6 +52,10 @@ impl<W> Tour<W> {
         Self { route, weight }
     }
 
+    pub fn edges(&self) -> impl Iterator<Item = (&NodeIndex, &NodeIndex)> {
+        self.route.array_windows::<2>().map(|[from, to]| (from, to))
+    }
+
     pub fn nodes<'a, N, G>(&'a self, graph: &'a G) -> impl Iterator<Item = &'a N> + 'a
     where
         G: GraphAccess<N, W>,
