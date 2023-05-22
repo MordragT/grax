@@ -1,18 +1,16 @@
-use crate::graph::{GraphAdjacentTopology, GraphTopology};
-use crate::indices::NodeIndex;
-use std::collections::VecDeque;
-
 use super::{ConnectedComponents, Tour};
+use crate::prelude::{Count, Index, IndexAdjacent};
+use std::collections::VecDeque;
 
 pub fn dfs_connected_components<N, W, G>(graph: &G) -> ConnectedComponents
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent + Count,
 {
     let mut counter = 0;
     let mut markers = vec![0; graph.node_count()];
     let mut components = Vec::new();
 
-    for from in graph.indices() {
+    for from in graph.node_ids() {
         if markers[from.0] == 0 {
             counter += 1;
             let comp = _dfs(graph, from, &mut markers, counter).collect();
@@ -25,7 +23,7 @@ where
 
 pub fn bfs_connected_components<N, W, G>(graph: &G) -> ConnectedComponents
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent + Count,
 {
     let mut counter = 0;
     let mut markers = vec![0; graph.node_count()];
@@ -42,9 +40,9 @@ where
     ConnectedComponents::new(components)
 }
 
-pub fn dfs_tour<N, W, G>(graph: &G, from: NodeIndex) -> Tour<()>
+pub fn dfs_tour<N, W, G>(graph: &G, from: G::NodeId) -> Tour<()>
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent + Count,
 {
     let mut markers = vec![false; graph.node_count()];
     let route = _dfs(graph, from, &mut markers, true).collect();
@@ -52,9 +50,9 @@ where
     Tour::new(route, ())
 }
 
-pub fn bfs_tour<N, W, G>(graph: &G, from: NodeIndex) -> Tour<()>
+pub fn bfs_tour<N, W, G>(graph: &G, from: G::NodeId) -> Tour<()>
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent + Count,
 {
     let mut markers = vec![false; graph.node_count()];
     let route = _bfs(graph, from, &mut markers, true).collect();
@@ -80,12 +78,12 @@ where
 
 pub(crate) fn _dfs<'a, N, W, G, M>(
     graph: &'a G,
-    from: NodeIndex,
+    from: G::NodeId,
     markers: &'a mut Vec<M>,
     mark: M,
-) -> impl Iterator<Item = NodeIndex> + 'a
+) -> impl Iterator<Item = G::NodeId> + 'a
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent,
     M: Default + PartialEq + Copy,
 {
     let mut stack = Vec::new();
@@ -108,12 +106,12 @@ where
 
 pub(crate) fn _bfs<'a, N, W, G, M>(
     graph: &'a G,
-    from: NodeIndex,
+    from: G::NodeId,
     markers: &'a mut Vec<M>,
     mark: M,
-) -> impl Iterator<Item = NodeIndex> + 'a
+) -> impl Iterator<Item = G::NodeId> + 'a
 where
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + IndexAdjacent,
     M: Default + PartialEq + Copy,
 {
     let mut queue = VecDeque::new();

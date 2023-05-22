@@ -1,12 +1,14 @@
-use crate::graph::{GraphAdjacentTopology, GraphTopology, Sortable};
-use crate::indices::NodeIndex;
+use crate::{
+    graph::Sortable,
+    prelude::{Count, Index, IndexAdjacent},
+};
 use priq::PriorityQueue;
 use std::ops::AddAssign;
 
 pub fn prim<N, W, G>(graph: &G) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + Count + IndexAdjacent,
 {
     match graph.indices().next() {
         Some(start) => _prim(graph, start),
@@ -14,10 +16,10 @@ where
     }
 }
 
-pub(crate) fn _prim<N, W, G>(graph: &G, start: NodeIndex) -> W
+pub(crate) fn _prim<N, W, G>(graph: &G, start: G::NodeId) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent + Count,
 {
     let n = graph.node_count();
     let mut visited = vec![false; n];

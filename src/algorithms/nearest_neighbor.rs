@@ -1,14 +1,11 @@
 use super::{dijkstra_between, Tour};
-use crate::{
-    edge::EdgeRef,
-    prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
-};
+use crate::prelude::{Count, EdgeRef, Index, IndexAdjacent, Maximum, NodeIndex, Sortable};
 use std::ops::{Add, AddAssign};
 
 pub fn nearest_neighbor_from_first<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Count + Index + IndexAdjacent,
 {
     match graph.indices().next() {
         Some(start) => nearest_neighbor(graph, start),
@@ -19,7 +16,7 @@ where
 pub fn nearest_neighbor<N, W, G>(graph: &G, start: NodeIndex) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Count + IndexAdjacent,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
     enum Status {
@@ -40,7 +37,8 @@ where
         let mut min_node = None;
         let mut min_weight = W::max();
 
-        for EdgeRef { from:_, to, weight } in graph.adjacent_edges(*node) {
+        for EdgeRef { edge_id, weight } in graph.adjacent_edges(*node) {
+            let to = edge_id.to;
             if states[to.0] == Status::Unvisited && to != prev {
                 if min_weight > *weight {
                     min_node = Some(to);

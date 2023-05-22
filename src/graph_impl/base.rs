@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Clear, Extend, Get, GetMut, Insert},
+    graph::{Clear, Contains, Extend, Get, GetMut, Insert},
     prelude::{
         Base, Capacity, Count, Create, Directed, EdgeRef, Index, IterEdges, IterNodes,
         IterNodesMut, Reserve,
@@ -39,6 +39,25 @@ impl<Node, Weight, const Di: bool> Clear for BaseGraph<Node, Weight, Di> {
     fn clear(&mut self) {
         self.nodes.clear();
         self.edges.clear();
+    }
+}
+
+impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for BaseGraph<Node, Weight, Di> {
+    fn contains_node(&self, node: &Node) -> Option<Self::NodeId> {
+        self.nodes
+            .iter()
+            .enumerate()
+            .find(|(_i, other)| *other == node)
+            .map(|(id, _)| NodeIndex(id))
+    }
+
+    fn contains_edge(&self, from: Self::NodeId, to: Self::NodeId) -> Option<Self::EdgeId> {
+        let edge_id = EdgeIndex::new(from, to);
+        if self.contains_edge_id(edge_id) {
+            Some(edge_id)
+        } else {
+            None
+        }
     }
 }
 
@@ -105,16 +124,16 @@ impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for BaseGraph<Node, Weig
 }
 
 impl<Node, Weight, const Di: bool> Index for BaseGraph<Node, Weight, Di> {
-    type EdgeIndices<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
-    type NodeIndices<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
     where Self: 'a;
 
-    fn edge_indices<'a>(&'a self) -> Self::EdgeIndices<'a> {
+    fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a> {
         self.edges.keys().cloned()
     }
 
-    fn node_indices<'a>(&'a self) -> Self::NodeIndices<'a> {
+    fn node_ids<'a>(&'a self) -> Self::NodeIds<'a> {
         (0..self.nodes.len()).map(NodeIndex)
     }
 }

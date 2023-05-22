@@ -1,14 +1,11 @@
 use super::{dijkstra_between, nearest_neighbor, Tour};
-use crate::{
-    edge::EdgeRef,
-    prelude::{GraphAdjacentTopology, GraphTopology, Maximum, NodeIndex, Sortable},
-};
+use crate::prelude::{Count, EdgeRef, IndexAdjacent, Maximum, NodeIndex, Sortable};
 use std::ops::{Add, AddAssign};
 
 pub fn branch_bound<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent + Count,
 {
     match graph.indices().next() {
         Some(start) => Some(_branch_bound(graph, start)),
@@ -19,7 +16,7 @@ where
 pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable + Maximum,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent + Count,
 {
     match graph.indices().next() {
         Some(start) => {
@@ -49,7 +46,7 @@ where
 pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex) -> Tour<W>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Count + IndexAdjacent,
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
@@ -113,7 +110,7 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
     baseline: &mut W,
 ) where
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent,
 {
     if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;

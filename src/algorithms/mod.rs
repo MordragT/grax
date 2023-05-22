@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 pub use bellman_ford::*;
 pub use branch_bound::*;
 pub use brute_force::*;
@@ -11,7 +9,7 @@ pub use nearest_neighbor::*;
 pub use prim::*;
 pub use search::*;
 
-use crate::prelude::{AdjacencyList, EdgeIndex, GraphAccess, NodeIndex};
+use crate::prelude::{AdjacencyList, EdgeIndex, Get, NodeIndex};
 use thiserror::Error;
 
 mod bellman_ford;
@@ -60,7 +58,7 @@ impl<W> Tour<W> {
 
     pub fn nodes<'a, N, G>(&'a self, graph: &'a G) -> impl Iterator<Item = &'a N> + 'a
     where
-        G: GraphAccess<N, W>,
+        G: Get<N, W>,
     {
         self.route.iter().map(|index| graph.node(*index))
     }

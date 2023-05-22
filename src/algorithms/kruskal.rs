@@ -1,14 +1,13 @@
-use crate::graph::{GraphAccess, GraphTopology, Sortable};
-use crate::prelude::{AdjacencyList, AdjacencyOptions};
-use crate::{edge::EdgeRef, tree::UnionFind};
+use crate::graph::Sortable;
+use crate::prelude::{AdjacencyList, EdgeRef, IterEdges, IterNodes};
 use std::ops::AddAssign;
 
-use super::MinimumSpanningTree;
+use super::{MinimumSpanningTree, UnionFind};
 
 pub fn kruskal_weight<N, W, G>(graph: &G) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: GraphTopology<N, W>,
+    G: IterEdges<W>,
 {
     let mut total_weight = W::default();
     _kruskal(graph, |edge| total_weight += *edge.weight);
@@ -18,11 +17,9 @@ where
 pub fn kruskal_mst<N, W, G>(graph: &G) -> MinimumSpanningTree<&N, W>
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: GraphTopology<N, W>,
+    G: IterEdges<W> + IterNodes<N>,
 {
-    let mut mst = AdjacencyList::with(AdjacencyOptions {
-        nodes: Some(graph.nodes().collect()),
-    });
+    let mut mst = AdjacencyList::with_nodes(graph.iter_nodes().collect());
 
     let union_find = _kruskal(graph, |edge| {
         mst.add_edge(edge.from, edge.to, *edge.weight).unwrap();
@@ -36,16 +33,16 @@ where
 pub(crate) fn _kruskal<N, W, G, F>(graph: &G, mut f: F) -> UnionFind
 where
     W: Sortable,
-    G: GraphTopology<N, W>,
-    F: FnMut(EdgeRef<W>),
+    G: IterEdges<W>,
+    F: FnMut(EdgeRef<G::EdgeId, W>),
 {
-    let mut priority_queue = graph.edges().collect::<Vec<_>>();
+    let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
     priority_queue.sort_by(|this, other| this.weight.sort(other.weight));
 
     let mut union_find = UnionFind::from(graph.indices());
 
     for edge in priority_queue {
-        if union_find.find(edge.from) == union_find.find(edge.to) {
+        if union_find.find(edge.from()) == union_find.find(edge.to) {
             continue;
         }
         union_find.union(edge.from, edge.to);

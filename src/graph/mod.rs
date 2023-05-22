@@ -25,6 +25,7 @@ pub trait Graph<N: Node, W: Weight>:
     Base
     + Capacity
     + Clear
+    + Contains<N>
     + Count
     + Create<N>
     + Directed
@@ -119,6 +120,7 @@ pub trait WeightlessGraph<N>:
     Base
     + Capacity
     + Clear
+    + Contains<N>
     + Count
     + Create<N>
     + Directed
@@ -181,6 +183,20 @@ impl<
             + Debug,
     > Weight for T
 {
+}
+
+pub trait NodeId {
+    fn as_usize(&self) -> usize;
+}
+
+pub trait EdgeId: Sized {
+    type NodeId;
+
+    /// Reveres the edge index
+    fn rev(&self) -> Self;
+    fn to(&self) -> Self::NodeId;
+    fn from(&self) -> Self::NodeId;
+    fn contains(&self, node_id: Self::NodeId) -> bool;
 }
 
 pub trait Sortable: PartialOrd {

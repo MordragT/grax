@@ -1,13 +1,13 @@
-use super::EdgeRef;
+use super::{EdgeId, EdgeRef, NodeId};
 
 // TODO replace EdgeId NodeId with &EdgeId und &NodeId
 
 /// Graph base trait
 pub trait Base {
     /// Should not be able to be constructed outside the Graph
-    type EdgeId: Copy;
+    type EdgeId: Copy + EdgeId;
     /// Should not be able to be constructed outside the Graph
-    type NodeId: Copy;
+    type NodeId: Copy + NodeId;
 }
 
 pub trait Capacity {
@@ -18,6 +18,11 @@ pub trait Capacity {
 pub trait Clear {
     /// Clears the Graph completely
     fn clear(&mut self);
+}
+
+pub trait Contains<Node>: Base {
+    fn contains_node(&self, node: &Node) -> Option<Self::NodeId>;
+    fn contains_edge(&self, from: Self::NodeId, to: Self::NodeId) -> Option<Self::EdgeId>;
 }
 
 pub trait Count {
@@ -52,11 +57,11 @@ pub trait Get<Node, Weight>: Base {
     fn node(&self, node_id: Self::NodeId) -> Option<&Node>;
     fn weight(&self, edge_id: Self::EdgeId) -> Option<&Weight>;
 
-    fn contains_node(&self, node_id: Self::NodeId) -> bool {
+    fn contains_node_id(&self, node_id: Self::NodeId) -> bool {
         self.node(node_id).is_some()
     }
 
-    fn contains_edge(&self, edge_id: Self::EdgeId) -> bool {
+    fn contains_edge_id(&self, edge_id: Self::EdgeId) -> bool {
         self.weight(edge_id).is_some()
     }
 }
@@ -80,27 +85,27 @@ pub trait GetMut<Node, Weight>: Base {
 }
 
 pub trait Index: Base {
-    type NodeIndices<'a>: Iterator<Item = Self::NodeId> + 'a
+    type NodeIds<'a>: Iterator<Item = Self::NodeId> + 'a
     where
         Self: 'a;
-    type EdgeIndices<'a>: Iterator<Item = Self::EdgeId> + 'a
+    type EdgeIds<'a>: Iterator<Item = Self::EdgeId> + 'a
     where
         Self: 'a;
 
-    fn node_indices<'a>(&'a self) -> Self::NodeIndices<'a>;
-    fn edge_indices<'a>(&'a self) -> Self::EdgeIndices<'a>;
+    fn node_ids<'a>(&'a self) -> Self::NodeIds<'a>;
+    fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a>;
 }
 
 pub trait IndexAdjacent: Base {
-    type AdjacentNodeIndices<'a>: Iterator<Item = Self::NodeId> + 'a
+    type AdjacentNodeIds<'a>: Iterator<Item = Self::NodeId> + 'a
     where
         Self: 'a;
-    type AdjacentEdgeIndices<'a>: Iterator<Item = Self::EdgeId> + 'a
+    type AdjacentEdgeIds<'a>: Iterator<Item = Self::EdgeId> + 'a
     where
         Self: 'a;
 
-    fn adjacent_node_indices<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIndices<'a>;
-    fn adjacent_edge_indices<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIndices<'a>;
+    fn adjacent_node_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIds<'a>;
+    fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a>;
 }
 
 pub trait Insert<Node, Weight>: Base {

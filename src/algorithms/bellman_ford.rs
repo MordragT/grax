@@ -1,20 +1,22 @@
+use crate::prelude::{Count, Index, IndexAdjacent};
+
 use super::{Distances, NegativeCycle};
 use std::ops::Add;
 
-pub fn bellman_ford_between<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<W>
+pub fn bellman_ford_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
 where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + Count + IndexAdjacent,
 {
     bellman_ford(graph, from)
         .ok()
         .and_then(|d| d.distances[to.0])
 }
 
-pub fn bellman_ford<N, W, G>(graph: &G, start: NodeIndex) -> Result<Distances<W>, NegativeCycle>
+pub fn bellman_ford<N, W, G>(graph: &G, start: G::NodeId) -> Result<Distances<W>, NegativeCycle>
 where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: Index + Count + IndexAdjacent,
 {
     let mut cost_table = vec![None; graph.node_count()];
     cost_table[start.0] = Some(W::default());

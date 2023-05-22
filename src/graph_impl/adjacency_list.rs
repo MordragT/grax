@@ -1,7 +1,7 @@
 use super::{BaseGraph, EdgeIndex, NodeIndex};
 use crate::{
     edge_list::EdgeList,
-    graph::{Clear, Extend, Get, GetMut, Graph, IndexAdjacent, Insert, Remove},
+    graph::{Clear, Contains, EdgeId, Extend, Get, GetMut, Graph, IndexAdjacent, Insert, Remove},
     prelude::{
         Base, Capacity, Count, Create, Directed, EdgeRef, Index, IterEdges, IterNodes,
         IterNodesMut, Reserve,
@@ -77,6 +77,16 @@ impl<Node, Weight, const Di: bool> Clear for AdjacencyList<Node, Weight, Di> {
     }
 }
 
+impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for AdjacencyList<Node, Weight, Di> {
+    fn contains_node(&self, node: &Node) -> Option<Self::NodeId> {
+        self.base.contains_node(node)
+    }
+
+    fn contains_edge(&self, from: Self::NodeId, to: Self::NodeId) -> Option<Self::EdgeId> {
+        self.base.contains_edge(from, to)
+    }
+}
+
 impl<Node, Weight, const Di: bool> Count for AdjacencyList<Node, Weight, Di> {
     fn edge_count(&self) -> usize {
         self.base.edge_count()
@@ -142,31 +152,31 @@ impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for AdjacencyList<Node, 
 }
 
 impl<Node, Weight, const Di: bool> Index for AdjacencyList<Node, Weight, Di> {
-    type EdgeIndices<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
-    type NodeIndices<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
     where Self: 'a;
 
-    fn edge_indices<'a>(&'a self) -> Self::EdgeIndices<'a> {
-        self.base.edge_indices()
+    fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a> {
+        self.base.edge_ids()
     }
 
-    fn node_indices<'a>(&'a self) -> Self::NodeIndices<'a> {
-        self.base.node_indices()
+    fn node_ids<'a>(&'a self) -> Self::NodeIds<'a> {
+        self.base.node_ids()
     }
 }
 
 impl<Node, Weight, const Di: bool> IndexAdjacent for AdjacencyList<Node, Weight, Di> {
-    type AdjacentEdgeIndices<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type AdjacentEdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
-    type AdjacentNodeIndices<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type AdjacentNodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
     where Self: 'a;
 
-    fn adjacent_edge_indices<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIndices<'a> {
-        self.adjacent_node_indices(node_id)
+    fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a> {
+        self.adjacent_node_ids(node_id)
             .map(move |to| EdgeIndex::new(node_id, to))
     }
-    fn adjacent_node_indices<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIndices<'a> {
+    fn adjacent_node_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIds<'a> {
         self.adjacencies[node_id.0].iter().cloned()
     }
 }

@@ -1,4 +1,4 @@
-use crate::prelude::{GraphAccess, GraphCompare, GraphTopology, Maximum, NodeIndex};
+use crate::prelude::{Count, Get, Maximum, NodeIndex};
 use std::ops::AddAssign;
 
 use super::Tour;
@@ -7,7 +7,7 @@ pub fn brute_force<N, W, G>(graph: &G) -> Option<Tour<W>>
 where
     N: PartialEq,
     W: Default + Maximum + PartialOrd + AddAssign + Copy,
-    G: GraphTopology<N, W> + GraphCompare<N, W> + GraphAccess<N, W>,
+    G: Get<N, W> + Count,
 {
     let mut best_path = Vec::new();
     let mut best_weight = W::max();
@@ -20,7 +20,7 @@ where
 
         let edges = perm
             .array_windows::<2>()
-            .map(|w| graph.contains_edge(w[0], w[1]))
+            .map(|w| graph.contains_edge_id(w[0], w[1]))
             .collect::<Option<Vec<_>>>();
 
         if let Some(edges) = edges {

@@ -1,22 +1,21 @@
-use crate::graph::{GraphAdjacentTopology, GraphTopology, Sortable};
-use crate::indices::NodeIndex;
+use crate::{graph::Sortable, prelude::IndexAdjacent};
 use priq::PriorityQueue;
 use std::ops::Add;
 
 use super::Distances;
 
-pub fn dijkstra_between<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Option<W>
+pub fn dijkstra_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent,
 {
     dijkstra(graph, from, to).distances[to.0]
 }
 
-pub fn dijkstra<N, W, G>(graph: &G, from: NodeIndex, to: NodeIndex) -> Distances<W>
+pub fn dijkstra<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
+    G: IndexAdjacent,
 {
     let mut priority_queue = PriorityQueue::new();
     let mut distances = vec![None; graph.node_count()];
