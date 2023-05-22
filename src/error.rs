@@ -1,7 +1,6 @@
+use crate::prelude::NodeIndex;
 use std::num::{ParseFloatError, ParseIntError};
 use thiserror::Error;
-
-use crate::indices::NodeIndex;
 
 pub type GraphResult<T> = Result<T, GraphError>;
 

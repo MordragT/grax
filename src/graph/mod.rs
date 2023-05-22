@@ -4,11 +4,8 @@ use std::{
     ops::{Add, AddAssign, Sub, SubAssign},
 };
 
-pub use access::{GraphAccess, GraphCompare};
-pub use adjacency_list::*;
-pub use adjacency_matrix::*;
-pub use residual_graph::*;
-pub use topology::{GraphAdjacentTopology, GraphTopology};
+pub use edge::*;
+pub use traits::*;
 
 use crate::{
     algorithms::{
@@ -21,79 +18,27 @@ use crate::{
     prelude::NodeIndex,
 };
 
-mod access;
-mod adjacency_list;
-mod adjacency_matrix;
-mod residual_graph;
-mod topology;
-
-pub trait Sortable: PartialOrd {
-    fn sort(&self, other: &Self) -> Ordering;
-}
-
-default impl<T: PartialOrd> Sortable for T {
-    default fn sort(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
-    }
-}
-
-impl Sortable for f64 {
-    fn sort(&self, other: &Self) -> Ordering {
-        self.total_cmp(other)
-    }
-}
-
-impl Sortable for f32 {
-    fn sort(&self, other: &Self) -> Ordering {
-        self.total_cmp(other)
-    }
-}
-
-pub trait Maximum {
-    fn max() -> Self;
-}
-
-impl Maximum for f64 {
-    fn max() -> Self {
-        f64::INFINITY
-    }
-}
-
-impl Maximum for f32 {
-    fn max() -> Self {
-        f32::INFINITY
-    }
-}
-
-impl Maximum for u32 {
-    fn max() -> Self {
-        u32::MAX
-    }
-}
-
-pub trait WeightlessGraph<N>: GraphTopology<N, ()> + GraphAdjacentTopology<N, ()> + Sized {
-    fn dfs_connected_components(&self) -> ConnectedComponents {
-        dfs_connected_components(self)
-    }
-
-    fn bfs_connected_components(&self) -> ConnectedComponents {
-        bfs_connected_components(self)
-    }
-
-    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
-        dfs_tour(self, from)
-    }
-
-    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
-        bfs_tour(self, from)
-    }
-}
+mod edge;
+mod traits;
 
 pub trait Graph<N: Node, W: Weight>:
-    GraphAccess<N, W>
-    + GraphTopology<N, W>
-    + GraphAdjacentTopology<N, W>
-    + GraphCompare<N, W>
+    Base
+    + Capacity
+    + Clear
+    + Count
+    + Create<N>
+    + Directed
+    + Extend<N, W>
+    + Get<N, W>
+    + GetMut<N, W>
+    + Index
+    + IndexAdjacent
+    + Insert<N, W>
+    + IterEdges<W>
+    + IterNodes<N>
+    + IterNodesMut<N>
+    + Remove<N, W>
+    + Reserve
     + Sized
     + Clone
 {
@@ -169,9 +114,48 @@ pub trait Graph<N: Node, W: Weight>:
         brute_force(self)
     }
 }
-pub trait Node: Default + PartialEq {}
 
-impl<T: Default + PartialEq> Node for T {}
+pub trait WeightlessGraph<N>:
+    Base
+    + Capacity
+    + Clear
+    + Count
+    + Create<N>
+    + Directed
+    + Extend<N, ()>
+    + Get<N, ()>
+    + GetMut<N, ()>
+    + Index
+    + IndexAdjacent
+    + Insert<N, ()>
+    + IterEdges<()>
+    + IterNodes<N>
+    + IterNodesMut<N>
+    + Remove<N, ()>
+    + Reserve
+    + Sized
+    + Clone
+{
+    fn dfs_connected_components(&self) -> ConnectedComponents {
+        dfs_connected_components(self)
+    }
+
+    fn bfs_connected_components(&self) -> ConnectedComponents {
+        bfs_connected_components(self)
+    }
+
+    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        dfs_tour(self, from)
+    }
+
+    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
+        bfs_tour(self, from)
+    }
+}
+
+pub trait Node: Default + PartialEq + Clone {}
+
+impl<T: Default + PartialEq + Clone> Node for T {}
 pub trait Weight:
     Sortable
     + Maximum
@@ -197,4 +181,48 @@ impl<
             + Debug,
     > Weight for T
 {
+}
+
+pub trait Sortable: PartialOrd {
+    fn sort(&self, other: &Self) -> Ordering;
+}
+
+default impl<T: PartialOrd> Sortable for T {
+    default fn sort(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
+impl Sortable for f64 {
+    fn sort(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
+}
+
+impl Sortable for f32 {
+    fn sort(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
+}
+
+pub trait Maximum {
+    fn max() -> Self;
+}
+
+impl Maximum for f64 {
+    fn max() -> Self {
+        f64::INFINITY
+    }
+}
+
+impl Maximum for f32 {
+    fn max() -> Self {
+        f32::INFINITY
+    }
+}
+
+impl Maximum for u32 {
+    fn max() -> Self {
+        u32::MAX
+    }
 }

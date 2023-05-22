@@ -1,7 +1,6 @@
-use super::{Graph, Node, Weight};
 use crate::{
     algorithms::{AugmentedPath, ParentPath},
-    edge::{Edge, EdgeRef},
+    graph::{Edge, Graph, Node, Weight},
     prelude::{EdgeIndex, NodeIndex},
 };
 use std::{
@@ -23,12 +22,14 @@ impl<N: Node, W: Weight, G: Graph<N, W>> From<G> for ResidualGraph<N, W, G> {
         let mut backward_edges = HashSet::new();
         let mut flow = HashMap::new();
 
-        let edges: Vec<Edge<W>> = graph.edges().map(Into::into).collect::<Vec<_>>();
+        let edges: Vec<Edge<G::EdgeId, W>> = graph
+            .iter_edges()
+            .map(|edge| edge.to_owned())
+            .collect::<Vec<_>>();
 
-        for Edge { from, to, weight } in edges {
-            graph.add_edge(to, from, weight).unwrap();
-            let index = EdgeIndex::new(to, from);
-            backward_edges.insert(index);
+        for Edge { edge_id, weight } in edges {
+            graph.insert_edge(edge_id, weight).unwrap();
+            backward_edges.insert(edge_id.rev());
 
             // init residual capacity as 0
             flow.insert(index.rev(), W::default());
