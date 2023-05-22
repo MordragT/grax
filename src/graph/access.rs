@@ -7,6 +7,7 @@ use super::topology::GraphTopology;
 
 pub trait GraphAccess<N, W> {
     fn add_node(&mut self, node: N) -> NodeIndex;
+    // todo remove result just return EdgeIndex
     fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, weight: W) -> GraphResult<EdgeIndex>;
 
     fn node(&self, index: NodeIndex) -> &N;

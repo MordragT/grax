@@ -1,6 +1,5 @@
-use crate::adjacency_list::AdjacencyOptions;
 use crate::graph::{GraphAccess, GraphTopology, Sortable};
-use crate::prelude::AdjacencyList;
+use crate::prelude::{AdjacencyList, AdjacencyOptions};
 use crate::{edge::EdgeRef, tree::UnionFind};
 use std::ops::AddAssign;
 
@@ -59,7 +58,7 @@ where
 #[cfg(test)]
 mod test {
     extern crate test;
-    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::undigraph};
+    use crate::{prelude::*, test::undigraph};
     use test::Bencher;
 
     #[bench]

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 pub use bellman_ford::*;
 pub use branch_bound::*;
 pub use brute_force::*;
@@ -9,7 +11,7 @@ pub use nearest_neighbor::*;
 pub use prim::*;
 pub use search::*;
 
-use crate::prelude::{AdjacencyList, GraphAccess, NodeIndex};
+use crate::prelude::{AdjacencyList, DirectedEdgeIndex, EdgeIndex, Graph, GraphAccess, NodeIndex};
 use thiserror::Error;
 
 mod bellman_ford;
@@ -98,5 +100,35 @@ pub struct MinimumSpanningTree<N, W> {
 impl<N, W> MinimumSpanningTree<N, W> {
     pub fn new(tree: AdjacencyList<N, W>, root: NodeIndex) -> Self {
         Self { tree, root }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct Flow<W> {
+    pub current: W,
+    pub max: W,
+}
+
+impl<W: Default> Flow<W> {
+    pub fn new(max: W) -> Self {
+        Self {
+            max,
+            current: W::default(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub struct AugmentedPath {
+    pub edges: Vec<DirectedEdgeIndex>,
+}
+
+impl AugmentedPath {
+    pub fn new(edges: Vec<DirectedEdgeIndex>) -> Self {
+        Self { edges }
+    }
+
+    pub fn raw_edges<'a>(&'a self) -> impl Iterator<Item = EdgeIndex> + 'a {
+        self.edges.iter().map(|edge| edge.raw())
     }
 }

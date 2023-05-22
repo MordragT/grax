@@ -146,7 +146,7 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
 mod test {
     extern crate test;
 
-    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::undigraph};
+    use crate::{prelude::*, test::undigraph};
     use test::Bencher;
 
     #[bench]

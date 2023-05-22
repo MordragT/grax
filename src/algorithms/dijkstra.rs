@@ -56,7 +56,6 @@ mod test {
     extern crate test;
 
     use crate::{
-        adjacency_matrix::AdjacencyMatrix,
         algorithms::dijkstra_between,
         prelude::*,
         test::{digraph, undigraph},

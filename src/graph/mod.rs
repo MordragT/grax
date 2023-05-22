@@ -1,9 +1,13 @@
 use std::{
     cmp::Ordering,
-    ops::{Add, AddAssign, Sub},
+    fmt::Debug,
+    ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 pub use access::{GraphAccess, GraphCompare};
+pub use adjacency_list::*;
+pub use adjacency_matrix::*;
+pub use residual_graph::*;
 pub use topology::{GraphAdjacentTopology, GraphTopology};
 
 use crate::{
@@ -18,6 +22,9 @@ use crate::{
 };
 
 mod access;
+mod adjacency_list;
+mod adjacency_matrix;
+mod residual_graph;
 mod topology;
 
 pub trait Sortable: PartialOrd {
@@ -101,7 +108,7 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
-    fn edmonds_karp(&self, from: NodeIndex, to: NodeIndex) -> W {
+    fn edmonds_karp(&mut self, from: NodeIndex, to: NodeIndex) -> W {
         edmonds_karp(self, from, to)
     }
 
@@ -167,12 +174,22 @@ pub trait Weight:
     + Add<Self, Output = Self>
     + Sub<Self, Output = Self>
     + AddAssign
+    + SubAssign
     + Copy
+    + Debug
 {
 }
 
 impl<
-        T: Sortable + Maximum + Default + Add<T, Output = T> + Sub<T, Output = T> + AddAssign + Copy,
+        T: Sortable
+            + Maximum
+            + Default
+            + Add<T, Output = T>
+            + Sub<T, Output = T>
+            + AddAssign
+            + SubAssign
+            + Copy
+            + Debug,
     > Weight for T
 {
 }

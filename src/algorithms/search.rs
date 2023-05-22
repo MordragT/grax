@@ -1,9 +1,6 @@
-use crate::edge::EdgeRef;
 use crate::graph::{GraphAdjacentTopology, GraphTopology};
 use crate::indices::NodeIndex;
-use crate::prelude::{EdgeIndex, Sortable};
-use std::collections::{BTreeMap, HashSet, VecDeque};
-use std::ops::{AddAssign, Sub};
+use std::collections::VecDeque;
 
 use super::{ConnectedComponents, Tour};
 
@@ -81,45 +78,6 @@ where
 //     _bfs(graph, from, &mut markers, true)
 // }
 
-pub(crate) fn _bfs_augmenting_path<N, W, G>(
-    graph: &G,
-    source: NodeIndex,
-    sink: NodeIndex,
-    full_edges: &HashSet<EdgeIndex>,
-) -> Option<Tour<()>>
-where
-    N: PartialEq,
-    W: Sortable + Default + Clone + Sub<W, Output = W> + AddAssign,
-    G: GraphTopology<N, W> + GraphAdjacentTopology<N, W>,
-{
-    let mut queue = VecDeque::new();
-    let mut route = Vec::new();
-    let mut visited = HashSet::new();
-
-    queue.push_front(source);
-
-    while let Some(from) = queue.pop_front() {
-        route.push(from);
-        if from == sink {
-            return Some(Tour::new(route, ()));
-        }
-
-        let mut edges = graph.adjacent_edges(from).collect::<Vec<_>>();
-        edges.sort_by(|edge, other| other.weight.sort(edge.weight));
-
-        for EdgeRef { from, to, weight } in edges {
-            let index = EdgeIndex::new(from, to);
-
-            if !visited.contains(&index) && !full_edges.contains(&index) {
-                queue.push_back(to);
-                visited.insert(index);
-            }
-        }
-    }
-
-    None
-}
-
 pub(crate) fn _dfs<'a, N, W, G, M>(
     graph: &'a G,
     from: NodeIndex,
@@ -179,7 +137,7 @@ where
 #[cfg(test)]
 mod test {
     extern crate test;
-    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::weightless_undigraph};
+    use crate::{prelude::*, test::weightless_undigraph};
     use test::Bencher;
 
     #[bench]

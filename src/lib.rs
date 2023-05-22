@@ -6,8 +6,6 @@
 #![feature(if_let_guard)]
 #![feature(array_windows)]
 
-pub mod adjacency_list;
-pub mod adjacency_matrix;
 pub mod algorithms;
 pub mod edge;
 pub mod edge_list;
@@ -35,6 +33,15 @@ pub mod indices {
         pub fn contains(&self, index: NodeIndex) -> bool {
             self.from == index || self.to == index
         }
+
+        pub fn rev(&self) -> Self {
+            let Self { from, to } = self;
+
+            Self {
+                from: *to,
+                to: *from,
+            }
+        }
     }
 
     impl<'a, W> From<EdgeRef<'a, W>> for EdgeIndex {
@@ -54,10 +61,31 @@ pub mod indices {
             }
         }
     }
+
+    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+    pub enum DirectedEdgeIndex {
+        Forward(EdgeIndex),
+        Reverse(EdgeIndex),
+    }
+
+    impl DirectedEdgeIndex {
+        pub fn raw(&self) -> EdgeIndex {
+            match self {
+                Self::Forward(edge) => *edge,
+                Self::Reverse(edge) => *edge,
+            }
+        }
+
+        pub fn is_rev(&self) -> bool {
+            match self {
+                Self::Reverse(_) => true,
+                _ => false,
+            }
+        }
+    }
 }
 
 pub mod prelude {
-    pub use crate::adjacency_list::AdjacencyList;
     pub use crate::edge_list::EdgeList;
     pub use crate::error::GraphError;
     pub use crate::graph::*;

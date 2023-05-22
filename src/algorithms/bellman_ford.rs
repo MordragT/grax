@@ -72,7 +72,6 @@ mod test {
     extern crate test;
 
     use crate::{
-        adjacency_matrix::AdjacencyMatrix,
         algorithms::NegativeCycle,
         prelude::*,
         test::{digraph, undigraph},

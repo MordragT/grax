@@ -1,5 +1,5 @@
+use super::AdjacencyOptions;
 use crate::{
-    adjacency_list::AdjacencyOptions,
     edge::EdgeRef,
     error::GraphResult,
     prelude::{

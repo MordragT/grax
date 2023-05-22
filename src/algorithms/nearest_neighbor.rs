@@ -101,7 +101,7 @@ where
 #[cfg(test)]
 mod test {
     extern crate test;
-    use crate::{adjacency_matrix::AdjacencyMatrix, prelude::*, test::undigraph};
+    use crate::{prelude::*, test::undigraph};
     use more_asserts::*;
     use test::Bencher;
 

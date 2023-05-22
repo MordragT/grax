@@ -1,4 +1,4 @@
-use crate::indices::NodeIndex;
+use crate::{indices::NodeIndex, prelude::EdgeIndex};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Edge<W> {
@@ -22,6 +22,10 @@ impl<W> Edge<W> {
             to: from,
             weight,
         }
+    }
+
+    pub fn index(&self) -> EdgeIndex {
+        EdgeIndex::new(self.from, self.to)
     }
 }
 

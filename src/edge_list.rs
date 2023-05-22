@@ -77,8 +77,9 @@ impl<const DIRECTED: bool> FromStr for EdgeList<usize, f64, DIRECTED> {
 
 #[cfg(test)]
 mod test {
+    use crate::prelude::AdjacencyList;
+
     use super::EdgeList;
-    use crate::adjacency_list::AdjacencyList;
     use std::{fs, str::FromStr};
 
     #[test]
