@@ -61,28 +61,6 @@ pub mod indices {
             }
         }
     }
-
-    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-    pub enum DirectedEdgeIndex {
-        Forward(EdgeIndex),
-        Reverse(EdgeIndex),
-    }
-
-    impl DirectedEdgeIndex {
-        pub fn raw(&self) -> EdgeIndex {
-            match self {
-                Self::Forward(edge) => *edge,
-                Self::Reverse(edge) => *edge,
-            }
-        }
-
-        pub fn is_rev(&self) -> bool {
-            match self {
-                Self::Reverse(_) => true,
-                _ => false,
-            }
-        }
-    }
 }
 
 pub mod prelude {

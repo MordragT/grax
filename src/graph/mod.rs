@@ -90,7 +90,12 @@ pub trait WeightlessGraph<N>: GraphTopology<N, ()> + GraphAdjacentTopology<N, ()
 }
 
 pub trait Graph<N: Node, W: Weight>:
-    GraphAccess<N, W> + GraphTopology<N, W> + GraphAdjacentTopology<N, W> + GraphCompare<N, W> + Sized
+    GraphAccess<N, W>
+    + GraphTopology<N, W>
+    + GraphAdjacentTopology<N, W>
+    + GraphCompare<N, W>
+    + Sized
+    + Clone
 {
     fn bellman_ford_between(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
         bellman_ford_between(self, from, to)
@@ -108,7 +113,7 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
-    fn edmonds_karp(&mut self, from: NodeIndex, to: NodeIndex) -> W {
+    fn edmonds_karp(&self, from: NodeIndex, to: NodeIndex) -> W {
         edmonds_karp(self, from, to)
     }
 

@@ -11,7 +11,7 @@ pub use nearest_neighbor::*;
 pub use prim::*;
 pub use search::*;
 
-use crate::prelude::{AdjacencyList, DirectedEdgeIndex, EdgeIndex, Graph, GraphAccess, NodeIndex};
+use crate::prelude::{AdjacencyList, EdgeIndex, GraphAccess, NodeIndex};
 use thiserror::Error;
 
 mod bellman_ford;
@@ -120,15 +120,11 @@ impl<W: Default> Flow<W> {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct AugmentedPath {
-    pub edges: Vec<DirectedEdgeIndex>,
+    pub(crate) edges: Vec<EdgeIndex>,
 }
 
 impl AugmentedPath {
-    pub fn new(edges: Vec<DirectedEdgeIndex>) -> Self {
+    pub(crate) fn new(edges: Vec<EdgeIndex>) -> Self {
         Self { edges }
-    }
-
-    pub fn raw_edges<'a>(&'a self) -> impl Iterator<Item = EdgeIndex> + 'a {
-        self.edges.iter().map(|edge| edge.raw())
     }
 }
