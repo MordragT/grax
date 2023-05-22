@@ -1,6 +1,6 @@
 use super::{Graph, Node, Weight};
 use crate::{
-    algorithms::AugmentedPath,
+    algorithms::{AugmentedPath, ParentPath},
     edge::{Edge, EdgeRef},
     prelude::{EdgeIndex, NodeIndex},
 };
@@ -47,8 +47,19 @@ impl<N: Node, W: Weight, G: Graph<N, W>> From<G> for ResidualGraph<N, W, G> {
 
 impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
     pub fn edmonds_karp(&mut self, source: NodeIndex, sink: NodeIndex) -> W {
-        while let Some(augmented_path) = self.bfs_augmenting_path(source, sink) {
-            self.apply(augmented_path);
+        while let Some(path) = self.bfs_augmenting_path(source, sink) {
+            let mut edges = Vec::new();
+            let mut from = sink;
+
+            while let Some(to) = path.parent[from.0] {
+                edges.push(EdgeIndex::new(to, from));
+                if to == source {
+                    break;
+                }
+                from = to;
+            }
+
+            self.apply(AugmentedPath { edges });
         }
 
         self.total_flow
@@ -118,9 +129,9 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
         }
     }
 
-    fn bfs_augmenting_path<'a>(&self, source: NodeIndex, sink: NodeIndex) -> Option<AugmentedPath> {
+    fn bfs_augmenting_path<'a>(&self, source: NodeIndex, sink: NodeIndex) -> Option<ParentPath> {
         let mut queue = VecDeque::new();
-        let mut edges = Vec::new();
+        let mut parent = vec![None; self.graph.node_count()];
         let mut visited = vec![false; self.graph.node_count()];
 
         queue.push_front(source);
@@ -128,15 +139,10 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
 
         while let Some(from) = queue.pop_front() {
             if from == sink {
-                return Some(AugmentedPath::new(edges));
+                return Some(ParentPath { parent });
             }
 
-            for EdgeRef {
-                from,
-                to,
-                weight: _,
-            } in self.graph.adjacent_edges(from)
-            {
+            for to in self.graph.adjacent_indices(from) {
                 let index = EdgeIndex::new(from, to);
                 if !visited[to.0] {
                     if self.full_edges.contains(&index) && !self.backward_edges.contains(&index) {
@@ -148,7 +154,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
                         continue;
                     }
 
-                    edges.push(index);
+                    parent[to.0] = Some(from);
                     queue.push_back(to);
                     visited[to.0] = true;
                 }

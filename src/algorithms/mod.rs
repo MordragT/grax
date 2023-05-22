@@ -118,6 +118,10 @@ impl<W: Default> Flow<W> {
     }
 }
 
+pub struct ParentPath {
+    pub(crate) parent: Vec<Option<NodeIndex>>,
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct AugmentedPath {
     pub(crate) edges: Vec<EdgeIndex>,
