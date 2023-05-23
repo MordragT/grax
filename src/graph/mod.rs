@@ -69,7 +69,11 @@ pub trait Graph<N: Node, W: Weight>:
         kruskal_weight(self)
     }
 
-    fn kruskal_mst(&self) -> MinimumSpanningTree<Self> {
+    fn kruskal_mst<T>(&self) -> MinimumSpanningTree<T>
+    where
+        for<'a> T:
+            Create<&'a N> + Insert<&'a N, W> + Base<EdgeId = Self::EdgeId, NodeId = Self::NodeId>,
+    {
         kruskal_mst(self)
     }
 
@@ -101,8 +105,18 @@ pub trait Graph<N: Node, W: Weight>:
         nearest_neighbor_from_first(self)
     }
 
-    fn double_tree(&self) -> Option<Tour<Self::NodeId, W>> {
-        double_tree(self)
+    fn double_tree<T>(&self) -> Option<Tour<Self::NodeId, W>>
+    where
+        for<'a> T: Contains<&'a N>
+            + Create<&'a N>
+            + Get<&'a N, W>
+            + Insert<&'a N, W>
+            + Index
+            + IndexAdjacent
+            + Count
+            + Base<EdgeId = Self::EdgeId, NodeId = Self::NodeId>,
+    {
+        double_tree::<N, W, Self, T>(self)
     }
 
     fn branch_bound(&self) -> Option<Tour<Self::NodeId, W>> {
