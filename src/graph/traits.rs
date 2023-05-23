@@ -1,13 +1,14 @@
-use super::{EdgeId, EdgeRef, NodeId};
+use super::{EdgeIdentifier, EdgeRef, EdgeRefMut, Graph, NodeIdentifier};
 
 // TODO replace EdgeId NodeId with &EdgeId und &NodeId
 
-/// Graph base trait
-pub trait Base {
-    /// Should not be able to be constructed outside the Graph
-    type EdgeId: Copy + EdgeId;
-    /// Should not be able to be constructed outside the Graph
-    type NodeId: Copy + NodeId;
+/// A Base trait for graphs.
+/// Must be implemented first to implement all the other Graph traits.
+pub trait Base: Sized {
+    /// A type used to identify an edge.
+    type EdgeId: Copy + EdgeIdentifier<NodeId = Self::NodeId>;
+    /// A type used to identify a node.
+    type NodeId: Copy + NodeIdentifier;
 }
 
 pub trait Capacity {
@@ -85,15 +86,76 @@ pub trait GetMut<Node, Weight>: Base {
 }
 
 pub trait Index: Base {
-    type NodeIds<'a>: Iterator<Item = Self::NodeId> + 'a
+    type EdgeIds<'a>: Iterator<Item = Self::EdgeId> + 'a
     where
         Self: 'a;
-    type EdgeIds<'a>: Iterator<Item = Self::EdgeId> + 'a
+    type NodeIds<'a>: Iterator<Item = Self::NodeId> + 'a
     where
         Self: 'a;
 
     fn node_ids<'a>(&'a self) -> Self::NodeIds<'a>;
     fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a>;
+}
+
+pub trait Iter<Node, Weight>: Base {
+    type Nodes<'a>: Iterator<Item = &'a Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
+    /// This returns an iterator over all nodes in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::Index) and [Get](self::Get)
+    /// ```rust
+    /// self.node_ids().map(|node_id| self.node(node_id).unwrap())
+    /// ```
+    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a>;
+
+    /// This returns an iterator over all edges in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::Index) and [Get](self::Get)
+    /// ```rust
+    /// self.edge_ids()
+    /// .map(|edge_id| EdgeRef::new(edge_id, self.weight(edge_id).unwrap()))
+    /// ```
+    fn iter_edges<'a>(&'a self) -> Self::Edges<'a>;
+}
+
+pub trait IterMut<Node, Weight>: Base {
+    type NodesMut<'a>: Iterator<Item = &'a mut Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
+    /// This returns an mutable iterator over all nodes in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::Index) and [Get](self::GetMut)
+    /// ```rust
+    /// self.node_ids()
+    /// .map(|node_id| self.node_mut(node_id).unwrap())
+    /// ```
+    fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a>;
+
+    /// This returns an mutable iterator over all edges in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::Index) and [Get](self::GetMut)
+    /// ```rust
+    /// self.edge_ids()
+    /// .map(|edge_id| EdgeRefMut::new(edge_id, self.weight_mut(edge_id).unwrap()))
+    /// ```
+    fn iter_edges_mut<'a>(&'a mut self) -> Self::EdgesMut<'a>;
 }
 
 pub trait IndexAdjacent: Base {
@@ -108,36 +170,68 @@ pub trait IndexAdjacent: Base {
     fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a>;
 }
 
-pub trait Insert<Node, Weight>: Base {
-    fn add_node(&mut self, node: Node) -> Self::NodeId;
-    fn insert_edge(&mut self, edge_id: Self::EdgeId, weight: Weight) -> Option<Weight>;
-}
-
-pub trait IterEdges<Weight>: Base {
+pub trait IterAdjacent<Node, Weight>: Base {
+    type Nodes<'a>: Iterator<Item = &'a Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
     type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::EdgeId, Weight>> + 'a
     where
         Weight: 'a,
         Self: 'a;
 
-    fn iter_edges<'a>(&'a self) -> Self::Edges<'a>;
+    /// This returns an iterator over all nodes adjacent to the specified node in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::IndexAdjacent) and [Get](self::Get)
+    /// ```rust
+    /// self.adjacent_node_ids(node_id)
+    /// .map(|node_id| self.node(node_id).unwrap())
+    /// ```
+    fn iter_adjacent_nodes<'a>(&'a self, node_id: Self::NodeId) -> Self::Nodes<'a>;
+
+    /// This returns an iterator over all edges adjacent to the specified node in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::IndexAdjacent) and [Get](self::Get)
+    /// ```rust
+    /// self.adjacent_edge_ids(node_id)
+    /// .map(|edge_id| EdgeRef::new(edge_id, self.weight(edge_id).unwrap()))
+    /// ```
+    fn iter_adjacent_edges<'a>(&'a self, node_id: Self::NodeId) -> Self::Edges<'a>;
 }
 
-pub trait IterNodes<Node>: Base {
-    type Nodes<'a>: Iterator<Item = &'a Node> + 'a
-    where
-        Node: 'a,
-        Self: 'a;
-
-    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a>;
-}
-
-pub trait IterNodesMut<Node>: Base {
+pub trait IterAdjacentMut<Node, Weight>: Base {
     type NodesMut<'a>: Iterator<Item = &'a mut Node> + 'a
     where
         Node: 'a,
         Self: 'a;
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+    /// This returns an mutable iterator over all nodes adjacent to the specified node in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::IndexAdjacent) and [Get](self::GetMut)
+    /// ```rust
+    /// todo!()
+    /// ```
+    fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: Self::NodeId) -> Self::NodesMut<'a>;
 
-    fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a>;
+    /// This returns an mutable iterator over all edges adjacent to the specified node in the graph.
+    /// Due to constraints in the type system of rust this cannot be automatically implemented.
+    /// But you can use the following to implement it for your Graph, provided you implement
+    /// [Index](self::IndexAdjacent) and [Get](self::GetMut)
+    /// ```rust
+    /// todo!()
+    /// ```
+    fn iter_adjacent_edges_mut<'a>(&'a mut self, node_id: Self::NodeId) -> Self::EdgesMut<'a>;
+}
+
+pub trait Insert<Node, Weight>: Base {
+    fn add_node(&mut self, node: Node) -> Self::NodeId;
+    fn insert_edge(&mut self, edge_id: Self::EdgeId, weight: Weight) -> Option<Weight>;
 }
 
 pub trait Remove<Node, Weight>: Base {

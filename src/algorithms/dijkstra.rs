@@ -1,4 +1,7 @@
-use crate::{graph::Sortable, prelude::IndexAdjacent};
+use crate::{
+    graph::{Count, IndexAdjacent, IterAdjacent, Sortable},
+    prelude::{EdgeIdentifier, NodeIdentifier},
+};
 use priq::PriorityQueue;
 use std::ops::Add;
 
@@ -7,20 +10,20 @@ use super::Distances;
 pub fn dijkstra_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
-    G: IndexAdjacent,
+    G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
-    dijkstra(graph, from, to).distances[to.0]
+    dijkstra(graph, from, to).distances[to.as_usize()]
 }
 
-pub fn dijkstra<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<W>
+pub fn dijkstra<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<G::NodeId, W>
 where
     W: Default + Sortable + Copy + Add<W, Output = W>,
-    G: IndexAdjacent,
+    G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let mut priority_queue = PriorityQueue::new();
     let mut distances = vec![None; graph.node_count()];
 
-    distances[from.0] = Some(W::default());
+    distances[from.as_usize()] = Some(W::default());
     priority_queue.put(W::default(), from);
 
     while let Some((dist, node)) = priority_queue.pop() {
@@ -28,21 +31,22 @@ where
             return Distances::new(from, distances);
         }
 
-        if let Some(d) = distances[node.0] && dist > d {
+        if let Some(d) = distances[node.as_usize()] && dist > d {
             continue;
         }
 
-        for edge in graph.adjacent_edges(node) {
+        for edge in graph.iter_adjacent_edges(node) {
+            let to = edge.edge_id.to();
             let next_dist = dist + *edge.weight;
 
-            let visited_or_geq = match &distances[edge.to.0] {
+            let visited_or_geq = match &distances[to.as_usize()] {
                 Some(d) => next_dist >= *d,
                 None => false,
             };
 
             if !visited_or_geq {
-                distances[edge.to.0] = Some(next_dist);
-                priority_queue.put(next_dist, edge.to);
+                distances[to.as_usize()] = Some(next_dist);
+                priority_queue.put(next_dist, to);
             }
         }
     }

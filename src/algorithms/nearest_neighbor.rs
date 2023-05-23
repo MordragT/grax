@@ -1,22 +1,25 @@
 use super::{dijkstra_between, Tour};
-use crate::prelude::{Count, EdgeRef, Index, IndexAdjacent, Maximum, NodeIndex, Sortable};
+use crate::{
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+};
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor_from_first<N, W, G>(graph: &G) -> Option<Tour<W>>
+pub fn nearest_neighbor_from_first<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: Count + Index + IndexAdjacent,
+    G: Count + Index + IndexAdjacent + IterAdjacent<N, W>,
 {
-    match graph.indices().next() {
+    match graph.node_ids().next() {
         Some(start) => nearest_neighbor(graph, start),
         None => None,
     }
 }
 
-pub fn nearest_neighbor<N, W, G>(graph: &G, start: NodeIndex) -> Option<Tour<W>>
+pub fn nearest_neighbor<N, W, G>(graph: &G, start: G::NodeId) -> Option<Tour<G::NodeId, W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: Count + IndexAdjacent,
+    G: Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
     enum Status {
@@ -30,16 +33,16 @@ where
     let mut path = vec![(start, W::default())];
     let mut prev = start;
 
-    states[start.0] = Status::Visited;
+    states[start.as_usize()] = Status::Visited;
 
     while let Some((node, _)) = path.last() && path.len() < graph.node_count() {
 
         let mut min_node = None;
         let mut min_weight = W::max();
 
-        for EdgeRef { edge_id, weight } in graph.adjacent_edges(*node) {
-            let to = edge_id.to;
-            if states[to.0] == Status::Unvisited && to != prev {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
+            let to = edge_id.to();
+            if states[to.as_usize()] == Status::Unvisited && to != prev {
                 if min_weight > *weight {
                     min_node = Some(to);
                     min_weight = *weight;
@@ -50,25 +53,25 @@ where
         match min_node {
             Some(next) => {
                 path.push((next, min_weight));
-                states[next.0] = Status::Visited;
+                states[next.as_usize()] = Status::Visited;
                 prev = next;
             }
             None => {
                 let open_end = path.iter().rposition(|(node, _)| {
-                    graph.adjacent_indices(*node).any(|neigh| states[neigh.0] == Status::Unvisited)
+                    graph.adjacent_node_ids(*node).any(|neigh| states[neigh.as_usize()] == Status::Unvisited)
                 });
 
                 if let Some(index) = open_end {
                     let branch_point = path[index].0;
 
-                    if states[branch_point.0] == Status::Diverged {
+                    if states[branch_point.as_usize()] == Status::Diverged {
                         return None;
                     } else {
-                        states[branch_point.0] = Status::Diverged;
+                        states[branch_point.as_usize()] = Status::Diverged;
                     }
                     let splitted_off = path.split_off(index + 1);
                     for (node, _) in splitted_off.into_iter().rev() {
-                        states[node.0] = Status::Unvisited;
+                        states[node.as_usize()] = Status::Unvisited;
                         prev = node;
                     }
                 } else {

@@ -56,6 +56,15 @@ impl<T> SparseMatrix<T> {
             .map(|((&row, &col), value)| (row, col, value))
     }
 
+    /// Returns an mutable iterator over the non-zero elements in the matrix
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut T)> {
+        self.row_indices
+            .iter()
+            .zip(&self.col_indices)
+            .zip(&mut self.values)
+            .map(|((&row, &col), value)| (row, col, value))
+    }
+
     pub fn insert(&mut self, row: usize, col: usize, value: T) {
         assert!(row <= self.row_count);
         assert!(col <= self.col_count);
@@ -94,6 +103,15 @@ impl<T> SparseMatrix<T> {
         })
     }
 
+    /// Returns the elements of a specific row
+    pub fn row_mut(&mut self, row: usize) -> RowMutIterator<T> {
+        RowMutIterator {
+            matrix: self,
+            row,
+            index: 0,
+        }
+    }
+
     /// Returns the elements of a specific column
     pub fn col(&self, col: usize) -> impl Iterator<Item = (usize, &T)> {
         self.col_indices.iter().filter_map(move |i| {
@@ -103,6 +121,15 @@ impl<T> SparseMatrix<T> {
                 None
             }
         })
+    }
+
+    /// Returns the elements of a specific column
+    pub fn col_mut(&mut self, col: usize) -> ColMutIterator<T> {
+        ColMutIterator {
+            matrix: self,
+            col,
+            index: 0,
+        }
     }
 }
 
@@ -117,6 +144,54 @@ impl<T: Clone> SparseMatrix<T> {
             transposed.insert(row, col, value);
         }
         transposed
+    }
+}
+
+pub struct RowMutIterator<'a, T> {
+    matrix: &'a mut SparseMatrix<T>,
+    row: usize,
+    index: usize,
+}
+
+impl<'a, T> Iterator for RowMutIterator<'a, T> {
+    type Item = (usize, &'a mut T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.index < self.matrix.row_indices.len() {
+            let current_row = self.matrix.row_indices[self.index];
+            if current_row == self.row {
+                let col_id = self.matrix.col_indices[self.index];
+                let value = &mut self.matrix.values[self.index];
+                self.index += 1;
+                return Some((col_id, value));
+            }
+            self.index += 1;
+        }
+        None
+    }
+}
+
+pub struct ColMutIterator<'a, T> {
+    matrix: &'a mut SparseMatrix<T>,
+    col: usize,
+    index: usize,
+}
+
+impl<'a, T> Iterator for ColMutIterator<'a, T> {
+    type Item = (usize, &'a mut T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.index < self.matrix.col_indices.len() {
+            let current_col = self.matrix.col_indices[self.index];
+            if current_col == self.col {
+                let row_id = self.matrix.row_indices[self.index];
+                let value = &mut self.matrix.values[self.index];
+                self.index += 1;
+                return Some((row_id, value));
+            }
+            self.index += 1;
+        }
+        None
     }
 }
 

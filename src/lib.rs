@@ -16,7 +16,10 @@ pub mod utils;
 pub mod prelude {
     pub use crate::edge_list::EdgeList;
     pub use crate::error::GraphError;
-    pub use crate::graph::*;
+    pub use crate::graph::{
+        Edge, EdgeIdentifier, EdgeRef, EdgeRefMut, Graph, Node, NodeIdentifier, Weight,
+        WeightlessGraph,
+    };
     pub use crate::graph_impl::*;
 }
 
@@ -31,33 +34,33 @@ pub mod test {
     pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>
     where
         P: AsRef<Path>,
-        G: TryFrom<EdgeList<usize, (), false>, Error = GraphError>,
+        G: From<EdgeList<usize, (), false>>,
     {
         let content = fs::read_to_string(path)?;
         let edge_list = EdgeList::from_str(&content)?;
-        let graph = G::try_from(edge_list)?;
+        let graph = G::from(edge_list);
         Ok(graph)
     }
 
     pub fn undigraph<G, P>(path: P) -> GraphResult<G>
     where
         P: AsRef<Path>,
-        G: TryFrom<EdgeList<usize, f64, false>, Error = GraphError>,
+        G: From<EdgeList<usize, f64, false>>,
     {
         let content = fs::read_to_string(path)?;
         let edge_list = EdgeList::from_str(&content)?;
-        let graph = G::try_from(edge_list)?;
+        let graph = G::from(edge_list);
         Ok(graph)
     }
 
     pub fn digraph<G, P>(path: P) -> GraphResult<G>
     where
         P: AsRef<Path>,
-        G: TryFrom<EdgeList<usize, f64, true>, Error = GraphError>,
+        G: From<EdgeList<usize, f64, true>>,
     {
         let content = fs::read_to_string(path)?;
         let edge_list = EdgeList::from_str(&content)?;
-        let graph = G::try_from(edge_list)?;
+        let graph = G::from(edge_list);
         Ok(graph)
     }
 }

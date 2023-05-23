@@ -1,8 +1,11 @@
 use super::{ConnectedComponents, Tour};
-use crate::prelude::{Count, Index, IndexAdjacent};
+use crate::{
+    graph::{Count, Index, IndexAdjacent},
+    prelude::NodeIdentifier,
+};
 use std::collections::VecDeque;
 
-pub fn dfs_connected_components<N, W, G>(graph: &G) -> ConnectedComponents
+pub fn dfs_connected_components<G>(graph: &G) -> ConnectedComponents<G::NodeId>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -11,7 +14,7 @@ where
     let mut components = Vec::new();
 
     for from in graph.node_ids() {
-        if markers[from.0] == 0 {
+        if markers[from.as_usize()] == 0 {
             counter += 1;
             let comp = _dfs(graph, from, &mut markers, counter).collect();
             components.push(comp);
@@ -21,7 +24,7 @@ where
     ConnectedComponents::new(components)
 }
 
-pub fn bfs_connected_components<N, W, G>(graph: &G) -> ConnectedComponents
+pub fn bfs_connected_components<G>(graph: &G) -> ConnectedComponents<G::NodeId>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -29,8 +32,8 @@ where
     let mut markers = vec![0; graph.node_count()];
     let mut components = Vec::new();
 
-    for from in graph.indices() {
-        if markers[from.0] == 0 {
+    for from in graph.node_ids() {
+        if markers[from.as_usize()] == 0 {
             counter += 1;
             let comp = _bfs(graph, from, &mut markers, counter).collect();
             components.push(comp);
@@ -40,7 +43,7 @@ where
     ConnectedComponents::new(components)
 }
 
-pub fn dfs_tour<N, W, G>(graph: &G, from: G::NodeId) -> Tour<()>
+pub fn dfs_tour<G>(graph: &G, from: G::NodeId) -> Tour<G::NodeId, ()>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -50,7 +53,7 @@ where
     Tour::new(route, ())
 }
 
-pub fn bfs_tour<N, W, G>(graph: &G, from: G::NodeId) -> Tour<()>
+pub fn bfs_tour<G>(graph: &G, from: G::NodeId) -> Tour<G::NodeId, ()>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -76,7 +79,7 @@ where
 //     _bfs(graph, from, &mut markers, true)
 // }
 
-pub(crate) fn _dfs<'a, N, W, G, M>(
+pub(crate) fn _dfs<'a, G, M>(
     graph: &'a G,
     from: G::NodeId,
     markers: &'a mut Vec<M>,
@@ -88,14 +91,14 @@ where
 {
     let mut stack = Vec::new();
     stack.push(from);
-    markers[from.0] = mark;
+    markers[from.as_usize()] = mark;
 
     std::iter::from_fn(move || {
         while let Some(from) = stack.pop() {
-            for to in graph.adjacent_indices(from) {
-                if markers[to.0] == M::default() {
+            for to in graph.adjacent_node_ids(from) {
+                if markers[to.as_usize()] == M::default() {
                     stack.push(to);
-                    markers[to.0] = mark;
+                    markers[to.as_usize()] = mark;
                 }
             }
             return Some(from);
@@ -104,7 +107,7 @@ where
     })
 }
 
-pub(crate) fn _bfs<'a, N, W, G, M>(
+pub(crate) fn _bfs<'a, G, M>(
     graph: &'a G,
     from: G::NodeId,
     markers: &'a mut Vec<M>,
@@ -116,14 +119,14 @@ where
 {
     let mut queue = VecDeque::new();
     queue.push_front(from);
-    markers[from.0] = mark;
+    markers[from.as_usize()] = mark;
 
     std::iter::from_fn(move || {
         while let Some(from) = queue.pop_front() {
-            for to in graph.adjacent_indices(from) {
-                if markers[to.0] == M::default() {
+            for to in graph.adjacent_node_ids(from) {
+                if markers[to.as_usize()] == M::default() {
                     queue.push_back(to);
-                    markers[to.0] = mark;
+                    markers[to.as_usize()] = mark;
                 }
             }
             return Some(from);

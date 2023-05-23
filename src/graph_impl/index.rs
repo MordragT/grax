@@ -1,9 +1,9 @@
-use crate::prelude::{EdgeId, NodeId};
+use crate::prelude::{EdgeIdentifier, NodeIdentifier};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct NodeIndex(pub(crate) usize);
 
-impl NodeId for NodeIndex {
+impl NodeIdentifier for NodeIndex {
     fn as_usize(&self) -> usize {
         self.0
     }
@@ -15,7 +15,7 @@ pub struct EdgeIndex {
     pub(crate) to: NodeIndex,
 }
 
-impl EdgeId for EdgeIndex {
+impl EdgeIdentifier for EdgeIndex {
     type NodeId = NodeIndex;
 
     fn contains(&self, index: NodeIndex) -> bool {

@@ -1,4 +1,7 @@
-use crate::prelude::{Count, Index, IndexAdjacent};
+use crate::{
+    graph::{Count, Index, IndexAdjacent, IterAdjacent},
+    prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+};
 
 use super::{Distances, NegativeCycle};
 use std::ops::Add;
@@ -6,44 +9,43 @@ use std::ops::Add;
 pub fn bellman_ford_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
 where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
-    G: Index + Count + IndexAdjacent,
+    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     bellman_ford(graph, from)
         .ok()
-        .and_then(|d| d.distances[to.0])
+        .and_then(|d| d.distances[to.as_usize()])
 }
 
-pub fn bellman_ford<N, W, G>(graph: &G, start: G::NodeId) -> Result<Distances<W>, NegativeCycle>
+pub fn bellman_ford<N, W, G>(
+    graph: &G,
+    start: G::NodeId,
+) -> Result<Distances<G::NodeId, W>, NegativeCycle>
 where
     W: Default + Add<W, Output = W> + PartialOrd + Copy,
-    G: Index + Count + IndexAdjacent,
+    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     let mut cost_table = vec![None; graph.node_count()];
-    cost_table[start.0] = Some(W::default());
+    cost_table[start.as_usize()] = Some(W::default());
 
     let mut updated = false;
 
     for _ in 0..graph.node_count() {
         updated = false;
 
-        for index in graph.indices() {
-            if let Some(cost) = cost_table[index.0] {
-                for EdgeRef {
-                    from: _,
-                    to,
-                    weight,
-                } in graph.adjacent_edges(index)
-                {
+        for index in graph.node_ids() {
+            if let Some(cost) = cost_table[index.as_usize()] {
+                for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(index) {
+                    let to = edge_id.to();
                     let combined_cost = cost + *weight;
-                    let to_cost = cost_table[to.0];
+                    let to_cost = cost_table[to.as_usize()];
 
                     match to_cost {
                         Some(c) if c > combined_cost => {
-                            cost_table[to.0] = Some(combined_cost);
+                            cost_table[to.as_usize()] = Some(combined_cost);
                             updated = true;
                         }
                         None => {
-                            cost_table[to.0] = Some(combined_cost);
+                            cost_table[to.as_usize()] = Some(combined_cost);
                             updated = true;
                         }
                         _ => (),

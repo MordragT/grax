@@ -1,21 +1,19 @@
 use std::{
     cmp::Ordering,
     fmt::Debug,
+    hash::Hash,
     ops::{Add, AddAssign, Sub, SubAssign},
 };
 
 pub use edge::*;
 pub use traits::*;
 
-use crate::{
-    algorithms::{
-        bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
-        branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra,
-        dijkstra_between, double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
-        nearest_neighbor_from_first, prim, ConnectedComponents, Distances, MinimumSpanningTree,
-        NegativeCycle, Tour,
-    },
-    prelude::NodeIndex,
+use crate::algorithms::{
+    bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
+    branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra, dijkstra_between,
+    double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
+    nearest_neighbor_from_first, prim, ConnectedComponents, Distances, MinimumSpanningTree,
+    NegativeCycle, Tour,
 };
 
 mod edge;
@@ -35,31 +33,35 @@ pub trait Graph<N: Node, W: Weight>:
     + Index
     + IndexAdjacent
     + Insert<N, W>
-    + IterEdges<W>
-    + IterNodes<N>
-    + IterNodesMut<N>
+    + Iter<N, W>
+    + IterMut<N, W>
+    + IterAdjacent<N, W>
+    + IterAdjacentMut<N, W>
     + Remove<N, W>
     + Reserve
     + Sized
     + Clone
 {
-    fn bellman_ford_between(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+    fn bellman_ford_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W> {
         bellman_ford_between(self, from, to)
     }
 
-    fn bellman_ford(&self, start: NodeIndex) -> Result<Distances<W>, NegativeCycle> {
+    fn bellman_ford(
+        &self,
+        start: Self::NodeId,
+    ) -> Result<Distances<Self::NodeId, W>, NegativeCycle> {
         bellman_ford(self, start)
     }
 
-    fn dijkstra_between(&self, from: NodeIndex, to: NodeIndex) -> Option<W> {
+    fn dijkstra_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W> {
         dijkstra_between(self, from, to)
     }
 
-    fn dijkstra(&self, from: NodeIndex, to: NodeIndex) -> Distances<W> {
+    fn dijkstra(&self, from: Self::NodeId, to: Self::NodeId) -> Distances<Self::NodeId, W> {
         dijkstra(self, from, to)
     }
 
-    fn edmonds_karp(&self, from: NodeIndex, to: NodeIndex) -> W {
+    fn edmonds_karp(&self, from: Self::NodeId, to: Self::NodeId) -> W {
         edmonds_karp(self, from, to)
     }
 
@@ -67,7 +69,7 @@ pub trait Graph<N: Node, W: Weight>:
         kruskal_weight(self)
     }
 
-    fn kruskal_mst(&self) -> MinimumSpanningTree<&N, W> {
+    fn kruskal_mst(&self) -> MinimumSpanningTree<Self> {
         kruskal_mst(self)
     }
 
@@ -75,43 +77,43 @@ pub trait Graph<N: Node, W: Weight>:
         prim(self)
     }
 
-    fn dfs_connected_components(&self) -> ConnectedComponents {
+    fn dfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
         dfs_connected_components(self)
     }
 
-    fn bfs_connected_components(&self) -> ConnectedComponents {
+    fn bfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
         bfs_connected_components(self)
     }
 
-    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
+    fn dfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
         dfs_tour(self, from)
     }
 
-    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
+    fn bfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
         bfs_tour(self, from)
     }
 
-    fn nearest_neighbor(&self, start: NodeIndex) -> Option<Tour<W>> {
+    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<Tour<Self::NodeId, W>> {
         nearest_neighbor(self, start)
     }
 
-    fn nearest_neighbor_from_first(&self) -> Option<Tour<W>> {
+    fn nearest_neighbor_from_first(&self) -> Option<Tour<Self::NodeId, W>> {
         nearest_neighbor_from_first(self)
     }
 
-    fn double_tree(&self) -> Option<Tour<W>> {
+    fn double_tree(&self) -> Option<Tour<Self::NodeId, W>> {
         double_tree(self)
     }
 
-    fn branch_bound(&self) -> Option<Tour<W>> {
+    fn branch_bound(&self) -> Option<Tour<Self::NodeId, W>> {
         branch_bound(self)
     }
 
-    fn branch_bound_rec(&self) -> Option<Tour<W>> {
+    fn branch_bound_rec(&self) -> Option<Tour<Self::NodeId, W>> {
         branch_bound_rec(self)
     }
 
-    fn brute_force(&self) -> Option<Tour<W>> {
+    fn brute_force(&self) -> Option<Tour<Self::NodeId, W>> {
         brute_force(self)
     }
 }
@@ -124,36 +126,41 @@ pub trait WeightlessGraph<N>:
     + Count
     + Create<N>
     + Directed
-    + Extend<N, ()>
-    + Get<N, ()>
-    + GetMut<N, ()>
+    // + Extend<N, ()>
+    // + Get<N, ()>
+    // + GetMut<N, ()>
     + Index
     + IndexAdjacent
-    + Insert<N, ()>
-    + IterEdges<()>
-    + IterNodes<N>
-    + IterNodesMut<N>
-    + Remove<N, ()>
+    // + Insert<N, ()>
+    // + Iter<N, ()>
+    // + IterMut<N, ()>
+    // + IterAdjacent<N, ()>
+    // + IterAdjacentMut<N, ()>
+    // + Remove<N, ()>
     + Reserve
     + Sized
     + Clone
 {
-    fn dfs_connected_components(&self) -> ConnectedComponents {
+    fn dfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
         dfs_connected_components(self)
     }
 
-    fn bfs_connected_components(&self) -> ConnectedComponents {
+    fn bfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
         bfs_connected_components(self)
     }
 
-    fn dfs_tour(&self, from: NodeIndex) -> Tour<()> {
+    fn dfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
         dfs_tour(self, from)
     }
 
-    fn bfs_tour(&self, from: NodeIndex) -> Tour<()> {
+    fn bfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
         bfs_tour(self, from)
     }
 }
+
+// pub trait Ref<N: Node, W: Weight> {
+//     type GraphRef: for<'a> Graph<&'a N, W>;
+// }
 
 pub trait Node: Default + PartialEq + Clone {}
 
@@ -185,12 +192,12 @@ impl<
 {
 }
 
-pub trait NodeId {
+pub trait NodeIdentifier: Hash + Eq {
     fn as_usize(&self) -> usize;
 }
 
-pub trait EdgeId: Sized {
-    type NodeId;
+pub trait EdgeIdentifier: Hash + Eq {
+    type NodeId: NodeIdentifier;
 
     /// Reveres the edge index
     fn rev(&self) -> Self;

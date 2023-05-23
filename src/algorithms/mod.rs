@@ -9,7 +9,10 @@ pub use nearest_neighbor::*;
 pub use prim::*;
 pub use search::*;
 
-use crate::prelude::{AdjacencyList, EdgeIndex, Get, NodeIndex};
+use crate::{
+    graph::{Base, Get},
+    prelude::{EdgeIndex, NodeIdentifier, NodeIndex},
+};
 use thiserror::Error;
 
 mod bellman_ford;
@@ -27,12 +30,12 @@ mod search;
 #[error("Negative Cycle detected")]
 pub struct NegativeCycle;
 
-pub struct ConnectedComponents {
-    components: Vec<Vec<NodeIndex>>,
+pub struct ConnectedComponents<NodeId> {
+    components: Vec<Vec<NodeId>>,
 }
 
-impl ConnectedComponents {
-    pub fn new(components: Vec<Vec<NodeIndex>>) -> Self {
+impl<NodeId> ConnectedComponents<NodeId> {
+    pub fn new(components: Vec<Vec<NodeId>>) -> Self {
         Self { components }
     }
 
@@ -42,30 +45,23 @@ impl ConnectedComponents {
 }
 
 #[derive(Debug)]
-pub struct Tour<W> {
-    pub route: Vec<NodeIndex>,
-    pub weight: W,
+pub struct Tour<NodeId, Weight> {
+    pub route: Vec<NodeId>,
+    pub weight: Weight,
 }
 
-impl<W> Tour<W> {
-    pub fn new(route: Vec<NodeIndex>, weight: W) -> Self {
+impl<NodeId, Weight> Tour<NodeId, Weight> {
+    pub fn new(route: Vec<NodeId>, weight: Weight) -> Self {
         Self { route, weight }
     }
 
-    pub fn edges(&self) -> impl Iterator<Item = (&NodeIndex, &NodeIndex)> {
+    pub fn edges(&self) -> impl Iterator<Item = (&NodeId, &NodeId)> {
         self.route.array_windows::<2>().map(|[from, to]| (from, to))
     }
 
-    pub fn nodes<'a, N, G>(&'a self, graph: &'a G) -> impl Iterator<Item = &'a N> + 'a
+    pub fn map<F, T>(self, mut f: F) -> Tour<NodeId, T>
     where
-        G: Get<N, W>,
-    {
-        self.route.iter().map(|index| graph.node(*index))
-    }
-
-    pub fn map<F, T>(self, mut f: F) -> Tour<T>
-    where
-        F: FnMut(W) -> T,
+        F: FnMut(Weight) -> T,
     {
         let Tour { route, weight } = self;
         let weight = f(weight);
@@ -73,30 +69,39 @@ impl<W> Tour<W> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Distances<W> {
-    pub distances: Vec<Option<W>>,
-    pub from: NodeIndex,
+impl<NodeId: Copy, Weight> Tour<NodeId, Weight> {
+    pub fn nodes<'a, N, G>(&'a self, graph: &'a G) -> impl Iterator<Item = &'a N> + 'a
+    where
+        G: Get<N, Weight> + Base<NodeId = NodeId>,
+    {
+        self.route.iter().map(|index| graph.node(*index).unwrap())
+    }
 }
 
-impl<W> Distances<W> {
-    pub fn new(from: NodeIndex, distances: Vec<Option<W>>) -> Self {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Distances<NodeId: NodeIdentifier, Weight> {
+    pub distances: Vec<Option<Weight>>,
+    pub from: NodeId,
+}
+
+impl<NodeId: NodeIdentifier, Weight> Distances<NodeId, Weight> {
+    pub fn new(from: NodeId, distances: Vec<Option<Weight>>) -> Self {
         Self { distances, from }
     }
 
-    pub fn to(&self, to: NodeIndex) -> Option<&W> {
-        self.distances[to.0].as_ref()
+    pub fn to(&self, to: NodeId) -> Option<&Weight> {
+        self.distances[to.as_usize()].as_ref()
     }
 }
 
 #[derive(Debug)]
-pub struct MinimumSpanningTree<N, W> {
-    pub tree: AdjacencyList<N, W>,
-    pub root: NodeIndex,
+pub struct MinimumSpanningTree<G: Base> {
+    pub tree: G,
+    pub root: G::NodeId,
 }
 
-impl<N, W> MinimumSpanningTree<N, W> {
-    pub fn new(tree: AdjacencyList<N, W>, root: NodeIndex) -> Self {
+impl<G: Base> MinimumSpanningTree<G> {
+    pub fn new(tree: G, root: G::NodeId) -> Self {
         Self { tree, root }
     }
 }
@@ -132,29 +137,29 @@ impl AugmentedPath {
 }
 
 #[derive(Debug)]
-pub struct UnionFind {
-    parent: Vec<NodeIndex>,
+pub struct UnionFind<NodeId> {
+    parent: Vec<NodeId>,
     rank: Vec<usize>,
-    path: Vec<NodeIndex>,
+    path: Vec<NodeId>,
 }
 
-impl UnionFind {
-    pub fn root(&self) -> NodeIndex {
+impl<NodeId: NodeIdentifier> UnionFind<NodeId> {
+    pub fn root(&self) -> NodeId {
         self.parent[0]
     }
 
-    pub fn rank(&self, index: NodeIndex) -> usize {
-        self.rank[index.0]
+    pub fn rank(&self, index: NodeId) -> usize {
+        self.rank[index.as_usize()]
     }
 
-    pub fn find(&mut self, needle: NodeIndex) -> NodeIndex {
+    pub fn find(&mut self, needle: NodeId) -> NodeId {
         let mut root = needle;
 
         self.path.clear();
 
-        while self.parent[root.0] != root {
+        while self.parent[root.as_usize()] != root {
             self.path.push(root);
-            root = self.parent[root.0];
+            root = self.parent[root.as_usize()];
         }
 
         // set root of every cached index in path to "root"
@@ -163,12 +168,12 @@ impl UnionFind {
         // more parents in the former loop
         // this allows to skip intermediate nodes and improves the performance
         for index in &self.path {
-            self.parent[index.0] = root;
+            self.parent[index.as_usize()] = root;
         }
         root
     }
 
-    pub fn union(&mut self, x: NodeIndex, y: NodeIndex) {
+    pub fn union(&mut self, x: NodeId, y: NodeId) {
         let mut root_x = self.find(x);
         let mut root_y = self.find(y);
         if root_x == root_y {
@@ -177,19 +182,19 @@ impl UnionFind {
 
         // keep depth of trees small by appending small tree to big tree
         // ensures find operation is not doing effectively a linked list search
-        if self.rank[root_x.0] < self.rank[root_y.0] {
+        if self.rank[root_x.as_usize()] < self.rank[root_y.as_usize()] {
             std::mem::swap(&mut root_x, &mut root_y);
         }
-        self.parent[root_y.0] = root_x;
-        self.rank[root_x.0] += self.rank[root_y.0];
+        self.parent[root_y.as_usize()] = root_x;
+        self.rank[root_x.as_usize()] += self.rank[root_y.as_usize()];
     }
 }
 
 // Set every parent of each tree to itself
 // Meaning that every tree == 1 node
-impl<T: Iterator<Item = NodeIndex>> From<T> for UnionFind {
+impl<NodeId, T: Iterator<Item = NodeId>> From<T> for UnionFind<NodeId> {
     fn from(nodes: T) -> Self {
-        let parent: Vec<NodeIndex> = nodes.collect();
+        let parent: Vec<NodeId> = nodes.collect();
         //parent.sort();
 
         let rank = vec![1; parent.len()];

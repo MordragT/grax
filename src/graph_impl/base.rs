@@ -1,9 +1,9 @@
 use crate::{
-    graph::{Clear, Contains, Extend, Get, GetMut, Insert},
-    prelude::{
-        Base, Capacity, Count, Create, Directed, EdgeRef, Index, IterEdges, IterNodes,
-        IterNodesMut, Reserve,
+    graph::{
+        Base, Capacity, Clear, Contains, Count, Create, Directed, EdgeRef, Extend, Get, GetMut,
+        Index, Insert, Iter, IterMut, Reserve,
     },
+    prelude::EdgeRefMut,
 };
 
 use super::{EdgeIndex, NodeIndex};
@@ -150,12 +150,20 @@ impl<Node, Weight, const Di: bool> Insert<Node, Weight> for BaseGraph<Node, Weig
     }
 }
 
-impl<Node, Weight, const Di: bool> IterEdges<Weight> for BaseGraph<Node, Weight, Di> {
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, EdgeIndex, Weight>> + 'a
+impl<Node, Weight, const Di: bool> Iter<Node, Weight> for BaseGraph<Node, Weight, Di> {
+    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
+
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, Self::EdgeId, Weight>> + 'a
     where
         Weight: 'a,
         Self: 'a;
 
+    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a> {
+        self.nodes.iter()
+    }
     fn iter_edges<'a>(&'a self) -> Self::Edges<'a> {
         self.edges
             .iter()
@@ -163,25 +171,24 @@ impl<Node, Weight, const Di: bool> IterEdges<Weight> for BaseGraph<Node, Weight,
     }
 }
 
-impl<Node, Weight, const Di: bool> IterNodes<Node> for BaseGraph<Node, Weight, Di> {
-    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
-    where
-        Node: 'a,
-        Self: 'a;
-
-    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a> {
-        self.nodes.iter()
-    }
-}
-
-impl<Node, Weight, const Di: bool> IterNodesMut<Node> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for BaseGraph<Node, Weight, Di> {
     type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
     where
         Node: 'a,
         Self: 'a;
 
+    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
     fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a> {
         self.nodes.iter_mut()
+    }
+    fn iter_edges_mut<'a>(&'a mut self) -> Self::EdgesMut<'a> {
+        self.edges
+            .iter_mut()
+            .map(|(id, weight)| EdgeRefMut::new(*id, weight))
     }
 }
 

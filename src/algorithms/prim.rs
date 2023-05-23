@@ -1,6 +1,6 @@
 use crate::{
-    graph::Sortable,
-    prelude::{Count, Index, IndexAdjacent},
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, Sortable},
+    prelude::NodeIdentifier,
 };
 use priq::PriorityQueue;
 use std::ops::AddAssign;
@@ -8,9 +8,9 @@ use std::ops::AddAssign;
 pub fn prim<N, W, G>(graph: &G) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: Index + Count + IndexAdjacent,
+    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
-    match graph.indices().next() {
+    match graph.node_ids().next() {
         Some(start) => _prim(graph, start),
         None => W::default(),
     }
@@ -19,7 +19,7 @@ where
 pub(crate) fn _prim<N, W, G>(graph: &G, start: G::NodeId) -> W
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: IndexAdjacent + Count,
+    G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let n = graph.node_count();
     let mut visited = vec![false; n];
@@ -31,22 +31,23 @@ where
     priority_queue.put(W::default(), start);
 
     while let Some((weight, to)) = priority_queue.pop() {
-        if visited[to.0] {
+        if visited[to.as_usize()] {
             continue;
         }
-        visited[to.0] = true;
+        visited[to.as_usize()] = true;
         total_weight += weight;
 
-        for edge in graph.adjacent_edges(to) {
-            if !visited[edge.to.0] {
-                if let Some(weight) = &mut weights[edge.to.0] {
+        for edge in graph.iter_adjacent_edges(to) {
+            let to = edge.to();
+            if !visited[to.as_usize()] {
+                if let Some(weight) = &mut weights[to.as_usize()] {
                     if *weight > edge.weight {
                         *weight = edge.weight;
-                        priority_queue.put(*edge.weight, edge.to);
+                        priority_queue.put(*edge.weight, to);
                     }
                 } else {
-                    weights[edge.to.0] = Some(edge.weight);
-                    priority_queue.put(*edge.weight, edge.to);
+                    weights[to.as_usize()] = Some(edge.weight);
+                    priority_queue.put(*edge.weight, to);
                 }
             }
         }

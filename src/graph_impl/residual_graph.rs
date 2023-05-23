@@ -143,7 +143,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
                 return Some(ParentPath { parent });
             }
 
-            for to in self.graph.adjacent_indices(from) {
+            for to in self.graph.adjacent_node_ids(from) {
                 let index = EdgeIndex::new(from, to);
                 if !visited[to.0] {
                     if self.full_edges.contains(&index) && !self.backward_edges.contains(&index) {

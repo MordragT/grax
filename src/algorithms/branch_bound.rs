@@ -1,24 +1,27 @@
 use super::{dijkstra_between, nearest_neighbor, Tour};
-use crate::prelude::{Count, EdgeRef, IndexAdjacent, Maximum, NodeIndex, Sortable};
+use crate::{
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+};
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<N, W, G>(graph: &G) -> Option<Tour<W>>
+pub fn branch_bound<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: IndexAdjacent + Count,
+    G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
-    match graph.indices().next() {
+    match graph.node_ids().next() {
         Some(start) => Some(_branch_bound(graph, start)),
         None => None,
     }
 }
 
-pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<Tour<W>>
+pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
 where
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable + Maximum,
-    G: IndexAdjacent + Count,
+    G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
-    match graph.indices().next() {
+    match graph.node_ids().next() {
         Some(start) => {
             let mut baseline = nearest_neighbor(graph, start)
                 .map(|tour| tour.weight)
@@ -43,10 +46,10 @@ where
     }
 }
 
-pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: NodeIndex) -> Tour<W>
+pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: G::NodeId) -> Tour<G::NodeId, W>
 where
     W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
-    G: Count + IndexAdjacent,
+    G: Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
@@ -55,7 +58,7 @@ where
     let mut route = Vec::new();
 
     let mut visited = vec![false; graph.node_count()];
-    visited[start.0] = true;
+    visited[start.as_usize()] = true;
 
     stack.push((W::default(), vec![start], visited));
 
@@ -64,17 +67,13 @@ where
             .last()
             .expect("INTERNAL: Path always expected to have atleast one element");
 
-        for EdgeRef {
-            from: _,
-            to,
-            weight,
-        } in graph.adjacent_edges(*node)
-        {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
+            let to = edge_id.to();
             let cost = cost + *weight;
 
-            if !visited[to.0] && cost < total_cost {
+            if !visited[to.as_usize()] && cost < total_cost {
                 let mut visited = visited.clone();
-                visited[to.0] = true;
+                visited[to.as_usize()] = true;
 
                 let mut path = path.clone();
                 path.push(to);
@@ -101,16 +100,16 @@ where
 }
 
 pub(crate) fn _branch_bound_rec<N, W, G>(
-    start: NodeIndex,
+    start: G::NodeId,
     graph: &G,
-    node: NodeIndex,
-    path: &mut Vec<NodeIndex>,
+    node: G::NodeId,
+    path: &mut Vec<G::NodeId>,
     visited: &mut Vec<bool>,
     cost: W,
     baseline: &mut W,
 ) where
     W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable,
-    G: IndexAdjacent,
+    G: IndexAdjacent + IterAdjacent<N, W> + Count,
 {
     if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;
@@ -119,21 +118,17 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
         }
     }
 
-    for EdgeRef {
-        from: _,
-        to,
-        weight,
-    } in graph.adjacent_edges(node)
-    {
+    for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+        let to = edge_id.to();
         let cost = cost + *weight;
 
-        if !visited[to.0] && cost < *baseline {
-            visited[to.0] = true;
+        if !visited[to.as_usize()] && cost < *baseline {
+            visited[to.as_usize()] = true;
             path.push(to);
 
             _branch_bound_rec(start, graph, to, path, visited, cost, baseline);
 
-            visited[to.0] = false;
+            visited[to.as_usize()] = false;
             path.pop();
         }
     }

@@ -1,11 +1,12 @@
 use super::{EdgeIndex, NodeIndex};
 use crate::{
     edge_list::EdgeList,
-    graph::{Clear, Contains, EdgeId, Extend, Get, GetMut, Graph, IndexAdjacent, Insert, Remove},
-    prelude::{
-        Base, Capacity, Count, Create, Directed, EdgeRef, Index, IterEdges, IterNodes,
-        IterNodesMut, Reserve,
+    graph::{
+        Base, Capacity, Clear, Contains, Count, Create, Directed, EdgeIdentifier, Extend, Get,
+        GetMut, Graph, Index, IndexAdjacent, Insert, Iter, IterAdjacent, IterAdjacentMut, IterMut,
+        Remove, Reserve,
     },
+    prelude::{EdgeRef, EdgeRefMut, WeightlessGraph},
     utils::SparseMatrix,
 };
 
@@ -151,6 +152,18 @@ impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for AdjacencyMatrix<Node
     }
 }
 
+impl<Node, Weight, const Di: bool> Insert<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+    fn add_node(&mut self, node: Node) -> Self::NodeId {
+        let node_id = NodeIndex(self.nodes.len());
+        self.nodes.push(node);
+        return node_id;
+    }
+    fn insert_edge(&mut self, edge_id: Self::EdgeId, weight: Weight) -> Option<Weight> {
+        self.edges.insert(edge_id.from.0, edge_id.to.0, weight);
+        None
+    }
+}
+
 impl<Node, Weight, const Di: bool> Index for AdjacencyMatrix<Node, Weight, Di> {
     type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
@@ -184,50 +197,105 @@ impl<Node, Weight, const Di: bool> IndexAdjacent for AdjacencyMatrix<Node, Weigh
     }
 }
 
-impl<Node, Weight, const Di: bool> Insert<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
-    fn add_node(&mut self, node: Node) -> Self::NodeId {
-        let node_id = NodeIndex(self.nodes.len());
-        self.nodes.push(node);
-        return node_id;
-    }
-    fn insert_edge(&mut self, edge_id: Self::EdgeId, weight: Weight) -> Option<Weight> {
-        self.edges.insert(edge_id.from.0, edge_id.to.0, weight);
-        None
-    }
-}
+impl<Node, Weight, const Di: bool> Iter<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
 
-impl<Node, Weight, const Di: bool> IterEdges<Weight> for AdjacencyMatrix<Node, Weight, Di> {
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, EdgeIndex, Weight>> + 'a
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, Self::EdgeId, Weight>> + 'a
     where
         Weight: 'a,
         Self: 'a;
 
+    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a> {
+        self.nodes.iter()
+    }
     fn iter_edges<'a>(&'a self) -> Self::Edges<'a> {
         self.edges.iter().map(|(from, to, weight)| {
             EdgeRef::new(EdgeIndex::new(NodeIndex(from), NodeIndex(to)), weight)
         })
     }
 }
-
-impl<Node, Weight, const Di: bool> IterNodes<Node> for AdjacencyMatrix<Node, Weight, Di> {
-    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
-    where
-        Node: 'a,
-        Self: 'a;
-
-    fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a> {
-        self.nodes.iter()
-    }
-}
-
-impl<Node, Weight, const Di: bool> IterNodesMut<Node> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
     type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
     where
         Node: 'a,
         Self: 'a;
 
+    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
     fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a> {
         self.nodes.iter_mut()
+    }
+
+    fn iter_edges_mut<'a>(&'a mut self) -> Self::EdgesMut<'a> {
+        self.edges.iter_mut().map(|(from, to, weight)| {
+            EdgeRefMut::new(EdgeIndex::new(NodeIndex(from), NodeIndex(to)), weight)
+        })
+    }
+}
+
+impl<Node, Weight, const Di: bool> IterAdjacent<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, Di>
+{
+    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
+
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
+    fn iter_adjacent_nodes<'a>(&'a self, node_id: Self::NodeId) -> Self::Nodes<'a> {
+        self.adjacent_node_ids(node_id)
+            .map(|node_id| self.node(node_id).unwrap())
+    }
+
+    fn iter_adjacent_edges<'a>(&'a self, node_id: Self::NodeId) -> Self::Edges<'a> {
+        self.edges.row(node_id.0).map(move |(to, weight)| {
+            let edge_id = EdgeIndex::new(node_id, NodeIndex(to));
+            EdgeRef::new(edge_id, weight)
+        })
+    }
+}
+impl<Node, Weight, const Di: bool> IterAdjacentMut<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, Di>
+{
+    type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
+    where
+        Node: 'a,
+        Self: 'a;
+
+    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, Self::EdgeId, Weight>> + 'a
+    where
+        Weight: 'a,
+        Self: 'a;
+
+    fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: Self::NodeId) -> Self::NodesMut<'a> {
+        let ids = self.adjacent_node_ids(node_id).collect::<Vec<_>>();
+        self.nodes
+            .iter_mut()
+            .enumerate()
+            .filter_map(move |(i, node)| {
+                if ids.contains(&NodeIndex(i)) {
+                    Some(node)
+                } else {
+                    None
+                }
+            })
+    }
+
+    fn iter_adjacent_edges_mut<'a>(&'a mut self, node_id: Self::NodeId) -> Self::EdgesMut<'a> {
+        self.edges.row_mut(node_id.0).map(move |(to, weight)| {
+            let edge_id = EdgeIndex::new(node_id, NodeIndex(to));
+            EdgeRefMut::new(edge_id, weight)
+        })
     }
 }
 
@@ -253,5 +321,10 @@ impl<Node, Weight, const Di: bool> Reserve for AdjacencyMatrix<Node, Weight, Di>
 
 impl<Node: crate::graph::Node, Weight: crate::graph::Weight, const Di: bool> Graph<Node, Weight>
     for AdjacencyMatrix<Node, Weight, Di>
+{
+}
+
+impl<Node: crate::graph::Node, const Di: bool> WeightlessGraph<Node>
+    for AdjacencyMatrix<Node, (), Di>
 {
 }
