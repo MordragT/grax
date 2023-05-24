@@ -33,7 +33,7 @@ impl<Weight: Copy, const DI: bool> From<EdgeList<usize, Weight, DI>>
             node_count,
         } = edge_list;
 
-        let mut adj_list = Self::with_capacity(node_count, parents.len());
+        let mut adj_list = Self::with_nodes(vec![0; node_count].into_iter());
 
         for ((from, to), weight) in parents
             .into_iter()
@@ -74,12 +74,16 @@ impl<Node, Weight, const DI: bool> Capacity for AdjacencyList<Node, Weight, DI> 
 impl<Node, Weight, const DI: bool> Clear for AdjacencyList<Node, Weight, DI> {
     fn clear(&mut self) {
         self.base.clear();
-        self.adjacencies.clear();
+        for adj in &mut self.adjacencies {
+            adj.clear();
+        }
     }
 
     fn clear_edges(&mut self) {
         self.base.clear_edges();
-        self.adjacencies.clear();
+        for adj in &mut self.adjacencies {
+            adj.clear();
+        }
     }
 }
 

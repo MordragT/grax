@@ -25,7 +25,7 @@ impl<W: Copy, const DI: bool> From<EdgeList<usize, W, DI>> for AdjacencyMatrix<u
             node_count,
         } = edge_list;
 
-        let mut adj_mat = Self::with_capacity(node_count, parents.len());
+        let mut adj_mat = Self::with_nodes(vec![0; node_count].into_iter());
 
         for ((from, to), weight) in parents
             .into_iter()

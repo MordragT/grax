@@ -23,8 +23,8 @@ where
     mst.clear_edges();
 
     let union_find = _kruskal(graph, |edge| {
-        mst.insert_edge(edge.edge_id, *edge.weight).unwrap();
-        mst.insert_edge(edge.edge_id.rev(), *edge.weight).unwrap();
+        mst.insert_edge(edge.edge_id, *edge.weight);
+        mst.insert_edge(edge.edge_id.rev(), *edge.weight);
     });
     let root = union_find.root();
 
