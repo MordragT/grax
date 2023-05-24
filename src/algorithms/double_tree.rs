@@ -2,24 +2,28 @@ use std::ops::{Add, AddAssign};
 
 use super::{dfs_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
 use crate::graph::{
-    Base, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent, Sortable,
+    Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
+    Sortable,
 };
 
-pub fn double_tree<N, W, G, T>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
 where
     N: PartialEq,
     W: Default + Sortable + Copy + AddAssign + Add<W, Output = W>,
-    G: Base + Count + IndexAdjacent + IterAdjacent<N, W> + Iter<N, W> + Index,
-    for<'a> T: Contains<&'a N>
-        + Create<&'a N>
-        + Get<&'a N, W>
-        + Insert<&'a N, W>
-        + Index
-        + IndexAdjacent
+    G: Base
         + Count
-        + Base<EdgeId = G::EdgeId, NodeId = G::NodeId>,
+        + IndexAdjacent
+        + IterAdjacent<N, W>
+        + Iter<N, W>
+        + Index
+        + Get<N, W>
+        + Create<N>
+        + Insert<N, W>
+        + Clear
+        + Contains<N>
+        + Clone,
 {
-    let MinimumSpanningTree::<T> { tree: mst, root } = kruskal_mst(graph);
+    let MinimumSpanningTree::<G> { tree: mst, root } = kruskal_mst(graph);
 
     let mut route = dfs_tour(&mst, root).route;
     route.push(root);
@@ -53,10 +57,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph
-                .double_tree::<AdjacencyList<&usize, f64>>()
-                .unwrap()
-                .weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -66,7 +67,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 27.26 * 1.3);
         })
     }
@@ -76,7 +77,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -86,7 +87,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 36.13 * 1.2);
         })
     }
@@ -96,7 +97,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -106,7 +107,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 27.26 * 1.3);
         })
     }
@@ -116,7 +117,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -126,7 +127,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph.double_tree().unwrap().weight;
             assert_le!(total, 36.13 * 1.2);
         })
     }

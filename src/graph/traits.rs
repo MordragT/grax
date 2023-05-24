@@ -19,6 +19,7 @@ pub trait Capacity {
 pub trait Clear {
     /// Clears the Graph completely
     fn clear(&mut self);
+    fn clear_edges(&mut self);
 }
 
 pub trait Contains<Node>: Base {
@@ -242,4 +243,8 @@ pub trait Remove<Node, Weight>: Base {
 pub trait Reserve {
     fn reserve_nodes(&mut self, additional: usize);
     fn reserve_edges(&mut self, additional: usize);
+}
+
+pub trait ShallowClone<G> {
+    fn shallow_clone_nodes(&self) -> G;
 }

@@ -43,7 +43,7 @@ impl<Weight: Copy, const DI: bool> From<EdgeList<usize, Weight, DI>>
             adj_list.base.nodes[from] = from;
             adj_list.base.nodes[to] = to;
 
-            let edge_id = EdgeIndex::new(NodeIndex(from), NodeIndex(to));
+            let edge_id = EdgeIndex::between(NodeIndex(from), NodeIndex(to));
 
             if !DI {
                 adj_list.insert_edge(edge_id.rev(), weight);
@@ -74,6 +74,11 @@ impl<Node, Weight, const DI: bool> Capacity for AdjacencyList<Node, Weight, DI> 
 impl<Node, Weight, const DI: bool> Clear for AdjacencyList<Node, Weight, DI> {
     fn clear(&mut self) {
         self.base.clear();
+        self.adjacencies.clear();
+    }
+
+    fn clear_edges(&mut self) {
+        self.base.clear_edges();
         self.adjacencies.clear();
     }
 }
@@ -175,7 +180,7 @@ impl<Node, Weight, const DI: bool> IndexAdjacent for AdjacencyList<Node, Weight,
 
     fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a> {
         self.adjacent_node_ids(node_id)
-            .map(move |to| EdgeIndex::new(node_id, to))
+            .map(move |to| EdgeIndex::between(node_id, to))
     }
     fn adjacent_node_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIds<'a> {
         self.adjacencies[node_id.0].iter().cloned()
@@ -239,7 +244,7 @@ impl<Node, Weight, const DI: bool> IterAdjacent<Node, Weight> for AdjacencyList<
 
     fn iter_adjacent_edges<'a>(&'a self, node_id: Self::NodeId) -> Self::Edges<'a> {
         self.adjacent_node_ids(node_id).map(move |to| {
-            let edge_id = EdgeIndex::new(node_id, to);
+            let edge_id = EdgeIndex::between(node_id, to);
             EdgeRef::new(edge_id, self.weight(edge_id).unwrap())
         })
     }
@@ -324,119 +329,44 @@ impl<Node: crate::graph::Node, const DI: bool> WeightlessGraph<Node>
 {
 }
 
-// impl<'a, N, W: crate::graph::Weight> Ref<'a, N, W> for AdjacencyList<N, W>
-// where
-//     &'a N: crate::graph::Node + 'a,
-// {
-//     type Ref = AdjacencyList<&'a N, W>;
-// }
+#[cfg(test)]
+mod test {
+    extern crate test;
+    use super::AdjacencyList;
+    use crate::graph::test::*;
 
-// #[cfg(test)]
-// mod test {
-//     extern crate test;
+    #[test]
+    pub fn adj_list_create_with_nodes() {
+        graph_create_with_nodes::<AdjacencyList<_, _>>()
+    }
 
-//     use crate::prelude::*;
-//     use std::str::FromStr;
+    #[test]
+    pub fn adj_list_create_with_capacity() {
+        graph_create_with_capacity::<AdjacencyList<_, _>>()
+    }
 
-//     #[test]
-//     fn add_node() {
-//         let mut graph = AdjacencyList::<u32, ()>::new();
-//         let _idx1 = graph.add_node(1);
-//         let _idx2 = graph.add_node(2);
-//         let _idx3 = graph.add_node(3);
+    #[test]
+    pub fn adj_list_insert_and_contains() {
+        graph_insert_and_contains::<AdjacencyList<_, _>>()
+    }
 
-//         graph.contains_node(&1).unwrap();
-//         graph.contains_node(&2).unwrap();
-//         graph.contains_node(&3).unwrap();
+    #[test]
+    pub fn adj_list_clear() {
+        graph_clear::<AdjacencyList<_, _>>()
+    }
 
-//         assert!(graph.contains_node(&100).is_none());
-//     }
+    #[test]
+    pub fn adj_list_get() {
+        graph_get::<AdjacencyList<_, _>>()
+    }
 
-//     #[test]
-//     fn update_node() {
-//         let mut graph = AdjacencyList::<u32, ()>::new();
-//         let idx1 = graph.add_node(1);
+    #[test]
+    pub fn adj_list_index() {
+        graph_index::<AdjacencyList<_, _>>()
+    }
 
-//         assert_eq!(graph.update_node(idx1, 5), 1);
-
-//         graph.contains_node(&5).unwrap();
-//         assert!(graph.contains_node(&1).is_none());
-//     }
-
-//     #[test]
-//     fn add_edge() {
-//         let mut graph = AdjacencyList::<u32, ()>::new();
-//         let idx1 = graph.add_node(1);
-//         let idx2 = graph.add_node(2);
-//         let _idx3 = graph.add_node(3);
-
-//         let _ = graph.add_edge(idx1, idx2, ()).unwrap();
-
-//         graph.contains_edge(idx1, idx2).unwrap();
-//         //graph.contains_edge(idx2, idx1).unwrap();
-
-//         assert!(graph.contains_edge(idx2, idx1).is_none());
-//     }
-
-//     #[test]
-//     fn update_edge() {
-//         let mut graph = AdjacencyList::<u32, u32>::new();
-//         let idx1 = graph.add_node(1);
-//         let idx2 = graph.add_node(2);
-
-//         let edge = graph.add_edge(idx1, idx2, 2).unwrap();
-
-//         assert_eq!(graph.update_edge(edge, 5), 2);
-//         assert_eq!(graph.weight(edge), &5);
-//     }
-
-//     #[test]
-//     fn from_edge_list() {
-//         let edge_list = "4
-//         0 2
-//         1 2
-//         2 3
-//         3 1";
-//         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-//         let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
-
-//         assert_eq!(graph.node_count(), 4);
-
-//         let idx0 = graph.contains_node(&0).unwrap();
-//         let idx1 = graph.contains_node(&1).unwrap();
-//         let idx2 = graph.contains_node(&2).unwrap();
-//         let idx3 = graph.contains_node(&3).unwrap();
-
-//         graph.contains_edge(idx0, idx2).unwrap();
-//         graph.contains_edge(idx1, idx2).unwrap();
-//         graph.contains_edge(idx2, idx3).unwrap();
-//         graph.contains_edge(idx3, idx1).unwrap();
-
-//         graph.contains_edge(idx2, idx0).unwrap();
-//         graph.contains_edge(idx2, idx1).unwrap();
-//         graph.contains_edge(idx3, idx2).unwrap();
-//         graph.contains_edge(idx1, idx3).unwrap();
-
-//         assert!(graph.contains_edge(idx1, idx0).is_none());
-//     }
-
-//     #[test]
-//     fn djikstra() {
-//         let edge_list = EdgeList::with(
-//             [
-//                 (0, 1, 1.0),
-//                 (0, 2, 3.0),
-//                 (1, 2, 1.0),
-//                 (2, 3, 4.0),
-//                 (3, 0, 1.5),
-//             ]
-//             .into_iter(),
-//             4,
-//         );
-
-//         let graph = AdjacencyList::<usize, f32>::try_from(edge_list).unwrap();
-//         let dist = graph.dijkstra_between(NodeIndex(0), NodeIndex(2));
-
-//         assert_eq!(dist, Some(2.0));
-//     }
-// }
+    #[test]
+    pub fn adj_list_index_adjacent() {
+        graph_index_adjacent::<AdjacencyList<_, _>>()
+    }
+}

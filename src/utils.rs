@@ -95,13 +95,12 @@ impl<T> SparseMatrix<T> {
 
     /// Returns the elements of a specific row
     pub fn row(&self, row: usize) -> impl Iterator<Item = (usize, &T)> {
-        std::iter::from_fn(move || {
-            for i in 0..self.row_indices.len() {
-                if self.row_indices[i] == row {
-                    return Some((self.col_indices[i], &self.values[i]));
-                }
+        (0..self.row_indices.len()).filter_map(move |i| {
+            if self.row_indices[i] == row {
+                Some((self.col_indices[i], &self.values[i]))
+            } else {
+                None
             }
-            None
         })
     }
 
@@ -136,13 +135,12 @@ impl<T> SparseMatrix<T> {
 
     /// Returns the elements of a specific column
     pub fn col(&self, col: usize) -> impl Iterator<Item = (usize, &T)> {
-        std::iter::from_fn(move || {
-            for i in 0..self.col_indices.len() {
-                if self.col_indices[i] == col {
-                    return Some((self.row_indices[i], &self.values[i]));
-                }
+        (0..self.col_indices.len()).filter_map(move |i| {
+            if self.col_indices[i] == col {
+                Some((self.row_indices[i], &self.values[i]))
+            } else {
+                None
             }
-            None
         })
     }
 }
@@ -180,30 +178,30 @@ mod test {
         assert_eq!(matrix.get(1, 0), None);
     }
 
-    // #[test]
-    // fn sparse_matrix_row_and_col() {
-    //     let mut matrix = SparseMatrix::with_capacity(10, 10);
+    #[test]
+    fn sparse_matrix_row_and_col() {
+        let mut matrix = SparseMatrix::with_capacity(10, 10);
 
-    //     matrix.insert(0, 0, 1);
-    //     matrix.insert(0, 1, 2);
-    //     matrix.insert(1, 1, 3);
-    //     matrix.insert(2, 0, 4);
-    //     matrix.insert(2, 2, 5);
+        matrix.insert(0, 0, 1);
+        matrix.insert(0, 1, 2);
+        matrix.insert(1, 1, 3);
+        matrix.insert(2, 0, 4);
+        matrix.insert(2, 2, 5);
 
-    //     let row_0: Vec<_> = matrix.row(0).cloned().collect();
-    //     let row_1: Vec<_> = matrix.row(1).cloned().collect();
-    //     let row_2: Vec<_> = matrix.row(2).cloned().collect();
-    //     let col_0: Vec<_> = matrix.col(0).cloned().collect();
-    //     let col_1: Vec<_> = matrix.col(1).cloned().collect();
-    //     let col_2: Vec<_> = matrix.col(2).cloned().collect();
+        let row_0 = matrix.row(0).collect::<Vec<_>>();
+        let row_1 = matrix.row(1).collect::<Vec<_>>();
+        let row_2 = matrix.row(2).collect::<Vec<_>>();
+        let col_0 = matrix.col(0).collect::<Vec<_>>();
+        let col_1 = matrix.col(1).collect::<Vec<_>>();
+        let col_2 = matrix.col(2).collect::<Vec<_>>();
 
-    //     assert_eq!(row_0, vec![1, 2]);
-    //     assert_eq!(row_1, vec![3]);
-    //     assert_eq!(row_2, vec![4, 5]);
-    //     assert_eq!(col_0, vec![1, 4]);
-    //     assert_eq!(col_1, vec![2, 3]);
-    //     assert_eq!(col_2, vec![5]);
-    // }
+        assert_eq!(row_0, vec![(0, &1), (1, &2)]);
+        assert_eq!(row_1, vec![(1, &3)]);
+        assert_eq!(row_2, vec![(0, &4), (2, &5)]);
+        assert_eq!(col_0, vec![(0, &1), (2, &4)]);
+        assert_eq!(col_1, vec![(0, &2), (1, &3)]);
+        assert_eq!(col_2, vec![(2, &5)]);
+    }
 
     #[test]
     fn sparse_matrix_transpose() {

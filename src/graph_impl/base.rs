@@ -3,7 +3,7 @@ use crate::{
         Base, Capacity, Clear, Contains, Count, Create, Directed, EdgeRef, Extend, Get, GetMut,
         Index, Insert, Iter, IterMut, Reserve,
     },
-    prelude::EdgeRefMut,
+    prelude::{EdgeIdentifier, EdgeRefMut},
 };
 
 use super::{EdgeIndex, NodeIndex};
@@ -40,6 +40,10 @@ impl<Node, Weight, const DI: bool> Clear for BaseGraph<Node, Weight, DI> {
         self.nodes.clear();
         self.edges.clear();
     }
+
+    fn clear_edges(&mut self) {
+        self.edges.clear();
+    }
 }
 
 impl<Node: PartialEq, Weight, const DI: bool> Contains<Node> for BaseGraph<Node, Weight, DI> {
@@ -52,7 +56,7 @@ impl<Node: PartialEq, Weight, const DI: bool> Contains<Node> for BaseGraph<Node,
     }
 
     fn contains_edge(&self, from: Self::NodeId, to: Self::NodeId) -> Option<Self::EdgeId> {
-        let edge_id = EdgeIndex::new(from, to);
+        let edge_id = EdgeIndex::between(from, to);
         if self.contains_edge_id(edge_id) {
             Some(edge_id)
         } else {

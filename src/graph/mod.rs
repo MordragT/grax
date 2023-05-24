@@ -17,6 +17,8 @@ use crate::algorithms::{
 };
 
 mod edge;
+#[cfg(test)]
+pub mod test;
 mod traits;
 
 pub trait Graph<N: Node, W: Weight>:
@@ -70,10 +72,7 @@ pub trait Graph<N: Node, W: Weight>:
         kruskal_weight(self)
     }
 
-    fn kruskal_mst<T>(&self) -> MinimumSpanningTree<T>
-    where
-        for<'a> T:
-            Create<&'a N> + Insert<&'a N, W> + Base<EdgeId = Self::EdgeId, NodeId = Self::NodeId>,
+    fn kruskal_mst(&self) -> MinimumSpanningTree<Self>
     {
         kruskal_mst(self)
     }
@@ -106,18 +105,9 @@ pub trait Graph<N: Node, W: Weight>:
         nearest_neighbor_from_first(self)
     }
 
-    fn double_tree<T>(&self) -> Option<Tour<Self::NodeId, W>>
-    where
-        for<'a> T: Contains<&'a N>
-            + Create<&'a N>
-            + Get<&'a N, W>
-            + Insert<&'a N, W>
-            + Index
-            + IndexAdjacent
-            + Count
-            + Base<EdgeId = Self::EdgeId, NodeId = Self::NodeId>,
+    fn double_tree(&self) -> Option<Tour<Self::NodeId, W>>
     {
-        double_tree::<N, W, Self, T>(self)
+        double_tree(self)
     }
 
     fn branch_bound(&self) -> Option<Tour<Self::NodeId, W>> {
@@ -207,18 +197,21 @@ impl<
 {
 }
 
-pub trait NodeIdentifier: Hash + Eq + Copy {
+pub trait NodeIdentifier: Hash + Eq + Copy + Debug {
     fn as_usize(&self) -> usize;
 }
 
-pub trait EdgeIdentifier: Hash + Eq + Copy {
+pub trait EdgeIdentifier: Hash + Eq + Copy + Debug {
     type NodeId: NodeIdentifier;
+
+    fn between(from: Self::NodeId, to: Self::NodeId) -> Self;
 
     /// Reveres the edge index
     fn rev(&self) -> Self;
     fn to(&self) -> Self::NodeId;
     fn from(&self) -> Self::NodeId;
     fn contains(&self, node_id: Self::NodeId) -> bool;
+    fn as_usize(&self) -> (usize, usize);
 }
 
 pub trait Sortable: PartialOrd {

@@ -18,6 +18,10 @@ pub struct EdgeIndex {
 impl EdgeIdentifier for EdgeIndex {
     type NodeId = NodeIndex;
 
+    fn between(from: Self::NodeId, to: Self::NodeId) -> Self {
+        EdgeIndex { from, to }
+    }
+
     fn contains(&self, index: NodeIndex) -> bool {
         self.from == index || self.to == index
     }
@@ -38,10 +42,8 @@ impl EdgeIdentifier for EdgeIndex {
     fn from(&self) -> Self::NodeId {
         self.from
     }
-}
 
-impl EdgeIndex {
-    pub(crate) fn new(from: NodeIndex, to: NodeIndex) -> Self {
-        Self { from, to }
+    fn as_usize(&self) -> (usize, usize) {
+        (self.from.as_usize(), self.to.as_usize())
     }
 }

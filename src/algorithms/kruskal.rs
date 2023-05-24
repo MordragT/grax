@@ -1,4 +1,4 @@
-use crate::graph::{Base, Create, Index, Insert, Iter, Sortable};
+use crate::graph::{Clear, Create, Index, Insert, Iter, Sortable};
 use crate::prelude::{EdgeIdentifier, EdgeRef};
 use std::ops::AddAssign;
 
@@ -14,13 +14,13 @@ where
     total_weight
 }
 
-pub fn kruskal_mst<N, W, G, T>(graph: &G) -> MinimumSpanningTree<T>
+pub fn kruskal_mst<N, W, G>(graph: &G) -> MinimumSpanningTree<G>
 where
     W: Default + Sortable + AddAssign + Copy,
-    G: Iter<N, W> + Index,
-    for<'a> T: Create<&'a N> + Insert<&'a N, W> + Base<EdgeId = G::EdgeId, NodeId = G::NodeId>,
+    G: Iter<N, W> + Index + Create<N> + Insert<N, W> + Clear + Clone,
 {
-    let mut mst = T::with_nodes(graph.iter_nodes());
+    let mut mst = graph.clone();
+    mst.clear_edges();
 
     let union_find = _kruskal(graph, |edge| {
         mst.insert_edge(edge.edge_id, *edge.weight).unwrap();

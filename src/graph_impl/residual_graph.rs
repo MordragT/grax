@@ -53,7 +53,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
             let mut from = sink;
 
             while let Some(to) = path.parent[from.0] {
-                edges.push(EdgeIndex::new(to, from));
+                edges.push(EdgeIndex::between(to, from));
                 if to == source {
                     break;
                 }
@@ -144,7 +144,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
             }
 
             for to in self.graph.adjacent_node_ids(from) {
-                let index = EdgeIndex::new(from, to);
+                let index = EdgeIndex::between(from, to);
                 if !visited[to.0] {
                     if self.full_edges.contains(&index) && !self.backward_edges.contains(&index) {
                         continue;
