@@ -11,7 +11,7 @@ pub use search::*;
 
 use crate::{
     graph::{Base, Get},
-    prelude::{EdgeIndex, NodeIdentifier, NodeIndex},
+    prelude::NodeIdentifier,
 };
 use thiserror::Error;
 
@@ -118,21 +118,6 @@ impl<W: Default> Flow<W> {
             max,
             current: W::default(),
         }
-    }
-}
-
-pub struct ParentPath<NodeId> {
-    pub(crate) parent: Vec<Option<NodeId>>,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
-pub struct AugmentedPath<EdgeId> {
-    pub(crate) edges: Vec<EdgeId>,
-}
-
-impl<EdgeId> AugmentedPath<EdgeId> {
-    pub(crate) fn new(edges: Vec<EdgeId>) -> Self {
-        Self { edges }
     }
 }
 

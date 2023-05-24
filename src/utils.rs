@@ -216,7 +216,7 @@ mod test {
         let transposed = matrix.transpose();
 
         assert_eq!(transposed.get(0, 0), Some(&1));
-        assert_eq!(transposed.get(1, 0), Some(&4));
+        assert_eq!(transposed.get(1, 0), Some(&2));
         assert_eq!(transposed.get(1, 1), Some(&3));
         assert_eq!(transposed.get(2, 0), None);
         assert_eq!(transposed.get(2, 1), None);
