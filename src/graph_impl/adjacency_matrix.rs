@@ -11,13 +11,13 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub struct AdjacencyMatrix<Node, Weight, const Di: bool = false> {
+pub struct AdjacencyMatrix<Node, Weight, const DI: bool = false> {
     pub(crate) nodes: Vec<Node>,
     pub(crate) edges: SparseMatrix<Weight>,
 }
 
-impl<W: Copy, const Di: bool> From<EdgeList<usize, W, Di>> for AdjacencyMatrix<usize, W, Di> {
-    fn from(edge_list: EdgeList<usize, W, Di>) -> Self {
+impl<W: Copy, const DI: bool> From<EdgeList<usize, W, DI>> for AdjacencyMatrix<usize, W, DI> {
+    fn from(edge_list: EdgeList<usize, W, DI>) -> Self {
         let EdgeList {
             parents,
             children,
@@ -37,7 +37,7 @@ impl<W: Copy, const Di: bool> From<EdgeList<usize, W, Di>> for AdjacencyMatrix<u
 
             let edge_id = EdgeIndex::new(NodeIndex(from), NodeIndex(to));
 
-            if !Di {
+            if !DI {
                 adj_mat.insert_edge(edge_id.rev(), weight);
             }
 
@@ -48,12 +48,12 @@ impl<W: Copy, const Di: bool> From<EdgeList<usize, W, Di>> for AdjacencyMatrix<u
     }
 }
 
-impl<Node, Weight, const Di: bool> Base for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Base for AdjacencyMatrix<Node, Weight, DI> {
     type EdgeId = EdgeIndex;
     type NodeId = NodeIndex;
 }
 
-impl<Node, Weight, const Di: bool> Capacity for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Capacity for AdjacencyMatrix<Node, Weight, DI> {
     fn edges_capacity(&self) -> usize {
         todo!()
     }
@@ -63,14 +63,14 @@ impl<Node, Weight, const Di: bool> Capacity for AdjacencyMatrix<Node, Weight, Di
     }
 }
 
-impl<Node, Weight, const Di: bool> Clear for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Clear for AdjacencyMatrix<Node, Weight, DI> {
     fn clear(&mut self) {
         self.nodes.clear();
         self.edges.clear();
     }
 }
 
-impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node: PartialEq, Weight, const DI: bool> Contains<Node> for AdjacencyMatrix<Node, Weight, DI> {
     fn contains_node(&self, node: &Node) -> Option<Self::NodeId> {
         self.nodes
             .iter()
@@ -89,7 +89,7 @@ impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for AdjacencyMatrix
     }
 }
 
-impl<Node, Weight, const Di: bool> Count for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Count for AdjacencyMatrix<Node, Weight, DI> {
     fn edge_count(&self) -> usize {
         todo!()
     }
@@ -99,7 +99,7 @@ impl<Node, Weight, const Di: bool> Count for AdjacencyMatrix<Node, Weight, Di> {
     }
 }
 
-impl<Node, Weight, const Di: bool> Create<Node> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Create<Node> for AdjacencyMatrix<Node, Weight, DI> {
     fn with_capacity(nodes: usize, _edges: usize) -> Self {
         let edges = SparseMatrix::with_capacity(nodes, nodes);
         let nodes = Vec::with_capacity(nodes);
@@ -116,13 +116,13 @@ impl<Node, Weight, const Di: bool> Create<Node> for AdjacencyMatrix<Node, Weight
     }
 }
 
-impl<Node, Weight, const Di: bool> Directed for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Directed for AdjacencyMatrix<Node, Weight, DI> {
     fn directed(&self) -> bool {
-        Di
+        DI
     }
 }
 
-impl<Node, Weight, const Di: bool> Extend<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Extend<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     fn extend_edges(&mut self, edges: impl Iterator<Item = (Self::EdgeId, Weight)>) {
         for (EdgeIndex { from, to }, weight) in edges {
             self.edges.insert(from.0, to.0, weight)
@@ -134,7 +134,7 @@ impl<Node, Weight, const Di: bool> Extend<Node, Weight> for AdjacencyMatrix<Node
     }
 }
 
-impl<Node, Weight, const Di: bool> Get<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Get<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     fn node(&self, node_id: Self::NodeId) -> Option<&Node> {
         self.nodes.get(node_id.0)
     }
@@ -143,7 +143,7 @@ impl<Node, Weight, const Di: bool> Get<Node, Weight> for AdjacencyMatrix<Node, W
     }
 }
 
-impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> GetMut<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     fn node_mut(&mut self, node_id: Self::NodeId) -> Option<&mut Node> {
         self.nodes.get_mut(node_id.0)
     }
@@ -152,7 +152,7 @@ impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for AdjacencyMatrix<Node
     }
 }
 
-impl<Node, Weight, const Di: bool> Insert<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Insert<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     fn add_node(&mut self, node: Node) -> Self::NodeId {
         let node_id = NodeIndex(self.nodes.len());
         self.nodes.push(node);
@@ -164,7 +164,7 @@ impl<Node, Weight, const Di: bool> Insert<Node, Weight> for AdjacencyMatrix<Node
     }
 }
 
-impl<Node, Weight, const Di: bool> Index for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Index for AdjacencyMatrix<Node, Weight, DI> {
     type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
     type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
@@ -181,7 +181,7 @@ impl<Node, Weight, const Di: bool> Index for AdjacencyMatrix<Node, Weight, Di> {
     }
 }
 
-impl<Node, Weight, const Di: bool> IndexAdjacent for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> IndexAdjacent for AdjacencyMatrix<Node, Weight, DI> {
     type AdjacentEdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
     type AdjacentNodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
@@ -197,7 +197,7 @@ impl<Node, Weight, const Di: bool> IndexAdjacent for AdjacencyMatrix<Node, Weigh
     }
 }
 
-impl<Node, Weight, const Di: bool> Iter<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Iter<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
     where
         Node: 'a,
@@ -217,7 +217,7 @@ impl<Node, Weight, const Di: bool> Iter<Node, Weight> for AdjacencyMatrix<Node, 
         })
     }
 }
-impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> IterMut<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
     where
         Node: 'a,
@@ -239,8 +239,8 @@ impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for AdjacencyMatrix<Nod
     }
 }
 
-impl<Node, Weight, const Di: bool> IterAdjacent<Node, Weight>
-    for AdjacencyMatrix<Node, Weight, Di>
+impl<Node, Weight, const DI: bool> IterAdjacent<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, DI>
 {
     type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
     where
@@ -264,8 +264,8 @@ impl<Node, Weight, const Di: bool> IterAdjacent<Node, Weight>
         })
     }
 }
-impl<Node, Weight, const Di: bool> IterAdjacentMut<Node, Weight>
-    for AdjacencyMatrix<Node, Weight, Di>
+impl<Node, Weight, const DI: bool> IterAdjacentMut<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, DI>
 {
     type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
     where
@@ -299,7 +299,7 @@ impl<Node, Weight, const Di: bool> IterAdjacentMut<Node, Weight>
     }
 }
 
-impl<Node, Weight, const Di: bool> Remove<Node, Weight> for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Remove<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
     fn remove_node(&mut self, node_id: Self::NodeId) -> Option<Node> {
         todo!()
     }
@@ -309,7 +309,7 @@ impl<Node, Weight, const Di: bool> Remove<Node, Weight> for AdjacencyMatrix<Node
     }
 }
 
-impl<Node, Weight, const Di: bool> Reserve for AdjacencyMatrix<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Reserve for AdjacencyMatrix<Node, Weight, DI> {
     fn reserve_edges(&mut self, additional: usize) {
         todo!()
     }
@@ -319,12 +319,12 @@ impl<Node, Weight, const Di: bool> Reserve for AdjacencyMatrix<Node, Weight, Di>
     }
 }
 
-impl<Node: crate::graph::Node, Weight: crate::graph::Weight, const Di: bool> Graph<Node, Weight>
-    for AdjacencyMatrix<Node, Weight, Di>
+impl<Node: crate::graph::Node, Weight: crate::graph::Weight, const DI: bool> Graph<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, DI>
 {
 }
 
-impl<Node: crate::graph::Node, const Di: bool> WeightlessGraph<Node>
-    for AdjacencyMatrix<Node, (), Di>
+impl<Node: crate::graph::Node, const DI: bool> WeightlessGraph<Node>
+    for AdjacencyMatrix<Node, (), DI>
 {
 }

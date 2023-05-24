@@ -53,7 +53,10 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree::<AdjacencyList<_, _>>().unwrap().weight;
+            let total = graph
+                .double_tree::<AdjacencyList<&usize, f64>>()
+                .unwrap()
+                .weight;
             assert_le!(total, 38.41 * 1.2);
         })
     }

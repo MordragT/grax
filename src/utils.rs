@@ -1,3 +1,4 @@
+/// A N*M sized sparse Matrix
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SparseMatrix<T> {
     values: Vec<T>,
@@ -10,13 +11,13 @@ pub struct SparseMatrix<T> {
 const MODIFIER: usize = 4;
 
 impl<T> SparseMatrix<T> {
-    pub fn with_capacity(cols: usize, rows: usize) -> Self {
+    pub fn with_capacity(row_count: usize, col_count: usize) -> Self {
         Self {
-            values: Vec::with_capacity(MODIFIER * (cols + rows)),
-            row_indices: Vec::with_capacity(MODIFIER * rows),
-            col_indices: Vec::with_capacity(MODIFIER * cols),
-            col_count: cols,
-            row_count: rows,
+            values: Vec::with_capacity(MODIFIER * (row_count + col_count)),
+            row_indices: Vec::with_capacity(MODIFIER * row_count),
+            col_indices: Vec::with_capacity(MODIFIER * col_count),
+            row_count,
+            col_count,
         }
     }
 
@@ -94,42 +95,55 @@ impl<T> SparseMatrix<T> {
 
     /// Returns the elements of a specific row
     pub fn row(&self, row: usize) -> impl Iterator<Item = (usize, &T)> {
-        self.row_indices.iter().filter_map(move |i| {
-            if *i == row {
-                Some((self.col_indices[*i], &self.values[*i]))
-            } else {
-                None
+        std::iter::from_fn(move || {
+            for i in 0..self.row_indices.len() {
+                if self.row_indices[i] == row {
+                    return Some((self.col_indices[i], &self.values[i]));
+                }
             }
+            None
         })
     }
 
     /// Returns the elements of a specific row
-    pub fn row_mut(&mut self, row: usize) -> RowMutIterator<T> {
-        RowMutIterator {
-            matrix: self,
-            row,
-            index: 0,
-        }
+    pub fn row_mut(&mut self, row: usize) -> impl Iterator<Item = (usize, &mut T)> {
+        let (ids, col_ids): (Vec<_>, Vec<_>) = (0..self.row_indices.len())
+            .filter_map(|i| {
+                if &self.row_indices[i] == &row {
+                    Some((i, *&self.col_indices[i]))
+                } else {
+                    None
+                }
+            })
+            .unzip();
+
+        let values = self
+            .values
+            .iter_mut()
+            .enumerate()
+            .filter_map(
+                move |(i, val)| {
+                    if ids.contains(&i) {
+                        Some(val)
+                    } else {
+                        None
+                    }
+                },
+            );
+
+        col_ids.into_iter().zip(values)
     }
 
     /// Returns the elements of a specific column
     pub fn col(&self, col: usize) -> impl Iterator<Item = (usize, &T)> {
-        self.col_indices.iter().filter_map(move |i| {
-            if *i == col {
-                Some((self.row_indices[*i], &self.values[*i]))
-            } else {
-                None
+        std::iter::from_fn(move || {
+            for i in 0..self.col_indices.len() {
+                if self.col_indices[i] == col {
+                    return Some((self.row_indices[i], &self.values[i]));
+                }
             }
+            None
         })
-    }
-
-    /// Returns the elements of a specific column
-    pub fn col_mut(&mut self, col: usize) -> ColMutIterator<T> {
-        ColMutIterator {
-            matrix: self,
-            col,
-            index: 0,
-        }
     }
 }
 
@@ -144,54 +158,6 @@ impl<T: Clone> SparseMatrix<T> {
             transposed.insert(row, col, value);
         }
         transposed
-    }
-}
-
-pub struct RowMutIterator<'a, T> {
-    matrix: &'a mut SparseMatrix<T>,
-    row: usize,
-    index: usize,
-}
-
-impl<'a, T> Iterator for RowMutIterator<'a, T> {
-    type Item = (usize, &'a mut T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.matrix.row_indices.len() {
-            let current_row = self.matrix.row_indices[self.index];
-            if current_row == self.row {
-                let col_id = self.matrix.col_indices[self.index];
-                let value = &mut self.matrix.values[self.index];
-                self.index += 1;
-                return Some((col_id, value));
-            }
-            self.index += 1;
-        }
-        None
-    }
-}
-
-pub struct ColMutIterator<'a, T> {
-    matrix: &'a mut SparseMatrix<T>,
-    col: usize,
-    index: usize,
-}
-
-impl<'a, T> Iterator for ColMutIterator<'a, T> {
-    type Item = (usize, &'a mut T);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.index < self.matrix.col_indices.len() {
-            let current_col = self.matrix.col_indices[self.index];
-            if current_col == self.col {
-                let row_id = self.matrix.row_indices[self.index];
-                let value = &mut self.matrix.values[self.index];
-                self.index += 1;
-                return Some((row_id, value));
-            }
-            self.index += 1;
-        }
-        None
     }
 }
 

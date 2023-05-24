@@ -39,6 +39,7 @@ pub trait Graph<N: Node, W: Weight>:
     + IterAdjacentMut<N, W>
     + Remove<N, W>
     + Reserve
+    // + for<'a> Ref<'a, N, W>
     + Sized
     + Clone
 {
@@ -206,11 +207,11 @@ impl<
 {
 }
 
-pub trait NodeIdentifier: Hash + Eq {
+pub trait NodeIdentifier: Hash + Eq + Copy {
     fn as_usize(&self) -> usize;
 }
 
-pub trait EdgeIdentifier: Hash + Eq {
+pub trait EdgeIdentifier: Hash + Eq + Copy {
     type NodeId: NodeIdentifier;
 
     /// Reveres the edge index

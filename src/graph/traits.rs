@@ -1,4 +1,4 @@
-use super::{EdgeIdentifier, EdgeRef, EdgeRefMut, Graph, NodeIdentifier};
+use super::{EdgeIdentifier, EdgeRef, EdgeRefMut, NodeIdentifier};
 
 // TODO replace EdgeId NodeId with &EdgeId und &NodeId
 

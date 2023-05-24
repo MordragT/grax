@@ -25,10 +25,7 @@ pub mod prelude {
 
 #[cfg(test)]
 pub mod test {
-    use crate::{
-        error::GraphResult,
-        prelude::{EdgeList, GraphError},
-    };
+    use crate::{error::GraphResult, prelude::EdgeList};
     use std::{fs, path::Path, str::FromStr};
 
     pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>

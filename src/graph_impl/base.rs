@@ -13,19 +13,19 @@ use std::collections::HashMap;
 /// It can be used by other Graph implementations to ease
 /// the process.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BaseGraph<Node, Weight, const Di: bool> {
+pub struct BaseGraph<Node, Weight, const DI: bool> {
     pub(crate) nodes: Vec<Node>,
     pub(crate) edges: HashMap<EdgeIndex, Weight>,
 }
 
-impl<Node, Weight, const Di: bool> BaseGraph<Node, Weight, Di> {}
+impl<Node, Weight, const DI: bool> BaseGraph<Node, Weight, DI> {}
 
-impl<Node, Weight, const Di: bool> Base for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Base for BaseGraph<Node, Weight, DI> {
     type EdgeId = EdgeIndex;
     type NodeId = NodeIndex;
 }
 
-impl<Node, Weight, const Di: bool> Capacity for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Capacity for BaseGraph<Node, Weight, DI> {
     fn edges_capacity(&self) -> usize {
         self.edges.capacity()
     }
@@ -35,14 +35,14 @@ impl<Node, Weight, const Di: bool> Capacity for BaseGraph<Node, Weight, Di> {
     }
 }
 
-impl<Node, Weight, const Di: bool> Clear for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Clear for BaseGraph<Node, Weight, DI> {
     fn clear(&mut self) {
         self.nodes.clear();
         self.edges.clear();
     }
 }
 
-impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for BaseGraph<Node, Weight, Di> {
+impl<Node: PartialEq, Weight, const DI: bool> Contains<Node> for BaseGraph<Node, Weight, DI> {
     fn contains_node(&self, node: &Node) -> Option<Self::NodeId> {
         self.nodes
             .iter()
@@ -61,7 +61,7 @@ impl<Node: PartialEq, Weight, const Di: bool> Contains<Node> for BaseGraph<Node,
     }
 }
 
-impl<Node, Weight, const Di: bool> Count for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Count for BaseGraph<Node, Weight, DI> {
     fn edge_count(&self) -> usize {
         self.edges.len()
     }
@@ -71,7 +71,7 @@ impl<Node, Weight, const Di: bool> Count for BaseGraph<Node, Weight, Di> {
     }
 }
 
-impl<Node, Weight, const Di: bool> Create<Node> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Create<Node> for BaseGraph<Node, Weight, DI> {
     fn with_capacity(nodes: usize, edges: usize) -> Self {
         let nodes = Vec::with_capacity(nodes);
         let edges = HashMap::with_capacity(edges);
@@ -87,13 +87,13 @@ impl<Node, Weight, const Di: bool> Create<Node> for BaseGraph<Node, Weight, Di> 
     }
 }
 
-impl<Node, Weight, const Di: bool> Directed for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Directed for BaseGraph<Node, Weight, DI> {
     fn directed(&self) -> bool {
-        Di
+        DI
     }
 }
 
-impl<Node, Weight, const Di: bool> Extend<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Extend<Node, Weight> for BaseGraph<Node, Weight, DI> {
     fn extend_edges(&mut self, edges: impl Iterator<Item = (Self::EdgeId, Weight)>) {
         self.edges.extend(edges)
     }
@@ -103,7 +103,7 @@ impl<Node, Weight, const Di: bool> Extend<Node, Weight> for BaseGraph<Node, Weig
     }
 }
 
-impl<Node, Weight, const Di: bool> Get<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Get<Node, Weight> for BaseGraph<Node, Weight, DI> {
     fn node(&self, node_id: Self::NodeId) -> Option<&Node> {
         self.nodes.get(node_id.0)
     }
@@ -113,7 +113,7 @@ impl<Node, Weight, const Di: bool> Get<Node, Weight> for BaseGraph<Node, Weight,
     }
 }
 
-impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> GetMut<Node, Weight> for BaseGraph<Node, Weight, DI> {
     fn node_mut(&mut self, node_id: Self::NodeId) -> Option<&mut Node> {
         self.nodes.get_mut(node_id.0)
     }
@@ -123,7 +123,7 @@ impl<Node, Weight, const Di: bool> GetMut<Node, Weight> for BaseGraph<Node, Weig
     }
 }
 
-impl<Node, Weight, const Di: bool> Index for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Index for BaseGraph<Node, Weight, DI> {
     type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
     where Self: 'a;
     type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
@@ -138,7 +138,7 @@ impl<Node, Weight, const Di: bool> Index for BaseGraph<Node, Weight, Di> {
     }
 }
 
-impl<Node, Weight, const Di: bool> Insert<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Insert<Node, Weight> for BaseGraph<Node, Weight, DI> {
     fn add_node(&mut self, node: Node) -> Self::NodeId {
         let node_id = NodeIndex(self.nodes.len());
         self.nodes.push(node);
@@ -150,7 +150,7 @@ impl<Node, Weight, const Di: bool> Insert<Node, Weight> for BaseGraph<Node, Weig
     }
 }
 
-impl<Node, Weight, const Di: bool> Iter<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Iter<Node, Weight> for BaseGraph<Node, Weight, DI> {
     type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
     where
         Node: 'a,
@@ -171,7 +171,7 @@ impl<Node, Weight, const Di: bool> Iter<Node, Weight> for BaseGraph<Node, Weight
     }
 }
 
-impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> IterMut<Node, Weight> for BaseGraph<Node, Weight, DI> {
     type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
     where
         Node: 'a,
@@ -192,7 +192,7 @@ impl<Node, Weight, const Di: bool> IterMut<Node, Weight> for BaseGraph<Node, Wei
     }
 }
 
-impl<Node, Weight, const Di: bool> Reserve for BaseGraph<Node, Weight, Di> {
+impl<Node, Weight, const DI: bool> Reserve for BaseGraph<Node, Weight, DI> {
     fn reserve_edges(&mut self, additional: usize) {
         self.edges.reserve(additional)
     }
