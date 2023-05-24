@@ -1,7 +1,7 @@
 use crate::{
     algorithms::{AugmentedPath, ParentPath},
     graph::{Edge, Graph, Node, Weight},
-    prelude::{EdgeIndex, NodeIndex},
+    prelude::{EdgeIdentifier, NodeIdentifier},
 };
 use std::{
     collections::{HashMap, HashSet, VecDeque},
@@ -10,15 +10,16 @@ use std::{
 
 pub struct ResidualGraph<N: Node, W: Weight, G: Graph<N, W>> {
     pub(crate) graph: G,
-    pub(crate) backward_edges: HashSet<EdgeIndex>,
-    pub(crate) full_edges: HashSet<EdgeIndex>,
-    pub(crate) flow: HashMap<EdgeIndex, W>,
+    pub(crate) backward_edges: HashSet<G::EdgeId>,
+    pub(crate) full_edges: HashSet<G::EdgeId>,
+    pub(crate) flow: HashMap<G::EdgeId, W>,
     pub(crate) total_flow: W,
     phantom: PhantomData<N>,
 }
 
-impl<N: Node, W: Weight, G: Graph<N, W>> From<G> for ResidualGraph<N, W, G> {
-    fn from(mut graph: G) -> Self {
+impl<N: Node, W: Weight, G: Graph<N, W> + Clone> From<&G> for ResidualGraph<N, W, G> {
+    fn from(graph: &G) -> Self {
+        let mut graph = graph.clone();
         let mut backward_edges = HashSet::new();
         let mut flow = HashMap::new();
 
@@ -28,11 +29,11 @@ impl<N: Node, W: Weight, G: Graph<N, W>> From<G> for ResidualGraph<N, W, G> {
             .collect::<Vec<_>>();
 
         for Edge { edge_id, weight } in edges {
-            graph.insert_edge(edge_id, weight).unwrap();
+            graph.insert_edge(edge_id.rev(), weight);
             backward_edges.insert(edge_id.rev());
 
             // init residual capacity as 0
-            flow.insert(index.rev(), W::default());
+            flow.insert(edge_id, W::default());
         }
 
         Self {
@@ -47,13 +48,13 @@ impl<N: Node, W: Weight, G: Graph<N, W>> From<G> for ResidualGraph<N, W, G> {
 }
 
 impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
-    pub fn edmonds_karp(&mut self, source: NodeIndex, sink: NodeIndex) -> W {
+    pub fn edmonds_karp(&mut self, source: G::NodeId, sink: G::NodeId) -> W {
         while let Some(path) = self.bfs_augmenting_path(source, sink) {
             let mut edges = Vec::new();
             let mut from = sink;
 
-            while let Some(to) = path.parent[from.0] {
-                edges.push(EdgeIndex::between(to, from));
+            while let Some(to) = path.parent[from.as_usize()] {
+                edges.push(G::EdgeId::between(to, from));
                 if to == source {
                     break;
                 }
@@ -66,7 +67,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
         self.total_flow
     }
 
-    fn flow(&self, index: &EdgeIndex) -> &W {
+    fn flow(&self, index: &G::EdgeId) -> &W {
         if self.backward_edges.contains(index) {
             self.flow.get(&index.rev()).unwrap()
         } else {
@@ -74,7 +75,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
         }
     }
 
-    fn flow_mut(&mut self, index: &EdgeIndex) -> &mut W {
+    fn flow_mut(&mut self, index: &G::EdgeId) -> &mut W {
         if self.backward_edges.contains(index) {
             self.flow.get_mut(&index.rev()).unwrap()
         } else {
@@ -82,7 +83,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
         }
     }
 
-    fn apply(&mut self, augmented_path: AugmentedPath) {
+    fn apply(&mut self, augmented_path: AugmentedPath<G::EdgeId>) {
         let mut capacities = Vec::new();
 
         // find residual capacites of edges
@@ -92,7 +93,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
             let capacity = if self.backward_edges.contains(edge) {
                 *self.flow.get(&edge.rev()).unwrap()
             } else {
-                *self.graph.weight(*edge) - *self.flow.get(&edge).unwrap()
+                *self.graph.weight(*edge).unwrap() - *self.flow.get(&edge).unwrap()
             };
             capacities.push(capacity);
         }
@@ -105,7 +106,7 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
             self.total_flow += bottleneck;
 
             for edge in augmented_path.edges {
-                let max = *self.graph.weight(edge);
+                let max = *self.graph.weight(edge).unwrap();
 
                 let flow = if self.backward_edges.contains(&edge) {
                     let flow = self.flow_mut(&edge);
@@ -130,13 +131,17 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
         }
     }
 
-    fn bfs_augmenting_path<'a>(&self, source: NodeIndex, sink: NodeIndex) -> Option<ParentPath> {
+    fn bfs_augmenting_path<'a>(
+        &self,
+        source: G::NodeId,
+        sink: G::NodeId,
+    ) -> Option<ParentPath<G::NodeId>> {
         let mut queue = VecDeque::new();
         let mut parent = vec![None; self.graph.node_count()];
         let mut visited = vec![false; self.graph.node_count()];
 
         queue.push_front(source);
-        visited[source.0] = true;
+        visited[source.as_usize()] = true;
 
         while let Some(from) = queue.pop_front() {
             if from == sink {
@@ -144,8 +149,8 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
             }
 
             for to in self.graph.adjacent_node_ids(from) {
-                let index = EdgeIndex::between(from, to);
-                if !visited[to.0] {
+                let index = G::EdgeId::between(from, to);
+                if !visited[to.as_usize()] {
                     if self.full_edges.contains(&index) && !self.backward_edges.contains(&index) {
                         continue;
                     }
@@ -155,9 +160,9 @@ impl<N: Node, W: Weight, G: Graph<N, W>> ResidualGraph<N, W, G> {
                         continue;
                     }
 
-                    parent[to.0] = Some(from);
+                    parent[to.as_usize()] = Some(from);
                     queue.push_back(to);
-                    visited[to.0] = true;
+                    visited[to.as_usize()] = true;
                 }
             }
         }

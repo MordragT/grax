@@ -1,10 +1,4 @@
-use crate::prelude::{Graph, Node, Weight};
-
-/*
-
-lieber residualen graph erstellen
-dann edges entfernen wenn die full sind
- */
+use crate::prelude::{Graph, Node, ResidualGraph, Weight};
 
 pub fn edmonds_karp<N, W, G>(graph: &G, source: G::NodeId, sink: G::NodeId) -> W
 where
@@ -12,9 +6,8 @@ where
     W: Weight,
     G: Graph<N, W>,
 {
-    todo!()
-    // let mut residual_graph = ResidualGraph::from(graph.clone());
-    // residual_graph.edmonds_karp(source, sink)
+    let mut residual_graph = ResidualGraph::from(graph);
+    residual_graph.edmonds_karp(source, sink)
 }
 
 #[cfg(test)]

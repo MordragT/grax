@@ -138,4 +138,44 @@ mod test {
             assert_eq!(count, 36.86275);
         })
     }
+
+    #[bench]
+    fn kruskal_graph_1_200_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_1_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal_weight() as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_20_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_10_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal_weight() as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_200_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_10_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal_weight() as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_100_200_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_100_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = graph.kruskal_weight() as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
 }
