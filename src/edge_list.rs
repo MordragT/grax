@@ -75,6 +75,33 @@ impl<const DIRECTED: bool> FromStr for EdgeList<usize, f64, DIRECTED> {
     }
 }
 
+impl<const DIRECTED: bool> FromStr for EdgeList<usize, f32, DIRECTED> {
+    type Err = GraphError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut lines = s.lines();
+
+        let node_count = lines.next().ok_or(GraphError::BadEdgeListFormat)?;
+        let node_count = usize::from_str_radix(node_count, 10)?;
+
+        let edge_list = lines
+            .map(|line| -> Result<(usize, usize, f32), Self::Err> {
+                let mut split = line.split_whitespace();
+                let from = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+                let to = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+                let weight = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+
+                let from = from.parse::<usize>()?;
+                let to = to.parse::<usize>()?;
+                let weight = weight.parse::<f32>()?;
+                Ok((from, to, weight))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self::with(edge_list.into_iter(), node_count))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::prelude::AdjacencyList;
