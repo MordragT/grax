@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, IndexAdjacent, IterAdjacent, Sortable},
+    graph::{Count, EdgeCost, IndexAdjacent, IterAdjacent, Sortable},
     prelude::{EdgeIdentifier, NodeIdentifier},
 };
 use priq::PriorityQueue;
@@ -7,24 +7,26 @@ use std::ops::Add;
 
 use super::Distances;
 
-pub fn dijkstra_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
+pub fn dijkstra_between<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<C>
 where
-    W: Default + Sortable + Copy + Add<W, Output = W>,
+    C: Default + Sortable + Copy + Add<C, Output = C>,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     dijkstra(graph, from, to).distances[to.as_usize()]
 }
 
-pub fn dijkstra<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<G::NodeId, W>
+pub fn dijkstra<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<G::NodeId, C>
 where
-    W: Default + Sortable + Copy + Add<W, Output = W>,
+    C: Default + Sortable + Copy + Add<C, Output = C>,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let mut priority_queue = PriorityQueue::new();
     let mut distances = vec![None; graph.node_count()];
 
-    distances[from.as_usize()] = Some(W::default());
-    priority_queue.put(W::default(), from);
+    distances[from.as_usize()] = Some(C::default());
+    priority_queue.put(C::default(), from);
 
     while let Some((dist, node)) = priority_queue.pop() {
         if node == to {
@@ -37,7 +39,7 @@ where
 
         for edge in graph.iter_adjacent_edges(node) {
             let to = edge.edge_id.to();
-            let next_dist = dist + *edge.weight;
+            let next_dist = dist + *edge.weight.cost();
 
             let visited_or_geq = match &distances[to.as_usize()] {
                 Some(d) => next_dist >= *d,

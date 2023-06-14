@@ -1,22 +1,24 @@
-use crate::graph::{Clear, Create, Index, Insert, Iter, Sortable};
+use crate::graph::{Clear, Create, EdgeCost, Index, Insert, Iter, Sortable};
 use crate::prelude::{EdgeIdentifier, EdgeRef};
 use std::ops::AddAssign;
 
 use super::{MinimumSpanningTree, UnionFind};
 
-pub fn kruskal_weight<N, W, G>(graph: &G) -> W
+pub fn kruskal_weight<N, W, C, G>(graph: &G) -> C
 where
-    W: Default + Sortable + AddAssign + Copy,
+    C: Default + Sortable + AddAssign + Copy,
+    W: EdgeCost<Cost = C>,
     G: Iter<N, W> + Index,
 {
-    let mut total_weight = W::default();
-    _kruskal(graph, |edge| total_weight += *edge.weight);
+    let mut total_weight = C::default();
+    _kruskal(graph, |edge| total_weight += *edge.weight.cost());
     total_weight
 }
 
-pub fn kruskal_mst<N, W, G>(graph: &G) -> MinimumSpanningTree<G>
+pub fn kruskal_mst<N, W, C, G>(graph: &G) -> MinimumSpanningTree<G>
 where
-    W: Default + Sortable + AddAssign + Copy,
+    C: Default + Sortable + AddAssign + Copy,
+    W: EdgeCost<Cost = C> + Copy,
     G: Iter<N, W> + Index + Create<N> + Insert<N, W> + Clear + Clone,
 {
     let mut mst = graph.clone();
@@ -31,14 +33,15 @@ where
     MinimumSpanningTree::new(mst, root)
 }
 
-pub(crate) fn _kruskal<N, W, G, F>(graph: &G, mut f: F) -> UnionFind<G::NodeId>
+pub(crate) fn _kruskal<N, W, C, G, F>(graph: &G, mut f: F) -> UnionFind<G::NodeId>
 where
-    W: Sortable,
+    C: Sortable,
+    W: EdgeCost<Cost = C>,
     G: Iter<N, W> + Index,
     F: FnMut(EdgeRef<G::EdgeId, W>),
 {
     let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
-    priority_queue.sort_by(|this, other| this.weight.sort(other.weight));
+    priority_queue.sort_by(|this, other| this.weight.cost().sort(other.weight.cost()));
 
     let mut union_find = UnionFind::from(graph.node_ids());
 

@@ -1,13 +1,14 @@
 use super::{dijkstra_between, nearest_neighbor, Tour};
 use crate::{
-    graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn branch_bound<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
 where
-    W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
+    W: EdgeCost<Cost = C>,
     G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -16,9 +17,10 @@ where
     }
 }
 
-pub fn branch_bound_rec<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn branch_bound_rec<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
 where
-    W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable + Maximum,
+    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum,
+    W: EdgeCost<Cost = C>,
     G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -28,7 +30,7 @@ where
                 .unwrap_or(Maximum::max());
             let mut path = vec![start];
             let mut visited = vec![false; graph.node_count()];
-            let cost = W::default();
+            let cost = C::default();
 
             _branch_bound_rec(
                 start,
@@ -46,9 +48,10 @@ where
     }
 }
 
-pub(crate) fn _branch_bound<N, W, G>(graph: &G, start: G::NodeId) -> Tour<G::NodeId, W>
+pub(crate) fn _branch_bound<N, W, C, G>(graph: &G, start: G::NodeId) -> Tour<G::NodeId, W::Cost>
 where
-    W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
+    W: EdgeCost<Cost = C>,
     G: Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     let mut stack = Vec::new();
@@ -60,7 +63,7 @@ where
     let mut visited = vec![false; graph.node_count()];
     visited[start.as_usize()] = true;
 
-    stack.push((W::default(), vec![start], visited));
+    stack.push((C::default(), vec![start], visited));
 
     while let Some((cost, path, visited)) = stack.pop() {
         let node = path
@@ -69,7 +72,7 @@ where
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
             let to = edge_id.to();
-            let cost = cost + *weight;
+            let cost = cost + *weight.cost();
 
             if !visited[to.as_usize()] && cost < total_cost {
                 let mut visited = visited.clone();
@@ -99,16 +102,17 @@ where
     Tour::new(route, total_cost)
 }
 
-pub(crate) fn _branch_bound_rec<N, W, G>(
+pub(crate) fn _branch_bound_rec<N, W, C, G>(
     start: G::NodeId,
     graph: &G,
     node: G::NodeId,
     path: &mut Vec<G::NodeId>,
     visited: &mut Vec<bool>,
-    cost: W,
-    baseline: &mut W,
+    cost: C,
+    baseline: &mut C,
 ) where
-    W: Default + Copy + Add<W, Output = W> + AddAssign + PartialOrd + Sortable,
+    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + IterAdjacent<N, W> + Count,
 {
     if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
@@ -120,7 +124,7 @@ pub(crate) fn _branch_bound_rec<N, W, G>(
 
     for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
         let to = edge_id.to();
-        let cost = cost + *weight;
+        let cost = cost + *weight.cost();
 
         if !visited[to.as_usize()] && cost < *baseline {
             visited[to.as_usize()] = true;

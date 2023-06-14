@@ -295,8 +295,10 @@ impl<Node, Weight, const DI: bool> IterAdjacentMut<Node, Weight>
     }
 }
 
-impl<Node, Weight, const DI: bool> Remove<Node, Weight> for AdjacencyMatrix<Node, Weight, DI> {
-    fn remove_node(&mut self, node_id: Self::NodeId) -> Option<Node> {
+impl<Node: Default, Weight, const DI: bool> Remove<Node, Weight>
+    for AdjacencyMatrix<Node, Weight, DI>
+{
+    fn remove_node(&mut self, node_id: Self::NodeId) -> Node {
         todo!()
     }
 

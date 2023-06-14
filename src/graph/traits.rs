@@ -236,7 +236,7 @@ pub trait Insert<Node, Weight>: Base {
 }
 
 pub trait Remove<Node, Weight>: Base {
-    fn remove_node(&mut self, node_id: Self::NodeId) -> Option<Node>;
+    fn remove_node(&mut self, node_id: Self::NodeId) -> Node;
     fn remove_edge(&mut self, edge_id: Self::EdgeId) -> Option<Weight>;
 }
 

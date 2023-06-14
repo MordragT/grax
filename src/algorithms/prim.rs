@@ -1,59 +1,61 @@
 use crate::{
-    graph::{Count, Index, IndexAdjacent, IterAdjacent, Sortable},
+    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Sortable},
     prelude::NodeIdentifier,
 };
 use priq::PriorityQueue;
 use std::ops::AddAssign;
 
-pub fn prim<N, W, G>(graph: &G) -> W
+pub fn prim<N, W, C, G>(graph: &G) -> C
 where
-    W: Default + Sortable + AddAssign + Copy,
+    C: Default + Sortable + AddAssign + Copy,
+    W: EdgeCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
         Some(start) => _prim(graph, start),
-        None => W::default(),
+        None => C::default(),
     }
 }
 
-pub(crate) fn _prim<N, W, G>(graph: &G, start: G::NodeId) -> W
+pub(crate) fn _prim<N, W, C, G>(graph: &G, start: G::NodeId) -> C
 where
-    W: Default + Sortable + AddAssign + Copy,
+    C: Default + Sortable + AddAssign + Copy,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let n = graph.node_count();
     let mut visited = vec![false; n];
     let mut priority_queue = PriorityQueue::with_capacity(n);
     // einfach mit W::max init
-    let mut weights = vec![None; n];
-    let mut total_weight = W::default();
+    let mut costs = vec![None; n];
+    let mut total_cost = C::default();
 
-    priority_queue.put(W::default(), start);
+    priority_queue.put(C::default(), start);
 
-    while let Some((weight, to)) = priority_queue.pop() {
+    while let Some((cost, to)) = priority_queue.pop() {
         if visited[to.as_usize()] {
             continue;
         }
         visited[to.as_usize()] = true;
-        total_weight += weight;
+        total_cost += cost;
 
         for edge in graph.iter_adjacent_edges(to) {
             let to = edge.to();
             if !visited[to.as_usize()] {
-                if let Some(weight) = &mut weights[to.as_usize()] {
-                    if *weight > edge.weight {
-                        *weight = edge.weight;
-                        priority_queue.put(*edge.weight, to);
+                if let Some(cost) = &mut costs[to.as_usize()] {
+                    if *cost > edge.weight.cost() {
+                        *cost = edge.weight.cost();
+                        priority_queue.put(*edge.weight.cost(), to);
                     }
                 } else {
-                    weights[to.as_usize()] = Some(edge.weight);
-                    priority_queue.put(*edge.weight, to);
+                    costs[to.as_usize()] = Some(edge.weight.cost());
+                    priority_queue.put(*edge.weight.cost(), to);
                 }
             }
         }
     }
 
-    total_weight
+    total_cost
 }
 
 #[cfg(test)]

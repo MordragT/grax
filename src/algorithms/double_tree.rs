@@ -2,14 +2,15 @@ use std::ops::{Add, AddAssign};
 
 use super::{dfs_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
 use crate::graph::{
-    Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
-    Sortable,
+    Base, Clear, Contains, Count, Create, EdgeCost, Get, Index, IndexAdjacent, Insert, Iter,
+    IterAdjacent, Sortable,
 };
 
-pub fn double_tree<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn double_tree<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
     N: PartialEq,
-    W: Default + Sortable + Copy + AddAssign + Add<W, Output = W>,
+    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C>,
+    W: EdgeCost<Cost = C> + Copy,
     G: Base
         + Count
         + IndexAdjacent
@@ -32,10 +33,10 @@ where
         return None;
     }
 
-    let mut total_weight = W::default();
+    let mut total_weight = C::default();
     for [from, to] in route.array_windows::<2>() {
         let weight = match mst.contains_edge(*from, *to) {
-            Some(index) => *mst.weight(index).unwrap(),
+            Some(index) => *mst.weight(index).unwrap().cost(),
             None if let Some(weight) = dijkstra_between(graph, *from, *to) => weight,
             _ => return None,
         };

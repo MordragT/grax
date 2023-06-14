@@ -45,22 +45,22 @@ pub trait Graph<N: Node, W: Weight>:
     + Sized
     + Clone
 {
-    fn bellman_ford_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W> {
+    fn bellman_ford_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W::Cost> {
         bellman_ford_between(self, from, to)
     }
 
     fn bellman_ford(
         &self,
         start: Self::NodeId,
-    ) -> Result<Distances<Self::NodeId, W>, NegativeCycle> {
+    ) -> Result<Distances<Self::NodeId, W::Cost>, NegativeCycle> {
         bellman_ford(self, start)
     }
 
-    fn dijkstra_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W> {
+    fn dijkstra_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W::Cost> {
         dijkstra_between(self, from, to)
     }
 
-    fn dijkstra(&self, from: Self::NodeId, to: Self::NodeId) -> Distances<Self::NodeId, W> {
+    fn dijkstra(&self, from: Self::NodeId, to: Self::NodeId) -> Distances<Self::NodeId, W::Cost> {
         dijkstra(self, from, to)
     }
 
@@ -68,7 +68,7 @@ pub trait Graph<N: Node, W: Weight>:
     //     edmonds_karp(self, from, to)
     // }
 
-    fn kruskal_weight(&self) -> W {
+    fn kruskal_weight(&self) -> W::Cost {
         kruskal_weight(self)
     }
 
@@ -77,7 +77,7 @@ pub trait Graph<N: Node, W: Weight>:
         kruskal_mst(self)
     }
 
-    fn prim(&self) -> W {
+    fn prim(&self) -> W::Cost {
         prim(self)
     }
 
@@ -97,28 +97,28 @@ pub trait Graph<N: Node, W: Weight>:
         bfs_tour(self, from)
     }
 
-    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<Tour<Self::NodeId, W>> {
+    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<Tour<Self::NodeId, W::Cost>> {
         nearest_neighbor(self, start)
     }
 
-    fn nearest_neighbor_from_first(&self) -> Option<Tour<Self::NodeId, W>> {
+    fn nearest_neighbor_from_first(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
         nearest_neighbor_from_first(self)
     }
 
-    fn double_tree(&self) -> Option<Tour<Self::NodeId, W>>
+    fn double_tree(&self) -> Option<Tour<Self::NodeId, W::Cost>>
     {
         double_tree(self)
     }
 
-    fn branch_bound(&self) -> Option<Tour<Self::NodeId, W>> {
+    fn branch_bound(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
         branch_bound(self)
     }
 
-    fn branch_bound_rec(&self) -> Option<Tour<Self::NodeId, W>> {
+    fn branch_bound_rec(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
         branch_bound_rec(self)
     }
 
-    fn brute_force(&self) -> Option<Tour<Self::NodeId, W>> {
+    fn brute_force(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
         brute_force(self)
     }
 }
@@ -183,19 +183,88 @@ pub trait Node: Default + PartialEq + Clone {}
 
 impl<T: Default + PartialEq + Clone> Node for T {}
 
+pub trait EdgeCapacity {
+    type Capacity;
+
+    fn capacity(&self) -> &Self::Capacity;
+    fn capacity_mut(&mut self) -> &mut Self::Capacity;
+}
+
+pub trait EdgeCost {
+    type Cost;
+
+    fn cost(&self) -> &Self::Cost;
+    fn cost_mut(&mut self) -> &mut Self::Cost;
+}
+
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct CapacityWeight<W> {
     pub capacity: W,
-    pub weight: W,
+    pub cost: W,
 }
 
 impl<W> CapacityWeight<W> {
     pub fn new(capacity: W, weight: W) -> Self {
-        Self { capacity, weight }
+        Self {
+            capacity,
+            cost: weight,
+        }
     }
 }
 
-pub trait Weight:
+impl<W> EdgeCapacity for CapacityWeight<W> {
+    type Capacity = W;
+
+    fn capacity(&self) -> &Self::Capacity {
+        &self.capacity
+    }
+
+    fn capacity_mut(&mut self) -> &mut Self::Capacity {
+        &mut self.capacity
+    }
+}
+
+impl<W> EdgeCost for CapacityWeight<W> {
+    type Cost = W;
+
+    fn cost(&self) -> &Self::Cost {
+        &self.cost
+    }
+
+    fn cost_mut(&mut self) -> &mut Self::Cost {
+        &mut self.cost
+    }
+}
+
+impl EdgeCost for f32 {
+    type Cost = f32;
+
+    fn cost(&self) -> &Self::Cost {
+        &self
+    }
+
+    fn cost_mut(&mut self) -> &mut Self::Cost {
+        self
+    }
+}
+
+impl EdgeCost for f64 {
+    type Cost = f64;
+
+    fn cost(&self) -> &Self::Cost {
+        &self
+    }
+
+    fn cost_mut(&mut self) -> &mut Self::Cost {
+        self
+    }
+}
+
+pub trait Weight: EdgeCost<Cost: Cost> + Copy {}
+
+impl<T: EdgeCost<Cost: Cost> + Copy> Weight for T {}
+
+pub trait Cost:
     Sortable
     + Maximum
     + Default
@@ -218,7 +287,7 @@ impl<
             + SubAssign
             + Copy
             + Debug,
-    > Weight for T
+    > Cost for T
 {
 }
 

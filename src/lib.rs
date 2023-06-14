@@ -5,6 +5,7 @@
 #![feature(let_chains)]
 #![feature(if_let_guard)]
 #![feature(array_windows)]
+#![feature(associated_type_bounds)]
 
 pub mod algorithms;
 pub mod edge_list;

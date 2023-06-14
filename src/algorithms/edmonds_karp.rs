@@ -4,34 +4,42 @@ use std::{
 };
 
 use crate::{
-    graph::{Base, CapacityWeight, Count, Create, Get, GetMut, IndexAdjacent, Insert, Iter},
+    graph::{
+        Base, CapacityWeight, Count, Create, EdgeCapacity, EdgeCost, Get, GetMut, IndexAdjacent,
+        Insert, Iter,
+    },
     prelude::{AdjacencyList, EdgeIdentifier, EdgeIndex, EdgeRef, NodeIdentifier, NodeIndex},
 };
 
-pub fn edmonds_karp<N, W, G>(graph: &G, source: G::NodeId, sink: G::NodeId) -> W
+pub fn edmonds_karp<N, W, C, G>(graph: &G, source: G::NodeId, sink: G::NodeId) -> C
 where
-    W: Default + PartialOrd + Copy + AddAssign + SubAssign,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign,
+    W: EdgeCost<Cost = C>,
     G: Iter<N, W> + Base<EdgeId = EdgeIndex, NodeId = NodeIndex> + Get<N, W>,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
-        let capacity = CapacityWeight::new(*weight, *weight);
+        let capacity = CapacityWeight::new(*weight.cost(), *weight.cost());
         residual_graph.insert_edge(edge_id, capacity);
 
         if !graph.contains_edge_id(edge_id.rev()) {
-            residual_graph.insert_edge(edge_id.rev(), CapacityWeight::new(W::default(), *weight));
+            residual_graph.insert_edge(
+                edge_id.rev(),
+                CapacityWeight::new(C::default(), *weight.cost()),
+            );
         }
     }
 
     _edmonds_karp(&mut residual_graph, source, sink)
 }
 
-pub(crate) fn _edmonds_karp<N, W, G>(graph: &mut G, source: G::NodeId, sink: G::NodeId) -> W
+pub(crate) fn _edmonds_karp<N, W, C, G>(graph: &mut G, source: G::NodeId, sink: G::NodeId) -> C
 where
-    W: Default + PartialOrd + Copy + AddAssign + SubAssign,
-    G: Count + IndexAdjacent + Get<N, CapacityWeight<W>> + GetMut<N, CapacityWeight<W>>,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign,
+    W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C>,
+    G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
 {
-    let mut total_flow = W::default();
+    let mut total_flow = C::default();
     let mut parent = vec![None; graph.node_count()];
 
     // loop while bfs finds a path
@@ -43,7 +51,7 @@ where
         while to != source {
             let from = parent[to.as_usize()].unwrap();
             let edge_id = G::EdgeId::between(from, to);
-            let residual_capacity = &graph.weight(edge_id).unwrap().capacity;
+            let residual_capacity = graph.weight(edge_id).unwrap().capacity();
 
             bottleneck = match bottleneck {
                 Some(b) => {
@@ -67,11 +75,11 @@ where
         while to != source {
             let from = parent[to.as_usize()].unwrap();
 
-            let cap = graph.weight_mut(G::EdgeId::between(from, to)).unwrap();
-            cap.capacity -= bottleneck;
+            let weight = graph.weight_mut(G::EdgeId::between(from, to)).unwrap();
+            *weight.capacity_mut() -= bottleneck;
 
-            let cap_rev = graph.weight_mut(G::EdgeId::between(to, from)).unwrap();
-            cap_rev.capacity += bottleneck;
+            let weight_rev = graph.weight_mut(G::EdgeId::between(to, from)).unwrap();
+            *weight_rev.capacity_mut() += bottleneck;
 
             to = from;
         }
@@ -80,15 +88,16 @@ where
     total_flow
 }
 
-fn bfs_augmenting_path<N, W, G>(
+fn bfs_augmenting_path<N, W, C, G>(
     graph: &G,
     source: G::NodeId,
     sink: G::NodeId,
     parent: &mut Vec<Option<G::NodeId>>,
 ) -> bool
 where
-    W: Default + PartialOrd,
-    G: Count + IndexAdjacent + Get<N, CapacityWeight<W>>,
+    C: Default + PartialOrd,
+    W: EdgeCapacity<Capacity = C>,
+    G: Count + IndexAdjacent + Get<N, W>,
 {
     let mut queue = VecDeque::new();
     let mut visited = vec![false; graph.node_count()];
@@ -102,9 +111,12 @@ where
         }
 
         for to in graph.adjacent_node_ids(from) {
-            let cap = &graph.weight(G::EdgeId::between(from, to)).unwrap().capacity;
+            let cap = graph
+                .weight(G::EdgeId::between(from, to))
+                .unwrap()
+                .capacity();
 
-            if !visited[to.as_usize()] && cap > &W::default() {
+            if !visited[to.as_usize()] && cap > &C::default() {
                 parent[to.as_usize()] = Some(from);
                 queue.push_back(to);
                 visited[to.as_usize()] = true;

@@ -1,17 +1,18 @@
 use std::ops::AddAssign;
 
-use crate::graph::{Contains, Get, Index, Maximum};
+use crate::graph::{Contains, EdgeCost, Get, Index, Maximum};
 
 use super::Tour;
 
-pub fn brute_force<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn brute_force<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
     N: PartialEq,
-    W: Default + Maximum + PartialOrd + AddAssign + Copy,
+    C: Default + Maximum + PartialOrd + AddAssign + Copy,
+    W: EdgeCost<Cost = C>,
     G: Get<N, W> + Index + Contains<N>,
 {
     let mut best_path = Vec::new();
-    let mut best_weight = W::max();
+    let mut best_weight = C::max();
 
     let start = graph.node_ids().collect::<Vec<_>>();
 
@@ -27,8 +28,8 @@ where
         if let Some(edges) = edges {
             let total_weight = edges
                 .into_iter()
-                .map(|edge| *graph.weight(edge).unwrap())
-                .fold(W::default(), |mut accu, w| {
+                .map(|edge| *graph.weight(edge).unwrap().cost())
+                .fold(C::default(), |mut accu, w| {
                     accu += w;
                     accu
                 });
@@ -40,7 +41,7 @@ where
         }
     }
 
-    if best_weight == W::max() {
+    if best_weight == C::max() {
         None
     } else {
         Some(Tour::new(best_path, best_weight))

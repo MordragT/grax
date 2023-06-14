@@ -1,14 +1,19 @@
 use crate::{
-    graph::{Count, Index, IndexAdjacent, IterAdjacent},
+    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
 
 use super::{Distances, NegativeCycle};
 use std::ops::Add;
 
-pub fn bellman_ford_between<N, W, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<W>
+pub fn bellman_ford_between<N, W, C, G>(
+    graph: &G,
+    from: G::NodeId,
+    to: G::NodeId,
+) -> Option<W::Cost>
 where
-    W: Default + Add<W, Output = W> + PartialOrd + Copy,
+    C: Default + Add<C, Output = C> + PartialOrd + Copy,
+    W: EdgeCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     bellman_ford(graph, from)
@@ -16,16 +21,17 @@ where
         .and_then(|d| d.distances[to.as_usize()])
 }
 
-pub fn bellman_ford<N, W, G>(
+pub fn bellman_ford<N, W, C, G>(
     graph: &G,
     start: G::NodeId,
-) -> Result<Distances<G::NodeId, W>, NegativeCycle>
+) -> Result<Distances<G::NodeId, W::Cost>, NegativeCycle>
 where
-    W: Default + Add<W, Output = W> + PartialOrd + Copy,
+    C: Default + Add<C, Output = C> + PartialOrd + Copy,
+    W: EdgeCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     let mut cost_table = vec![None; graph.node_count()];
-    cost_table[start.as_usize()] = Some(W::default());
+    cost_table[start.as_usize()] = Some(W::Cost::default());
 
     let mut updated = false;
 
@@ -36,7 +42,7 @@ where
             if let Some(cost) = cost_table[index.as_usize()] {
                 for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(index) {
                     let to = edge_id.to();
-                    let combined_cost = cost + *weight;
+                    let combined_cost = cost + *weight.cost();
                     let to_cost = cost_table[to.as_usize()];
 
                     match to_cost {

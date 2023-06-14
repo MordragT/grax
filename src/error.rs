@@ -22,4 +22,6 @@ pub enum GraphError {
     NoCycle,
     #[error("IoError: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Minimal cost flow not solvable")]
+    McfNotSolvable,
 }

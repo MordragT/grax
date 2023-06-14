@@ -1,9 +1,9 @@
 use crate::{
     graph::{
         Base, Capacity, Clear, Contains, Count, Create, Directed, EdgeRef, Extend, Get, GetMut,
-        Index, Insert, Iter, IterMut, Reserve,
+        Index, Insert, Iter, IterMut, Remove, Reserve,
     },
-    prelude::{EdgeIdentifier, EdgeRefMut},
+    prelude::{EdgeIdentifier, EdgeRefMut, NodeIdentifier},
 };
 
 use super::{EdgeIndex, NodeIndex};
@@ -151,6 +151,27 @@ impl<Node, Weight, const DI: bool> Insert<Node, Weight> for BaseGraph<Node, Weig
 
     fn insert_edge(&mut self, edge_id: Self::EdgeId, weight: Weight) -> Option<Weight> {
         self.edges.insert(edge_id, weight)
+    }
+}
+
+impl<Node: Default, Weight, const DI: bool> Remove<Node, Weight> for BaseGraph<Node, Weight, DI> {
+    fn remove_node(&mut self, node_id: Self::NodeId) -> Node {
+        let to_remove = self
+            .edges
+            .keys()
+            .filter(|edge_id| edge_id.contains(node_id))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        for edge_id in to_remove {
+            self.edges.remove(&edge_id);
+        }
+
+        std::mem::replace(&mut self.nodes[node_id.as_usize()], Node::default())
+    }
+
+    fn remove_edge(&mut self, edge_id: Self::EdgeId) -> Option<Weight> {
+        self.edges.remove(&edge_id)
     }
 }
 

@@ -1,13 +1,14 @@
 use super::{dijkstra_between, Tour};
 use crate::{
-    graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor_from_first<N, W, G>(graph: &G) -> Option<Tour<G::NodeId, W>>
+pub fn nearest_neighbor_from_first<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
-    W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
+    W: EdgeCost<Cost = C>,
     G: Count + Index + IndexAdjacent + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -16,9 +17,10 @@ where
     }
 }
 
-pub fn nearest_neighbor<N, W, G>(graph: &G, start: G::NodeId) -> Option<Tour<G::NodeId, W>>
+pub fn nearest_neighbor<N, W, C, G>(graph: &G, start: G::NodeId) -> Option<Tour<G::NodeId, C>>
 where
-    W: Default + Copy + AddAssign + Add<W, Output = W> + Maximum + Sortable,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
+    W: EdgeCost<Cost = C>,
     G: Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
@@ -30,7 +32,7 @@ where
     }
 
     let mut states = vec![Status::default(); graph.node_count()];
-    let mut path = vec![(start, W::default())];
+    let mut path = vec![(start, C::default())];
     let mut prev = start;
 
     states[start.as_usize()] = Status::Visited;
@@ -38,21 +40,21 @@ where
     while let Some((node, _)) = path.last() && path.len() < graph.node_count() {
 
         let mut min_node = None;
-        let mut min_weight = W::max();
+        let mut min_cost = C::max();
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
             let to = edge_id.to();
             if states[to.as_usize()] == Status::Unvisited && to != prev {
-                if min_weight > *weight {
+                if min_cost > *weight.cost() {
                     min_node = Some(to);
-                    min_weight = *weight;
+                    min_cost = *weight.cost();
                 }
             }
         }
 
         match min_node {
             Some(next) => {
-                path.push((next, min_weight));
+                path.push((next, min_cost));
                 states[next.as_usize()] = Status::Visited;
                 prev = next;
             }
@@ -91,7 +93,7 @@ where
     }
 
     let (route, weight): (_, Vec<_>) = path.into_iter().unzip();
-    let weight = weight.into_iter().fold(W::default(), |mut accu, w| {
+    let weight = weight.into_iter().fold(C::default(), |mut accu, w| {
         accu += w;
         accu
     });

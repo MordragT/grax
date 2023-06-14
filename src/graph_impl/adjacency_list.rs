@@ -6,7 +6,7 @@ use crate::{
         GetMut, Graph, Index, IndexAdjacent, Insert, Iter, IterAdjacent, IterAdjacentMut, IterMut,
         Remove, Reserve,
     },
-    prelude::{EdgeRef, EdgeRefMut, WeightlessGraph},
+    prelude::{EdgeRef, EdgeRefMut, NodeIdentifier, WeightlessGraph},
 };
 use std::fmt::Debug;
 
@@ -295,9 +295,17 @@ impl<Node, Weight, const DI: bool> Insert<Node, Weight> for AdjacencyList<Node, 
     }
 }
 
-impl<Node, Weight, const DI: bool> Remove<Node, Weight> for AdjacencyList<Node, Weight, DI> {
-    fn remove_node(&mut self, node_id: Self::NodeId) -> Option<Node> {
-        todo!()
+impl<Node: Default, Weight, const DI: bool> Remove<Node, Weight>
+    for AdjacencyList<Node, Weight, DI>
+{
+    fn remove_node(&mut self, node_id: Self::NodeId) -> Node {
+        self.adjacencies[node_id.as_usize()].clear();
+
+        for adj in self.adjacencies.iter_mut() {
+            adj.retain(|other_id| other_id != &node_id);
+        }
+
+        self.base.remove_node(node_id)
     }
 
     fn remove_edge(&mut self, edge_id: Self::EdgeId) -> Option<Weight> {
