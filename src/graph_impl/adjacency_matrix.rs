@@ -16,25 +16,17 @@ pub struct AdjacencyMatrix<Node, Weight, const DI: bool = false> {
     pub(crate) edges: SparseMatrix<Weight>,
 }
 
-impl<W: Copy, const DI: bool> From<EdgeList<usize, W, DI>> for AdjacencyMatrix<usize, W, DI> {
-    fn from(edge_list: EdgeList<usize, W, DI>) -> Self {
+impl<Node, W: Copy, const DI: bool> From<EdgeList<Node, W, DI>> for AdjacencyMatrix<Node, W, DI> {
+    fn from(edge_list: EdgeList<Node, W, DI>) -> Self {
         let EdgeList {
-            parents,
-            children,
-            weights,
-            node_count,
+            nodes,
+            edges,
+            node_count: _,
         } = edge_list;
 
-        let mut adj_mat = Self::with_nodes(vec![0; node_count].into_iter());
+        let mut adj_mat = Self::with_nodes(nodes.into_iter());
 
-        for ((from, to), weight) in parents
-            .into_iter()
-            .zip(children.into_iter())
-            .zip(weights.into_iter())
-        {
-            adj_mat.nodes[from] = from;
-            adj_mat.nodes[to] = to;
-
+        for (from, to, weight) in edges.into_iter() {
             let edge_id = EdgeIndex::between(NodeIndex(from), NodeIndex(to));
 
             if !DI {

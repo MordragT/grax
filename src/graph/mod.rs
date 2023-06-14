@@ -167,9 +167,34 @@ pub trait WeightlessGraph<N>:
 //     type GraphRef: for<'a> Graph<&'a N, W>;
 // }
 
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct BalancedNode<N, W> {
+    pub node: N,
+    pub balance: W,
+}
+
+impl<N, W> BalancedNode<N, W> {
+    pub fn new(node: N, balance: W) -> Self {
+        Self { node, balance }
+    }
+}
+
 pub trait Node: Default + PartialEq + Clone {}
 
 impl<T: Default + PartialEq + Clone> Node for T {}
+
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct CapacityWeight<W> {
+    pub capacity: W,
+    pub weight: W,
+}
+
+impl<W> CapacityWeight<W> {
+    pub fn new(capacity: W, weight: W) -> Self {
+        Self { capacity, weight }
+    }
+}
+
 pub trait Weight:
     Sortable
     + Maximum

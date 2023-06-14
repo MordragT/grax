@@ -22,27 +22,19 @@ impl<Node, Weight, const DI: bool> AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Weight: Copy, const DI: bool> From<EdgeList<usize, Weight, DI>>
-    for AdjacencyList<usize, Weight, DI>
+impl<Node, Weight: Copy, const DI: bool> From<EdgeList<Node, Weight, DI>>
+    for AdjacencyList<Node, Weight, DI>
 {
-    fn from(edge_list: EdgeList<usize, Weight, DI>) -> Self {
+    fn from(edge_list: EdgeList<Node, Weight, DI>) -> Self {
         let EdgeList {
-            parents,
-            children,
-            weights,
-            node_count,
+            nodes,
+            edges,
+            node_count: _,
         } = edge_list;
 
-        let mut adj_list = Self::with_nodes(vec![0; node_count].into_iter());
+        let mut adj_list = Self::with_nodes(nodes.into_iter());
 
-        for ((from, to), weight) in parents
-            .into_iter()
-            .zip(children.into_iter())
-            .zip(weights.into_iter())
-        {
-            adj_list.base.nodes[from] = from;
-            adj_list.base.nodes[to] = to;
-
+        for (from, to, weight) in edges.into_iter() {
             let edge_id = EdgeIndex::between(NodeIndex(from), NodeIndex(to));
 
             if !DI {

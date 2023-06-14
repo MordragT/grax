@@ -1,6 +1,7 @@
 pub use bellman_ford::*;
 pub use branch_bound::*;
 pub use brute_force::*;
+pub use cycle_canceling::*;
 pub use dijkstra::*;
 pub use double_tree::*;
 pub use edmonds_karp::*;
@@ -18,6 +19,7 @@ use thiserror::Error;
 mod bellman_ford;
 mod branch_bound;
 mod brute_force;
+mod cycle_canceling;
 mod dijkstra;
 mod double_tree;
 mod edmonds_karp;

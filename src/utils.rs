@@ -48,6 +48,14 @@ impl<T> SparseMatrix<T> {
         self.col_indices.clear();
     }
 
+    pub fn into_iter(self) -> impl Iterator<Item = (usize, usize, T)> {
+        self.row_indices
+            .into_iter()
+            .zip(self.col_indices)
+            .zip(self.values)
+            .map(|((row, col), value)| (row, col, value))
+    }
+
     /// Returns an iterator over the non-zero elements in the matrix
     pub fn iter(&self) -> impl Iterator<Item = (usize, usize, &T)> {
         self.row_indices
