@@ -25,7 +25,11 @@ pub mod prelude {
 
 #[cfg(test)]
 pub mod test {
-    use crate::{error::GraphResult, prelude::EdgeList};
+    use crate::{
+        error::GraphResult,
+        graph::{BalancedNode, CapacityWeight},
+        prelude::EdgeList,
+    };
     use std::{fs, path::Path, str::FromStr};
 
     pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>
@@ -54,6 +58,17 @@ pub mod test {
     where
         P: AsRef<Path>,
         G: From<EdgeList<usize, f64, true>>,
+    {
+        let content = fs::read_to_string(path)?;
+        let edge_list = EdgeList::from_str(&content)?;
+        let graph = G::from(edge_list);
+        Ok(graph)
+    }
+
+    pub fn bgraph<G, P>(path: P) -> GraphResult<G>
+    where
+        P: AsRef<Path>,
+        G: From<EdgeList<BalancedNode<usize, f64>, CapacityWeight<f64>>>,
     {
         let content = fs::read_to_string(path)?;
         let edge_list = EdgeList::from_str(&content)?;
