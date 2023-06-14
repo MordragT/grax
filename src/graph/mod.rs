@@ -64,9 +64,9 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
-    fn edmonds_karp(&self, from: Self::NodeId, to: Self::NodeId) -> W {
-        edmonds_karp(self, from, to)
-    }
+    // fn edmonds_karp(&self, from: Self::NodeId, to: Self::NodeId) -> W {
+    //     edmonds_karp(self, from, to)
+    // }
 
     fn kruskal_weight(&self) -> W {
         kruskal_weight(self)
