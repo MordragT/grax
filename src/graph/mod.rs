@@ -6,6 +6,7 @@ use std::{
 };
 
 pub use edge::*;
+use either::Either;
 pub use traits::*;
 
 use crate::algorithms::{
@@ -52,7 +53,7 @@ pub trait Graph<N: Node, W: Weight>:
     fn bellman_ford(
         &self,
         start: Self::NodeId,
-    ) -> Result<Distances<Self::NodeId, W::Cost>, NegativeCycle> {
+    ) -> Either<Distances<Self::NodeId, W::Cost>, NegativeCycle<Self::NodeId>> {
         bellman_ford(self, start)
     }
 

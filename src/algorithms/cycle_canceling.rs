@@ -17,22 +17,26 @@
 
 // neuer graph g'
 
-use std::ops::{AddAssign, Neg, SubAssign};
+use std::ops::{Add, AddAssign, Neg, SubAssign};
+
+use either::Either;
 
 use crate::{
-    algorithms::_edmonds_karp,
+    algorithms::{_edmonds_karp, bellman_ford, Parents},
     error::GraphResult,
     graph::{
         BalancedNode, CapacityWeight, Count, EdgeCapacity, EdgeCost, Get, GetMut, Index,
-        IndexAdjacent, Insert, Iter, Remove,
+        IndexAdjacent, Insert, Iter, IterAdjacent, Remove,
     },
-    prelude::{Edge, EdgeIdentifier, EdgeRef, GraphError},
+    prelude::{Edge, EdgeIdentifier, EdgeRef, GraphError, NodeIdentifier},
 };
+
+use super::_bellman_ford;
 
 pub fn cycle_canceling<N, C, G>(graph: &G) -> GraphResult<C>
 where
     N: Default,
-    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign,
+    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Add<C, Output = C>,
     G: Index
         + Get<BalancedNode<N, C>, CapacityWeight<C>>
         + GetMut<BalancedNode<N, C>, CapacityWeight<C>>
@@ -41,11 +45,79 @@ where
         + Count
         + IndexAdjacent
         + Iter<BalancedNode<N, C>, CapacityWeight<C>>
+        + IterAdjacent<BalancedNode<N, C>, CapacityWeight<C>>
         + Clone,
 {
-    let residual_graph = mcf_solvable(graph)?;
+    let mut residual_graph = mcf_solvable(graph)?;
+    let start = residual_graph.node_ids().next().unwrap();
+    let mut total_flow = C::default();
 
-    todo!()
+    while let Either::Right(cycle) = _bellman_ford(&residual_graph, start, |weight| {
+        weight.capacity() > &C::default()
+    }) {
+        let Parents { parents, source } = cycle;
+
+        let sink = parents[source.as_usize()].unwrap();
+
+        dbg!(source);
+        dbg!(&parents);
+
+        let mut to = sink;
+        let mut bottleneck = *residual_graph
+            .weight(G::EdgeId::between(source, to))
+            .unwrap()
+            .capacity();
+        let mut visited = vec![false; residual_graph.node_count()];
+        visited[source.as_usize()] = true;
+
+        while to != source && !visited[to.as_usize()] {
+            let from = parents[to.as_usize()].unwrap();
+            dbg!(from, to);
+            if visited[from.as_usize()] {
+                break;
+            }
+
+            let edge_id = G::EdgeId::between(from, to);
+            let weight = residual_graph.weight(edge_id).unwrap();
+
+            if weight.capacity() < &bottleneck {
+                bottleneck = *weight.capacity();
+            }
+            visited[to.as_usize()] = true;
+            to = from;
+        }
+
+        to = sink;
+        visited = vec![false; residual_graph.node_count()];
+        visited[source.as_usize()] = true;
+        total_flow += bottleneck;
+
+        dbg!("test");
+
+        while to != source && !visited[to.as_usize()] {
+            let from = parents[to.as_usize()].unwrap();
+            dbg!(from, to);
+
+            if visited[from.as_usize()] {
+                break;
+            }
+
+            let weight = residual_graph
+                .weight_mut(G::EdgeId::between(from, to))
+                .unwrap();
+            *weight.capacity_mut() -= bottleneck;
+
+            let weight_rev = residual_graph
+                .weight_mut(G::EdgeId::between(to, from))
+                .unwrap();
+            *weight_rev.capacity_mut() += bottleneck;
+
+            visited[to.as_usize()] = true;
+            to = from;
+        }
+    }
+
+    Ok(total_flow)
 }
 
 fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<G>

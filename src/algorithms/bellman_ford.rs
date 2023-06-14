@@ -2,6 +2,7 @@ use crate::{
     graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
+use either::Either;
 
 use super::{Distances, NegativeCycle};
 use std::ops::Add;
@@ -17,23 +18,38 @@ where
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     bellman_ford(graph, from)
-        .ok()
+        .left()
         .and_then(|d| d.distances[to.as_usize()])
 }
 
 pub fn bellman_ford<N, W, C, G>(
     graph: &G,
     start: G::NodeId,
-) -> Result<Distances<G::NodeId, W::Cost>, NegativeCycle>
+) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
     W: EdgeCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
+    _bellman_ford(graph, start, |_| true)
+}
+
+pub(crate) fn _bellman_ford<N, W, C, G, F>(
+    graph: &G,
+    start: G::NodeId,
+    mut f: F,
+) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
+where
+    C: Default + Add<C, Output = C> + PartialOrd + Copy,
+    W: EdgeCost<Cost = C>,
+    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+    F: FnMut(&W) -> bool,
+{
     let mut cost_table = vec![None; graph.node_count()];
     cost_table[start.as_usize()] = Some(W::Cost::default());
 
     let mut updated = false;
+    let mut parents = vec![None; graph.node_count()];
 
     for _ in 0..graph.node_count() {
         updated = false;
@@ -45,16 +61,15 @@ where
                     let combined_cost = cost + *weight.cost();
                     let to_cost = cost_table[to.as_usize()];
 
-                    match to_cost {
-                        Some(c) if c > combined_cost => {
-                            cost_table[to.as_usize()] = Some(combined_cost);
-                            updated = true;
-                        }
-                        None => {
-                            cost_table[to.as_usize()] = Some(combined_cost);
-                            updated = true;
-                        }
-                        _ => (),
+                    let update = match to_cost {
+                        Some(c) => c > combined_cost,
+                        None => true,
+                    } && f(weight);
+
+                    if update {
+                        cost_table[to.as_usize()] = Some(combined_cost);
+                        updated = true;
+                        parents[to.as_usize()] = Some(index);
                     }
                 }
             } else {
@@ -68,9 +83,9 @@ where
     }
 
     if updated {
-        Err(NegativeCycle)
+        Either::Right(NegativeCycle::new(start, parents))
     } else {
-        Ok(Distances::new(start, cost_table))
+        Either::Left(Distances::new(start, cost_table))
     }
 }
 
@@ -79,7 +94,6 @@ mod test {
     extern crate test;
 
     use crate::{
-        algorithms::NegativeCycle,
         prelude::*,
         test::{digraph, undigraph},
     };
@@ -139,7 +153,7 @@ mod test {
 
         b.iter(|| {
             let result = graph.bellman_ford(NodeIndex(2));
-            assert_eq!(result, Err(NegativeCycle))
+            assert!(result.is_right())
         })
     }
 
@@ -197,7 +211,7 @@ mod test {
 
         b.iter(|| {
             let result = graph.bellman_ford(NodeIndex(2));
-            assert_eq!(result, Err(NegativeCycle))
+            assert!(result.is_right())
         })
     }
 }

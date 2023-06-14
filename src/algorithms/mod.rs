@@ -14,7 +14,6 @@ use crate::{
     graph::{Base, Get},
     prelude::NodeIdentifier,
 };
-use thiserror::Error;
 
 mod bellman_ford;
 mod branch_bound;
@@ -28,9 +27,7 @@ mod nearest_neighbor;
 mod prim;
 mod search;
 
-#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
-#[error("Negative Cycle detected")]
-pub struct NegativeCycle;
+pub type NegativeCycle<NodeId> = Parents<NodeId>;
 
 pub struct ConnectedComponents<NodeId> {
     components: Vec<Vec<NodeId>>,
@@ -46,6 +43,19 @@ impl<NodeId> ConnectedComponents<NodeId> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Parents<NodeId> {
+    pub parents: Vec<Option<NodeId>>,
+    pub source: NodeId,
+}
+
+impl<NodeId> Parents<NodeId> {
+    pub fn new(source: NodeId, parents: Vec<Option<NodeId>>) -> Self {
+        Self { source, parents }
+    }
+}
+
+// TODO replace occurences with Parent when possible
 #[derive(Debug)]
 pub struct Tour<NodeId, Weight> {
     pub route: Vec<NodeId>,
