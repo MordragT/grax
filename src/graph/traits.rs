@@ -244,7 +244,3 @@ pub trait Reserve {
     fn reserve_nodes(&mut self, additional: usize);
     fn reserve_edges(&mut self, additional: usize);
 }
-
-pub trait ShallowClone<G> {
-    fn shallow_clone_nodes(&self) -> G;
-}

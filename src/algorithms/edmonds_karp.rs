@@ -1,31 +1,31 @@
 use std::{
     collections::VecDeque,
-    ops::{AddAssign, SubAssign},
+    ops::{AddAssign, Neg, SubAssign},
 };
 
 use crate::{
     graph::{
-        Base, CapacityWeight, Count, Create, EdgeCapacity, EdgeCost, Get, GetMut, IndexAdjacent,
-        Insert, Iter,
+        Base, Count, Create, FlowWeight, Get, GetMut, IndexAdjacent, Insert, Iter, WeightCapacity,
+        WeightCost,
     },
     prelude::{AdjacencyList, EdgeIdentifier, EdgeIndex, EdgeRef, NodeIdentifier, NodeIndex},
 };
 
 pub fn edmonds_karp<N, W, C, G>(graph: &G, source: G::NodeId, sink: G::NodeId) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign,
-    W: EdgeCost<Cost = C>,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C>,
+    W: WeightCost<Cost = C>,
     G: Iter<N, W> + Base<EdgeId = EdgeIndex, NodeId = NodeIndex> + Get<N, W>,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
-        let capacity = CapacityWeight::new(*weight.cost(), *weight.cost());
+        let capacity = FlowWeight::new(*weight.cost(), *weight.cost());
         residual_graph.insert_edge(edge_id, capacity);
 
         if !graph.contains_edge_id(edge_id.rev()) {
             residual_graph.insert_edge(
                 edge_id.rev(),
-                CapacityWeight::new(C::default(), *weight.cost()),
+                FlowWeight::new(C::default(), -*weight.cost()),
             );
         }
     }
@@ -36,7 +36,7 @@ where
 pub(crate) fn _edmonds_karp<N, W, C, G>(graph: &mut G, source: G::NodeId, sink: G::NodeId) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign,
-    W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C>,
+    W: WeightCapacity<Capacity = C>,
     G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
 {
     let mut total_flow = C::default();
@@ -96,7 +96,7 @@ fn bfs_augmenting_path<N, W, C, G>(
 ) -> bool
 where
     C: Default + PartialOrd,
-    W: EdgeCapacity<Capacity = C>,
+    W: WeightCapacity<Capacity = C>,
     G: Count + IndexAdjacent + Get<N, W>,
 {
     let mut queue = VecDeque::new();

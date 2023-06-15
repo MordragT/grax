@@ -17,16 +17,19 @@
 
 // neuer graph g'
 
-use std::ops::{Add, AddAssign, Neg, SubAssign};
+use std::{
+    fmt::Debug,
+    ops::{Add, AddAssign, Mul, Neg, SubAssign},
+};
 
 use either::Either;
 
 use crate::{
-    algorithms::{_edmonds_karp, bellman_ford, Parents},
+    algorithms::{_edmonds_karp, bellman_ford, Parents, Tour},
     error::GraphResult,
     graph::{
-        BalancedNode, CapacityWeight, Count, EdgeCapacity, EdgeCost, Get, GetMut, Index,
-        IndexAdjacent, Insert, Iter, IterAdjacent, Remove,
+        BalancedNode, Count, FlowWeight, Get, GetMut, Index, IndexAdjacent, Insert, Iter,
+        IterAdjacent, Maximum, Remove, WeightCapacity, WeightCost,
     },
     prelude::{Edge, EdgeIdentifier, EdgeRef, GraphError, NodeIdentifier},
 };
@@ -36,102 +39,115 @@ use super::_bellman_ford;
 pub fn cycle_canceling<N, C, G>(graph: &G) -> GraphResult<C>
 where
     N: Default,
-    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Add<C, Output = C>,
+    C: Maximum
+        + Default
+        + PartialOrd
+        + Copy
+        + Neg<Output = C>
+        + AddAssign
+        + SubAssign
+        + Add<C, Output = C>
+        + Debug,
     G: Index
-        + Get<BalancedNode<N, C>, CapacityWeight<C>>
-        + GetMut<BalancedNode<N, C>, CapacityWeight<C>>
-        + Insert<BalancedNode<N, C>, CapacityWeight<C>>
-        + Remove<BalancedNode<N, C>, CapacityWeight<C>>
+        + Get<BalancedNode<N, C>, FlowWeight<C>>
+        + GetMut<BalancedNode<N, C>, FlowWeight<C>>
+        + Insert<BalancedNode<N, C>, FlowWeight<C>>
+        + Remove<BalancedNode<N, C>, FlowWeight<C>>
         + Count
         + IndexAdjacent
-        + Iter<BalancedNode<N, C>, CapacityWeight<C>>
-        + IterAdjacent<BalancedNode<N, C>, CapacityWeight<C>>
-        + Clone,
+        + Iter<BalancedNode<N, C>, FlowWeight<C>>
+        + IterAdjacent<BalancedNode<N, C>, FlowWeight<C>>
+        + Clone
+        + Debug,
 {
     let mut residual_graph = mcf_solvable(graph)?;
     let start = residual_graph.node_ids().next().unwrap();
     let mut total_flow = C::default();
 
-    while let Either::Right(cycle) = _bellman_ford(&residual_graph, start, |weight| {
+    // dbg!(residual_graph.iter_edges().collect::<Vec<_>>());
+
+    // dbg!(_bellman_ford(&residual_graph, start, |weight| {
+    //     weight.capacity() > &C::default()
+    // }));
+
+    while let Either::Right(mut cycle) = _bellman_ford(&residual_graph, start, |weight| {
         weight.capacity() > &C::default()
     }) {
-        let Parents { parents, source } = cycle;
+        // let source_id = cycle.source().unwrap();
+        // let sink_id = cycle.sink().unwrap();
+        // let edge_id = G::EdgeId::between(source_id, sink_id);
 
-        let sink = parents[source.as_usize()].unwrap();
+        // if residual_graph.weight(edge_id).unwrap().capacity() < &C::default() {
+        //     cycle.route.insert(0, sink_id);
+        // } else {
+        //     cycle.route.push(source_id);
+        // }
 
-        dbg!(source);
-        dbg!(&parents);
+        dbg!(&cycle);
 
-        let mut to = sink;
-        let mut bottleneck = *residual_graph
-            .weight(G::EdgeId::between(source, to))
-            .unwrap()
-            .capacity();
-        let mut visited = vec![false; residual_graph.node_count()];
-        visited[source.as_usize()] = true;
+        // let source_sink_edge_id =
+        //     G::EdgeId::between(cycle.source().unwrap(), cycle.sink().unwrap());
 
-        while to != source && !visited[to.as_usize()] {
-            let from = parents[to.as_usize()].unwrap();
-            dbg!(from, to);
-            if visited[from.as_usize()] {
-                break;
-            }
+        let mut bottleneck = C::max();
 
+        // let mut bottleneck = *residual_graph
+        //     .weight(source_sink_edge_id)
+        //     .unwrap()
+        //     .capacity();
+
+        assert!(bottleneck >= C::default());
+
+        // bottleneck = if bn > C::default() { bn } else { C::default() };
+
+        for (&from, &to) in cycle.edges() {
             let edge_id = G::EdgeId::between(from, to);
-            let weight = residual_graph.weight(edge_id).unwrap();
+            let residual_capacity = residual_graph.weight(edge_id).unwrap().capacity();
 
-            if weight.capacity() < &bottleneck {
-                bottleneck = *weight.capacity();
+            if residual_capacity < &bottleneck {
+                bottleneck = *residual_capacity;
             }
-            visited[to.as_usize()] = true;
-            to = from;
         }
-
-        to = sink;
-        visited = vec![false; residual_graph.node_count()];
-        visited[source.as_usize()] = true;
+        assert!(bottleneck >= C::default());
         total_flow += bottleneck;
+        // dbg!(&total_flow);
 
-        dbg!("test");
+        for (&from, &to) in cycle.edges() {
+            let edge_id = G::EdgeId::between(from, to);
+            // dbg!(edge_id);
 
-        while to != source && !visited[to.as_usize()] {
-            let from = parents[to.as_usize()].unwrap();
-            dbg!(from, to);
-
-            if visited[from.as_usize()] {
-                break;
-            }
-
-            let weight = residual_graph
-                .weight_mut(G::EdgeId::between(from, to))
-                .unwrap();
+            let weight = residual_graph.weight_mut(edge_id).unwrap();
+            // dbg!(&weight);
             *weight.capacity_mut() -= bottleneck;
 
-            let weight_rev = residual_graph
-                .weight_mut(G::EdgeId::between(to, from))
-                .unwrap();
+            let weight_rev: &mut FlowWeight<C> = residual_graph.weight_mut(edge_id.rev()).unwrap();
+            // dbg!(&weight_rev);
             *weight_rev.capacity_mut() += bottleneck;
-
-            visited[to.as_usize()] = true;
-            to = from;
         }
+
+        // let weight = residual_graph.weight_mut(source_sink_edge_id).unwrap();
+        // *weight.capacity_mut() -= bottleneck;
+
+        // let weight_rev = residual_graph
+        //     .weight_mut(source_sink_edge_id.rev())
+        //     .unwrap();
+        // *weight_rev.capacity_mut() += bottleneck;
     }
 
     Ok(total_flow)
 }
 
-fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<G>
+fn init_residual_graph<N, C, G>(graph: &G) -> (G::NodeId, G::NodeId, G)
 where
     N: Default,
-    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign,
+    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
     G: Index
-        + Get<BalancedNode<N, C>, CapacityWeight<C>>
-        + GetMut<BalancedNode<N, C>, CapacityWeight<C>>
-        + Insert<BalancedNode<N, C>, CapacityWeight<C>>
-        + Remove<BalancedNode<N, C>, CapacityWeight<C>>
+        + Get<BalancedNode<N, C>, FlowWeight<C>>
+        + GetMut<BalancedNode<N, C>, FlowWeight<C>>
+        + Insert<BalancedNode<N, C>, FlowWeight<C>>
+        + Remove<BalancedNode<N, C>, FlowWeight<C>>
         + Count
         + IndexAdjacent
-        + Iter<BalancedNode<N, C>, CapacityWeight<C>>
+        + Iter<BalancedNode<N, C>, FlowWeight<C>>
         + Clone,
 {
     let mut residual_graph = graph.clone();
@@ -145,32 +161,53 @@ where
         if node.balance > C::default() {
             // supply
             let edge_id = G::EdgeId::between(source, node_id);
-            residual_graph.insert_edge(edge_id, CapacityWeight::new(node.balance, C::default()));
-            residual_graph.insert_edge(edge_id.rev(), CapacityWeight::default());
-        } else {
+            residual_graph.insert_edge(edge_id, FlowWeight::new(node.balance, C::default()));
+            residual_graph.insert_edge(edge_id.rev(), FlowWeight::default());
+        } else if node.balance < C::default() {
             // demand
             let edge_id = G::EdgeId::between(node_id, sink);
-            residual_graph.insert_edge(edge_id, CapacityWeight::new(-node.balance, C::default()));
-            residual_graph.insert_edge(edge_id.rev(), CapacityWeight::default());
+            residual_graph.insert_edge(edge_id, FlowWeight::new(-node.balance, C::default()));
+            residual_graph.insert_edge(edge_id.rev(), FlowWeight::default());
         }
     }
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
         if !residual_graph.contains_edge_id(edge_id.rev()) {
-            residual_graph.insert_edge(
-                edge_id.rev(),
-                CapacityWeight::new(C::default(), weight.cost),
-            );
+            let weight = FlowWeight::new(C::default(), -weight.cost);
+            // dbg!(&weight);
+            residual_graph.insert_edge(edge_id.rev(), weight);
         }
     }
 
+    (source, sink, residual_graph)
+}
+
+fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<G>
+where
+    N: Default,
+    C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
+    G: Index
+        + Get<BalancedNode<N, C>, FlowWeight<C>>
+        + GetMut<BalancedNode<N, C>, FlowWeight<C>>
+        + Insert<BalancedNode<N, C>, FlowWeight<C>>
+        + Remove<BalancedNode<N, C>, FlowWeight<C>>
+        + Count
+        + IndexAdjacent
+        + Iter<BalancedNode<N, C>, FlowWeight<C>>
+        + Clone,
+{
+    let (source, sink, mut residual_graph) = init_residual_graph(graph);
+
     let total_flow = _edmonds_karp(&mut residual_graph, source, sink);
     let expected = graph.iter_nodes().fold(C::default(), |mut akku, node| {
+        // assert!(node.balance > C::default());
         if node.balance > C::default() {
             akku += node.balance;
         }
         akku
     });
+
+    // dbg!(total_flow, expected);
 
     if total_flow != expected {
         Err(GraphError::McfNotSolvable)
@@ -183,46 +220,146 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::{prelude::AdjacencyList, test::bgraph};
+    use std::collections::HashSet;
 
-    use super::{cycle_canceling, mcf_solvable};
+    use more_asserts::assert_ge;
+
+    use crate::{
+        graph::{Get, IndexAdjacent, Iter},
+        prelude::{AdjacencyList, EdgeIdentifier, EdgeIndex, EdgeRef, NodeIndex},
+        test::bgraph,
+    };
+
+    use super::{cycle_canceling, init_residual_graph, mcf_solvable};
+
+    fn mcf_residual_graph(path: &str) {
+        let graph: AdjacencyList<_, _, true> = bgraph(path).unwrap();
+        let (source, sink, residual_graph) = init_residual_graph(&graph);
+
+        let mut nodes = HashSet::new();
+        for node_id in residual_graph.adjacent_node_ids(source) {
+            let weight = residual_graph
+                .weight(EdgeIndex::between(source, node_id))
+                .unwrap();
+            let balance = residual_graph.node(node_id).unwrap();
+
+            nodes.insert(node_id);
+            assert_eq!(balance.balance, weight.capacity)
+        }
+
+        let expected = graph
+            .iter_nodes()
+            .enumerate()
+            .filter_map(|(i, node)| {
+                if node.balance > 0.0 {
+                    Some(NodeIndex(i))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<_>>();
+        assert_eq!(nodes, expected);
+
+        nodes.clear();
+
+        for node_id in residual_graph.adjacent_node_ids(sink) {
+            let weight = residual_graph
+                .weight(EdgeIndex::between(node_id, sink))
+                .unwrap();
+            let balance = residual_graph.node(node_id).unwrap();
+
+            assert_eq!(-balance.balance, weight.capacity);
+            nodes.insert(node_id);
+        }
+
+        let expected = graph
+            .iter_nodes()
+            .enumerate()
+            .filter_map(|(i, node)| {
+                if node.balance < 0.0 {
+                    Some(NodeIndex(i))
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<_>>();
+        assert_eq!(nodes, expected);
+
+        for EdgeRef { edge_id: _, weight } in residual_graph.iter_edges() {
+            assert_ge!(weight.capacity, 0.0);
+        }
+    }
+
+    #[test]
+    fn mcf_residual_graph_kostenminimal_1() {
+        mcf_residual_graph("data/Kostenminimal1.txt")
+    }
+
+    #[test]
+    fn mcf_residual_graph_kostenminimal_gross_1() {
+        mcf_residual_graph("data/Kostenminimal_gross1.txt")
+    }
+
+    #[test]
+    fn mcf_residual_graph_kostenminimal_gross_2() {
+        mcf_residual_graph("data/Kostenminimal_gross2.txt")
+    }
 
     #[test]
     fn mcf_solvable_kostenminimal_1() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal1.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal1.txt").unwrap();
         mcf_solvable(&graph).unwrap();
     }
 
     #[test]
     fn mcf_solvable_kostenminimal_2() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal2.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal2.txt").unwrap();
         mcf_solvable(&graph).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn mcf_solvable_kostenminimal_3() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal3.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal3.txt").unwrap();
         mcf_solvable(&graph).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn mcf_solvable_kostenminimal_4() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal4.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal4.txt").unwrap();
+        mcf_solvable(&graph).unwrap();
+    }
+
+    #[test]
+    fn mcf_solvable_kostenminimal_gross_1() {
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross1.txt").unwrap();
+        mcf_solvable(&graph).unwrap();
+    }
+
+    #[test]
+    fn mcf_solvable_kostenminimal_gross_2() {
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross2.txt").unwrap();
+        mcf_solvable(&graph).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn mcf_solvable_kostenminimal_gross_3() {
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross3.txt").unwrap();
         mcf_solvable(&graph).unwrap();
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_1() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal1.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal1.txt").unwrap();
         let flow = cycle_canceling(&graph).unwrap();
         assert_eq!(flow, 3.0);
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_2() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal2.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal2.txt").unwrap();
         let flow = cycle_canceling(&graph).unwrap();
         assert_eq!(flow, 0.0);
     }
@@ -230,27 +367,27 @@ mod test {
     #[test]
     #[should_panic]
     fn cycle_canceling_kostenminimal_3() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal3.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal3.txt").unwrap();
         let _flow = cycle_canceling(&graph).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn cycle_canceling_kostenminimal_4() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal4.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal4.txt").unwrap();
         let _flow = cycle_canceling(&graph).unwrap();
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_gross_1() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal_gross1.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross1.txt").unwrap();
         let flow = cycle_canceling(&graph).unwrap();
         assert_eq!(flow, 1537.0);
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_gross_2() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal_gross2.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross2.txt").unwrap();
         let flow = cycle_canceling(&graph).unwrap();
         assert_eq!(flow, 1838.0);
     }
@@ -258,7 +395,7 @@ mod test {
     #[test]
     #[should_panic]
     fn cycle_canceling_kostenminimal_gross_3() {
-        let graph: AdjacencyList<_, _> = bgraph("data/Kostenminimal_gross3.txt").unwrap();
+        let graph: AdjacencyList<_, _, true> = bgraph("data/Kostenminimal_gross3.txt").unwrap();
         let _flow = cycle_canceling(&graph).unwrap();
     }
 }

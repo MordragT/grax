@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, EdgeCost, IndexAdjacent, IterAdjacent, Sortable},
+    graph::{Count, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
     prelude::{EdgeIdentifier, NodeIdentifier},
 };
 use priq::PriorityQueue;
@@ -10,7 +10,7 @@ use super::Distances;
 pub fn dijkstra_between<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     dijkstra(graph, from, to).distances[to.as_usize()]
@@ -19,7 +19,7 @@ where
 pub fn dijkstra<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<G::NodeId, C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let mut priority_queue = PriorityQueue::new();

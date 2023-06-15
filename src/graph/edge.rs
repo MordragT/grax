@@ -1,4 +1,18 @@
-use super::EdgeIdentifier;
+use super::NodeIdentifier;
+use std::{fmt::Debug, hash::Hash};
+
+pub trait EdgeIdentifier: Hash + Eq + Copy + Debug {
+    type NodeId: NodeIdentifier;
+
+    fn between(from: Self::NodeId, to: Self::NodeId) -> Self;
+
+    /// Reveres the edge index
+    fn rev(&self) -> Self;
+    fn to(&self) -> Self::NodeId;
+    fn from(&self) -> Self::NodeId;
+    fn contains(&self, node_id: Self::NodeId) -> bool;
+    fn as_usize(&self) -> (usize, usize);
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Edge<EdgeId, Weight> {

@@ -1,6 +1,6 @@
 use super::{dijkstra_between, nearest_neighbor, Tour};
 use crate::{
-    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
 use std::ops::{Add, AddAssign};
@@ -8,7 +8,7 @@ use std::ops::{Add, AddAssign};
 pub fn branch_bound<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -20,7 +20,7 @@ where
 pub fn branch_bound_rec<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -51,7 +51,7 @@ where
 pub(crate) fn _branch_bound<N, W, C, G>(graph: &G, start: G::NodeId) -> Tour<G::NodeId, W::Cost>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     let mut stack = Vec::new();
@@ -112,7 +112,7 @@ pub(crate) fn _branch_bound_rec<N, W, C, G>(
     baseline: &mut C,
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: IndexAdjacent + IterAdjacent<N, W> + Count,
 {
     if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {

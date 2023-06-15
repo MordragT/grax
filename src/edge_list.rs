@@ -1,6 +1,6 @@
 use crate::{
     error::GraphError,
-    graph::{BalancedNode, CapacityWeight},
+    graph::{BalancedNode, FlowWeight},
     utils::SparseMatrix,
 };
 use std::str::FromStr;
@@ -29,7 +29,7 @@ impl<W, const DI: bool> EdgeList<usize, W, DI> {
     }
 }
 
-impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, CapacityWeight<f64>, DI> {
+impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowWeight<f64>, DI> {
     type Err = GraphError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -61,7 +61,7 @@ impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, CapacityWeig
             let weight = weight.parse::<f64>()?;
             let capacity = capacity.parse::<f64>()?;
 
-            edges.insert(from, to, CapacityWeight::new(capacity, weight));
+            edges.insert(from, to, FlowWeight::new(capacity, weight));
         }
 
         Ok(Self {
@@ -154,7 +154,7 @@ impl<const DI: bool> FromStr for EdgeList<usize, f32, DI> {
 #[cfg(test)]
 mod test {
     use crate::{
-        graph::{BalancedNode, CapacityWeight},
+        graph::{BalancedNode, FlowWeight},
         prelude::AdjacencyList,
     };
 
@@ -186,9 +186,7 @@ mod test {
         let edge_list = fs::read_to_string("data/Kostenminimal1.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let _adj_list =
-            AdjacencyList::<BalancedNode<usize, f64>, CapacityWeight<f64>, true>::try_from(
-                edge_list,
-            )
-            .unwrap();
+            AdjacencyList::<BalancedNode<usize, f64>, FlowWeight<f64>, true>::try_from(edge_list)
+                .unwrap();
     }
 }

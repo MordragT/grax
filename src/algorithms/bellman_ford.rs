@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent},
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
 };
 use either::Either;
@@ -14,7 +14,7 @@ pub fn bellman_ford_between<N, W, C, G>(
 ) -> Option<W::Cost>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     bellman_ford(graph, from)
@@ -28,7 +28,7 @@ pub fn bellman_ford<N, W, C, G>(
 ) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     _bellman_ford(graph, start, |_| true)
@@ -41,7 +41,7 @@ pub(crate) fn _bellman_ford<N, W, C, G, F>(
 ) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
     F: FnMut(&W) -> bool,
 {
@@ -50,6 +50,7 @@ where
 
     let mut updated = false;
     let mut parents = vec![None; graph.node_count()];
+    let mut node = start;
 
     for _ in 0..graph.node_count() {
         updated = false;
@@ -70,6 +71,7 @@ where
                         cost_table[to.as_usize()] = Some(combined_cost);
                         updated = true;
                         parents[to.as_usize()] = Some(index);
+                        node = to;
                     }
                 }
             } else {
@@ -83,7 +85,34 @@ where
     }
 
     if updated {
-        Either::Right(NegativeCycle::new(start, parents))
+        let start = node;
+        let mut visited = vec![false; graph.node_count()];
+        let mut path = vec![];
+
+        loop {
+            let ancestor = match parents[node.as_usize()] {
+                Some(parent) => parent,
+                None => node,
+            };
+
+            if ancestor == start {
+                path.push(ancestor);
+                break;
+            }
+
+            path.push(ancestor);
+
+            if visited[ancestor.as_usize()] {
+                let pos = path.iter().position(|&p| p == ancestor).unwrap();
+                path = path[pos..path.len()].to_vec();
+                break;
+            }
+
+            visited[ancestor.as_usize()] = true;
+            node = ancestor;
+        }
+        path.reverse();
+        Either::Right(NegativeCycle::new(path, ()))
     } else {
         Either::Left(Distances::new(start, cost_table))
     }
@@ -153,7 +182,8 @@ mod test {
 
         b.iter(|| {
             let result = graph.bellman_ford(NodeIndex(2));
-            assert!(result.is_right())
+            dbg!(&result);
+            assert!(!result.is_right());
         })
     }
 

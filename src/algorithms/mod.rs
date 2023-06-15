@@ -27,7 +27,7 @@ mod nearest_neighbor;
 mod prim;
 mod search;
 
-pub type NegativeCycle<NodeId> = Parents<NodeId>;
+pub type NegativeCycle<NodeId> = Tour<NodeId, ()>;
 
 pub struct ConnectedComponents<NodeId> {
     components: Vec<Vec<NodeId>>,
@@ -82,6 +82,14 @@ impl<NodeId, Weight> Tour<NodeId, Weight> {
 }
 
 impl<NodeId: Copy, Weight> Tour<NodeId, Weight> {
+    pub fn source(&self) -> Option<NodeId> {
+        self.route.get(0).cloned()
+    }
+
+    pub fn sink(&self) -> Option<NodeId> {
+        self.route.last().cloned()
+    }
+
     pub fn nodes<'a, N, G>(&'a self, graph: &'a G) -> impl Iterator<Item = &'a N> + 'a
     where
         G: Get<N, Weight> + Base<NodeId = NodeId>,

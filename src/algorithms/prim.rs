@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Sortable},
+    graph::{Count, Index, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
     prelude::NodeIdentifier,
 };
 use priq::PriorityQueue;
@@ -8,7 +8,7 @@ use std::ops::AddAssign;
 pub fn prim<N, W, C, G>(graph: &G) -> C
 where
     C: Default + Sortable + AddAssign + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
 {
     match graph.node_ids().next() {
@@ -20,7 +20,7 @@ where
 pub(crate) fn _prim<N, W, C, G>(graph: &G, start: G::NodeId) -> C
 where
     C: Default + Sortable + AddAssign + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let n = graph.node_count();

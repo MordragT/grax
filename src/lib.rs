@@ -28,7 +28,7 @@ pub mod prelude {
 pub mod test {
     use crate::{
         error::GraphResult,
-        graph::{BalancedNode, CapacityWeight},
+        graph::{BalancedNode, FlowWeight},
         prelude::EdgeList,
     };
     use std::{fs, path::Path, str::FromStr};
@@ -69,7 +69,7 @@ pub mod test {
     pub fn bgraph<G, P>(path: P) -> GraphResult<G>
     where
         P: AsRef<Path>,
-        G: From<EdgeList<BalancedNode<usize, f64>, CapacityWeight<f64>>>,
+        G: From<EdgeList<BalancedNode<usize, f64>, FlowWeight<f64>, true>>,
     {
         let content = fs::read_to_string(path)?;
         let edge_list = EdgeList::from_str(&content)?;

@@ -2,15 +2,15 @@ use std::ops::{Add, AddAssign};
 
 use super::{dfs_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
 use crate::graph::{
-    Base, Clear, Contains, Count, Create, EdgeCost, Get, Index, IndexAdjacent, Insert, Iter,
-    IterAdjacent, Sortable,
+    Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
+    Sortable, WeightCost,
 };
 
 pub fn double_tree<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
     N: PartialEq,
     C: Default + Sortable + Copy + AddAssign + Add<C, Output = C>,
-    W: EdgeCost<Cost = C> + Copy,
+    W: WeightCost<Cost = C> + Copy,
     G: Base
         + Count
         + IndexAdjacent

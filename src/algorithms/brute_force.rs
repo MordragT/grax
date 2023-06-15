@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use crate::graph::{Contains, EdgeCost, Get, Index, Maximum};
+use crate::graph::{Contains, Get, Index, Maximum, WeightCost};
 
 use super::Tour;
 
@@ -8,7 +8,7 @@ pub fn brute_force<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
-    W: EdgeCost<Cost = C>,
+    W: WeightCost<Cost = C>,
     G: Get<N, W> + Index + Contains<N>,
 {
     let mut best_path = Vec::new();
