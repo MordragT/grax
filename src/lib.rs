@@ -12,7 +12,7 @@ pub mod edge_list;
 pub mod error;
 pub mod graph;
 pub mod graph_impl;
-pub mod utils;
+pub mod structures;
 
 pub mod prelude {
     pub use crate::edge_list::EdgeList;

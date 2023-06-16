@@ -27,8 +27,6 @@ mod nearest_neighbor;
 mod prim;
 mod search;
 
-pub type NegativeCycle<NodeId> = Tour<NodeId, ()>;
-
 pub struct ConnectedComponents<NodeId> {
     components: Vec<Vec<NodeId>>,
 }
@@ -40,18 +38,6 @@ impl<NodeId> ConnectedComponents<NodeId> {
 
     pub fn count(&self) -> usize {
         self.components.len()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Parents<NodeId> {
-    pub parents: Vec<Option<NodeId>>,
-    pub source: NodeId,
-}
-
-impl<NodeId> Parents<NodeId> {
-    pub fn new(source: NodeId, parents: Vec<Option<NodeId>>) -> Self {
-        Self { source, parents }
     }
 }
 
@@ -95,49 +81,6 @@ impl<NodeId: Copy, Weight> Tour<NodeId, Weight> {
         G: Get<N, Weight> + Base<NodeId = NodeId>,
     {
         self.route.iter().map(|index| graph.node(*index).unwrap())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Distances<NodeId: NodeIdentifier, Weight> {
-    pub distances: Vec<Option<Weight>>,
-    pub from: NodeId,
-}
-
-impl<NodeId: NodeIdentifier, Weight> Distances<NodeId, Weight> {
-    pub fn new(from: NodeId, distances: Vec<Option<Weight>>) -> Self {
-        Self { distances, from }
-    }
-
-    pub fn to(&self, to: NodeId) -> Option<&Weight> {
-        self.distances[to.as_usize()].as_ref()
-    }
-}
-
-#[derive(Debug)]
-pub struct MinimumSpanningTree<G: Base> {
-    pub tree: G,
-    pub root: G::NodeId,
-}
-
-impl<G: Base> MinimumSpanningTree<G> {
-    pub fn new(tree: G, root: G::NodeId) -> Self {
-        Self { tree, root }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct Flow<W> {
-    pub current: W,
-    pub max: W,
-}
-
-impl<W: Default> Flow<W> {
-    pub fn new(max: W) -> Self {
-        Self {
-            max,
-            current: W::default(),
-        }
     }
 }
 

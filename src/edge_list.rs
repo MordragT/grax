@@ -1,7 +1,7 @@
 use crate::{
     error::GraphError,
     graph::{BalancedNode, FlowWeight},
-    utils::SparseMatrix,
+    structures::SparseMatrix,
 };
 use std::str::FromStr;
 
@@ -53,15 +53,15 @@ impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowWeight<f
             let mut split = line.split_whitespace();
             let from = split.next().ok_or(GraphError::BadEdgeListFormat)?;
             let to = split.next().ok_or(GraphError::BadEdgeListFormat)?;
-            let weight = split.next().ok_or(GraphError::BadEdgeListFormat)?;
+            let cost = split.next().ok_or(GraphError::BadEdgeListFormat)?;
             let capacity = split.next().ok_or(GraphError::BadEdgeListFormat)?;
 
             let from = from.parse::<usize>()?;
             let to = to.parse::<usize>()?;
-            let weight = weight.parse::<f64>()?;
+            let cost = cost.parse::<f64>()?;
             let capacity = capacity.parse::<f64>()?;
 
-            edges.insert(from, to, FlowWeight::new(capacity, weight));
+            edges.insert(from, to, FlowWeight::new(capacity, cost));
         }
 
         Ok(Self {

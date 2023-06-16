@@ -1,11 +1,10 @@
 use crate::{
     graph::{Count, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
     prelude::{EdgeIdentifier, NodeIdentifier},
+    structures::Distances,
 };
 use priq::PriorityQueue;
 use std::ops::Add;
-
-use super::Distances;
 
 pub fn dijkstra_between<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<C>
 where

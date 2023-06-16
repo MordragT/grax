@@ -1,8 +1,9 @@
 use crate::graph::{Clear, Create, Index, Insert, Iter, Sortable, WeightCost};
 use crate::prelude::{EdgeIdentifier, EdgeRef};
+use crate::structures::MinimumSpanningTree;
 use std::ops::AddAssign;
 
-use super::{MinimumSpanningTree, UnionFind};
+use super::UnionFind;
 
 pub fn kruskal_weight<N, W, C, G>(graph: &G) -> C
 where

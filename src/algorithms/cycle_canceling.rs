@@ -25,7 +25,7 @@ use std::{
 use either::Either;
 
 use crate::{
-    algorithms::{_edmonds_karp, bellman_ford, Parents, Tour},
+    algorithms::{_edmonds_karp, bellman_ford},
     error::GraphResult,
     graph::{
         BalancedNode, Count, FlowWeight, Get, GetMut, Index, IndexAdjacent, Insert, Iter,
@@ -60,44 +60,25 @@ where
         + Clone
         + Debug,
 {
-    let mut residual_graph = mcf_solvable(graph)?;
-    let start = residual_graph.node_ids().next().unwrap();
+    let (start, mut residual_graph) = mcf_solvable(graph)?;
+    let mut node_ids = residual_graph.node_ids();
+    let start = node_ids.next().unwrap();
+    // let start = node_ids.next().unwrap();
     let mut total_flow = C::default();
 
     // dbg!(residual_graph.iter_edges().collect::<Vec<_>>());
 
-    // dbg!(_bellman_ford(&residual_graph, start, |weight| {
-    //     weight.capacity() > &C::default()
-    // }));
+    drop(node_ids);
 
-    while let Either::Right(mut cycle) = _bellman_ford(&residual_graph, start, |weight| {
+    // for start in graph.node_ids() {
+    while let Either::Right(cycle) = _bellman_ford(&residual_graph, start, |weight| {
         weight.capacity() > &C::default()
     }) {
-        // let source_id = cycle.source().unwrap();
-        // let sink_id = cycle.sink().unwrap();
-        // let edge_id = G::EdgeId::between(source_id, sink_id);
-
-        // if residual_graph.weight(edge_id).unwrap().capacity() < &C::default() {
-        //     cycle.route.insert(0, sink_id);
-        // } else {
-        //     cycle.route.push(source_id);
-        // }
-
-        dbg!(&cycle);
-
-        // let source_sink_edge_id =
-        //     G::EdgeId::between(cycle.source().unwrap(), cycle.sink().unwrap());
+        // dbg!(&cycle);
 
         let mut bottleneck = C::max();
 
-        // let mut bottleneck = *residual_graph
-        //     .weight(source_sink_edge_id)
-        //     .unwrap()
-        //     .capacity();
-
-        assert!(bottleneck >= C::default());
-
-        // bottleneck = if bn > C::default() { bn } else { C::default() };
+        assert!(bottleneck > C::default());
 
         for (&from, &to) in cycle.edges() {
             let edge_id = G::EdgeId::between(from, to);
@@ -107,9 +88,10 @@ where
                 bottleneck = *residual_capacity;
             }
         }
-        assert!(bottleneck >= C::default());
+        assert!(bottleneck > C::default());
         total_flow += bottleneck;
-        // dbg!(&total_flow);
+
+        // dbg!(bottleneck);
 
         for (&from, &to) in cycle.edges() {
             let edge_id = G::EdgeId::between(from, to);
@@ -118,19 +100,14 @@ where
             let weight = residual_graph.weight_mut(edge_id).unwrap();
             // dbg!(&weight);
             *weight.capacity_mut() -= bottleneck;
+            assert!(weight.capacity >= C::default());
 
             let weight_rev: &mut FlowWeight<C> = residual_graph.weight_mut(edge_id.rev()).unwrap();
             // dbg!(&weight_rev);
             *weight_rev.capacity_mut() += bottleneck;
+            assert!(weight_rev.capacity >= C::default());
         }
-
-        // let weight = residual_graph.weight_mut(source_sink_edge_id).unwrap();
-        // *weight.capacity_mut() -= bottleneck;
-
-        // let weight_rev = residual_graph
-        //     .weight_mut(source_sink_edge_id.rev())
-        //     .unwrap();
-        // *weight_rev.capacity_mut() += bottleneck;
+        // }
     }
 
     Ok(total_flow)
@@ -182,7 +159,7 @@ where
     (source, sink, residual_graph)
 }
 
-fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<G>
+fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<(G::NodeId, G)>
 where
     N: Default,
     C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
@@ -212,9 +189,9 @@ where
     if total_flow != expected {
         Err(GraphError::McfNotSolvable)
     } else {
-        residual_graph.remove_node(source);
-        residual_graph.remove_node(sink);
-        Ok(residual_graph)
+        // residual_graph.remove_node(source);
+        // residual_graph.remove_node(sink);
+        Ok((source, residual_graph))
     }
 }
 

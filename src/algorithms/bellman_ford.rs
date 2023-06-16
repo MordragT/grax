@@ -1,10 +1,10 @@
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+    structures::{Distances, Parents},
 };
 use either::Either;
 
-use super::{Distances, NegativeCycle};
 use std::ops::Add;
 
 pub fn bellman_ford_between<N, W, C, G>(
@@ -25,7 +25,7 @@ where
 pub fn bellman_ford<N, W, C, G>(
     graph: &G,
     start: G::NodeId,
-) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
+) -> Either<Distances<G::NodeId, W::Cost>, Parents<G::NodeId>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
     W: WeightCost<Cost = C>,
@@ -38,7 +38,7 @@ pub(crate) fn _bellman_ford<N, W, C, G, F>(
     graph: &G,
     start: G::NodeId,
     mut f: F,
-) -> Either<Distances<G::NodeId, W::Cost>, NegativeCycle<G::NodeId>>
+) -> Either<Distances<G::NodeId, W::Cost>, Parents<G::NodeId>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
     W: WeightCost<Cost = C>,
@@ -85,34 +85,7 @@ where
     }
 
     if updated {
-        let start = node;
-        let mut visited = vec![false; graph.node_count()];
-        let mut path = vec![];
-
-        loop {
-            let ancestor = match parents[node.as_usize()] {
-                Some(parent) => parent,
-                None => node,
-            };
-
-            if ancestor == start {
-                path.push(ancestor);
-                break;
-            }
-
-            path.push(ancestor);
-
-            if visited[ancestor.as_usize()] {
-                let pos = path.iter().position(|&p| p == ancestor).unwrap();
-                path = path[pos..path.len()].to_vec();
-                break;
-            }
-
-            visited[ancestor.as_usize()] = true;
-            node = ancestor;
-        }
-        path.reverse();
-        Either::Right(NegativeCycle::new(path, ()))
+        Either::Right(Parents::new(node, parents))
     } else {
         Either::Left(Distances::new(start, cost_table))
     }
@@ -182,7 +155,6 @@ mod test {
 
         b.iter(|| {
             let result = graph.bellman_ford(NodeIndex(2));
-            dbg!(&result);
             assert!(!result.is_right());
         })
     }

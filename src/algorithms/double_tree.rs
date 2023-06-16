@@ -1,10 +1,11 @@
 use std::ops::{Add, AddAssign};
 
-use super::{dfs_tour, dijkstra_between, kruskal_mst, MinimumSpanningTree, Tour};
+use super::{dfs_tour, dijkstra_between, kruskal_mst, Tour};
 use crate::graph::{
     Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
     Sortable, WeightCost,
 };
+use crate::structures::MinimumSpanningTree;
 
 pub fn double_tree<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where

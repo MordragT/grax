@@ -7,7 +7,7 @@ use crate::{
         Remove, Reserve,
     },
     prelude::{EdgeRef, EdgeRefMut, WeightlessGraph},
-    utils::SparseMatrix,
+    structures::SparseMatrix,
 };
 
 #[derive(Debug, Clone)]

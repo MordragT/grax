@@ -4,12 +4,14 @@ pub use node::*;
 pub use traits::*;
 pub use weight::*;
 
-use crate::algorithms::{
-    bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
-    branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra, dijkstra_between,
-    double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
-    nearest_neighbor_from_first, prim, ConnectedComponents, Distances, MinimumSpanningTree,
-    NegativeCycle, Tour,
+use crate::{
+    algorithms::{
+        bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
+        branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra,
+        dijkstra_between, double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
+        nearest_neighbor_from_first, prim, ConnectedComponents, Tour,
+    },
+    structures::{Distances, MinimumSpanningTree, Parents},
 };
 
 mod edge;
@@ -50,7 +52,7 @@ pub trait Graph<N: Node, W: Weight>:
     fn bellman_ford(
         &self,
         start: Self::NodeId,
-    ) -> Either<Distances<Self::NodeId, W::Cost>, NegativeCycle<Self::NodeId>> {
+    ) -> Either<Distances<Self::NodeId, W::Cost>, Parents<Self::NodeId>> {
         bellman_ford(self, start)
     }
 
