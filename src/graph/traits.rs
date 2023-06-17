@@ -1,4 +1,4 @@
-use super::{EdgeIdentifier, EdgeRef, EdgeRefMut, NodeIdentifier};
+use super::{index::NodeIdentifier, EdgeIdentifier, EdgeRef, EdgeRefMut};
 
 // TODO replace EdgeId NodeId with &EdgeId und &NodeId
 
@@ -47,7 +47,7 @@ pub trait Create<Node>: Sized {
 }
 
 pub trait Directed {
-    fn directed(&self) -> bool;
+    fn directed() -> bool;
 }
 
 pub trait Extend<Node, Weight>: Base {

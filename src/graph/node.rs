@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash};
+use std::fmt::Debug;
 
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct BalancedNode<N, W> {
@@ -12,10 +12,6 @@ impl<N, W> BalancedNode<N, W> {
     }
 }
 
-pub trait Node: Default + PartialEq + Clone {}
+pub trait Node: Default + PartialEq + Clone + Debug {}
 
-impl<T: Default + PartialEq + Clone> Node for T {}
-
-pub trait NodeIdentifier: Hash + Eq + Copy + Debug {
-    fn as_usize(&self) -> usize;
-}
+impl<T: Default + PartialEq + Clone + Debug> Node for T {}

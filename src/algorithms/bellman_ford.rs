@@ -25,7 +25,7 @@ where
 pub fn bellman_ford<N, W, C, G>(
     graph: &G,
     start: G::NodeId,
-) -> Either<Distances<G::NodeId, W::Cost>, Parents<G::NodeId>>
+) -> Either<Distances<G::NodeId, W::Cost>, Parents<G>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
     W: WeightCost<Cost = C>,
@@ -38,26 +38,26 @@ pub(crate) fn _bellman_ford<N, W, C, G, F>(
     graph: &G,
     start: G::NodeId,
     mut f: F,
-) -> Either<Distances<G::NodeId, W::Cost>, Parents<G::NodeId>>
+) -> Either<Distances<G::NodeId, W::Cost>, Parents<G>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy,
     W: WeightCost<Cost = C>,
     G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
     F: FnMut(&W) -> bool,
 {
-    let mut cost_table = vec![None; graph.node_count()];
+    let count = graph.node_count();
+    let mut cost_table = vec![None; count];
     cost_table[start.as_usize()] = Some(W::Cost::default());
 
     let mut updated = false;
-    let mut parents = vec![None; graph.node_count()];
-    let mut node = start;
+    let mut parents = Parents::with_count(count);
 
     for _ in 0..graph.node_count() {
         updated = false;
 
-        for index in graph.node_ids() {
-            if let Some(cost) = cost_table[index.as_usize()] {
-                for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(index) {
+        for from in graph.node_ids() {
+            if let Some(cost) = cost_table[from.as_usize()] {
+                for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
                     let to = edge_id.to();
                     let combined_cost = cost + *weight.cost();
                     let to_cost = cost_table[to.as_usize()];
@@ -70,8 +70,7 @@ where
                     if update {
                         cost_table[to.as_usize()] = Some(combined_cost);
                         updated = true;
-                        parents[to.as_usize()] = Some(index);
-                        node = to;
+                        parents.insert(from, to);
                     }
                 }
             } else {
@@ -85,7 +84,9 @@ where
     }
 
     if updated {
-        Either::Right(Parents::new(node, parents))
+        // find root of node and get the parent of root
+
+        Either::Right(parents)
     } else {
         Either::Left(Distances::new(start, cost_table))
     }
@@ -107,7 +108,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .bellman_ford_between(RawNodeId(0), RawNodeId(1))
                 .unwrap();
             assert_eq!(total as f32, 5.56283)
         })
@@ -119,7 +120,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .bellman_ford_between(RawNodeId(0), RawNodeId(1))
                 .unwrap();
             assert_eq!(total as f32, 2.36802)
         })
@@ -131,7 +132,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .bellman_ford_between(RawNodeId(2), RawNodeId(0))
                 .unwrap();
             assert_eq!(total as f32, 6.0)
         })
@@ -143,7 +144,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .bellman_ford_between(RawNodeId(2), RawNodeId(0))
                 .unwrap();
             assert_eq!(total as f32, 2.0)
         })
@@ -154,8 +155,8 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let result = graph.bellman_ford(NodeIndex(2));
-            assert!(!result.is_right());
+            let result = graph.bellman_ford(RawNodeId(2));
+            assert!(result.is_right());
         })
     }
 
@@ -165,7 +166,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .bellman_ford_between(RawNodeId(0), RawNodeId(1))
                 .unwrap();
             assert_eq!(total as f32, 5.56283)
         })
@@ -177,7 +178,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(0), NodeIndex(1))
+                .bellman_ford_between(RawNodeId(0), RawNodeId(1))
                 .unwrap();
             assert_eq!(total as f32, 2.36802)
         })
@@ -189,7 +190,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .bellman_ford_between(RawNodeId(2), RawNodeId(0))
                 .unwrap();
             assert_eq!(total as f32, 6.0)
         })
@@ -201,7 +202,7 @@ mod test {
 
         b.iter(|| {
             let total = graph
-                .bellman_ford_between(NodeIndex(2), NodeIndex(0))
+                .bellman_ford_between(RawNodeId(2), RawNodeId(0))
                 .unwrap();
             assert_eq!(total as f32, 2.0)
         })
@@ -212,7 +213,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let result = graph.bellman_ford(NodeIndex(2));
+            let result = graph.bellman_ford(RawNodeId(2));
             assert!(result.is_right())
         })
     }

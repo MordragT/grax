@@ -149,6 +149,6 @@ impl WeightCost for f64 {
     }
 }
 
-pub trait Weight: WeightCost<Cost: Cost> + Copy {}
+pub trait Weight: WeightCost<Cost: Cost> + Copy + Debug {}
 
-impl<T: WeightCost<Cost: Cost> + Copy> Weight for T {}
+impl<T: WeightCost<Cost: Cost> + Copy + Debug> Weight for T {}

@@ -150,7 +150,7 @@ pub fn graph_gross() -> Result<(), Box<dyn std::error::Error>> {
     let graph = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
 
     let now = Instant::now();
-    let counter = graph.bfs_connected_components().count();
+    let counter = graph.bfs_scc().len();
     let elapsed = now.elapsed();
 
     println!("Counter: {counter} in {:?}", elapsed);
@@ -163,7 +163,7 @@ pub fn depth_search(path: &str) {
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
 
-    let connected_components = graph.dfs_connected_components().count();
+    let connected_components = graph.dfs_scc().len();
 
     println!("Connected Components: {connected_components}");
 }

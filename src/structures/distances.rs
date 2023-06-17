@@ -1,4 +1,4 @@
-use crate::prelude::NodeIdentifier;
+use crate::graph::NodeIdentifier;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distances<NodeId: NodeIdentifier, Weight> {

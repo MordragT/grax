@@ -8,14 +8,14 @@ use crate::{
         Base, Count, Create, FlowWeight, Get, GetMut, IndexAdjacent, Insert, Iter, WeightCapacity,
         WeightCost,
     },
-    prelude::{AdjacencyList, EdgeIdentifier, EdgeIndex, EdgeRef, NodeIdentifier, NodeIndex},
+    prelude::{AdjacencyList, EdgeIdentifier, EdgeRef, NodeIdentifier, RawEdgeId, RawNodeId},
 };
 
 pub fn edmonds_karp<N, W, C, G>(graph: &G, source: G::NodeId, sink: G::NodeId) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C>,
     W: WeightCost<Cost = C>,
-    G: Iter<N, W> + Base<EdgeId = EdgeIndex, NodeId = NodeIndex> + Get<N, W>,
+    G: Iter<N, W> + Base<EdgeId = RawEdgeId, NodeId = RawNodeId> + Get<N, W>,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
@@ -88,6 +88,7 @@ where
     total_flow
 }
 
+// TODO use bfs just put nodes with cap < 0 in visited vec
 fn bfs_augmenting_path<N, W, C, G>(
     graph: &G,
     source: G::NodeId,
@@ -139,7 +140,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 0.75447)
         })
     }
@@ -149,7 +150,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Fluss.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 4.0)
         })
     }
@@ -159,7 +160,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Fluss2.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 5.0)
         })
     }
@@ -169,7 +170,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 0.75447)
         })
     }
@@ -179,7 +180,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Fluss.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 4.0)
         })
     }
@@ -189,7 +190,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Fluss2.txt").unwrap();
 
         b.iter(|| {
-            let total = edmonds_karp(&graph, NodeIndex(0), NodeIndex(7));
+            let total = edmonds_karp(&graph, RawNodeId(0), RawNodeId(7));
             assert_eq!(total as f32, 5.0)
         })
     }

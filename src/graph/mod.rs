@@ -1,20 +1,24 @@
+use std::fmt::Debug;
+
 pub use edge::*;
 use either::Either;
+pub use index::*;
 pub use node::*;
 pub use traits::*;
 pub use weight::*;
 
 use crate::{
     algorithms::{
-        bellman_ford, bellman_ford_between, bfs_connected_components, bfs_tour, branch_bound,
-        branch_bound_rec, brute_force, dfs_connected_components, dfs_tour, dijkstra,
-        dijkstra_between, double_tree, edmonds_karp, kruskal_mst, kruskal_weight, nearest_neighbor,
-        nearest_neighbor_from_first, prim, ConnectedComponents, Tour,
+        bellman_ford, bellman_ford_between, bfs, bfs_scc, branch_bound, branch_bound_rec,
+        brute_force, dfs, dfs_scc, dijkstra, dijkstra_between, double_tree, edmonds_karp, kruskal,
+        nearest_neighbor, nearest_neighbor_from_first, prim,
     },
-    structures::{Distances, MinimumSpanningTree, Parents},
+    prelude::Tree,
+    structures::{Distances, Parents, Tour},
 };
 
 mod edge;
+mod index;
 mod node;
 #[cfg(test)]
 pub mod test;
@@ -44,6 +48,7 @@ pub trait Graph<N: Node, W: Weight>:
     // + for<'a> Ref<'a, N, W>
     + Sized
     + Clone
+    + Debug
 {
     fn bellman_ford_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W::Cost> {
         bellman_ford_between(self, from, to)
@@ -52,7 +57,7 @@ pub trait Graph<N: Node, W: Weight>:
     fn bellman_ford(
         &self,
         start: Self::NodeId,
-    ) -> Either<Distances<Self::NodeId, W::Cost>, Parents<Self::NodeId>> {
+    ) -> Either<Distances<Self::NodeId, W::Cost>, Parents<Self>> {
         bellman_ford(self, start)
     }
 
@@ -69,32 +74,31 @@ pub trait Graph<N: Node, W: Weight>:
     // }
 
     fn kruskal_weight(&self) -> W::Cost {
-        kruskal_weight(self)
+        kruskal(self).1
     }
 
-    fn kruskal_mst(&self) -> MinimumSpanningTree<Self>
-    {
-        kruskal_mst(self)
+    fn kruskal(&self) -> (Tree<Self>, W::Cost) {
+        kruskal(self)
     }
 
     fn prim(&self) -> W::Cost {
         prim(self)
     }
 
-    fn dfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
-        dfs_connected_components(self)
+    fn dfs_scc(&self) -> Vec<Tree<Self>> {
+        dfs_scc(self)
     }
 
-    fn bfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
-        bfs_connected_components(self)
+    fn bfs_scc(&self) -> Vec<Tree<Self>> {
+        bfs_scc(self)
     }
 
-    fn dfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
-        dfs_tour(self, from)
+    fn dfs(&self, from: Self::NodeId) -> Tree<Self> {
+        dfs(self, from)
     }
 
-    fn bfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
-        bfs_tour(self, from)
+    fn bfs(&self, from: Self::NodeId) -> Tree<Self> {
+        bfs(self, from)
     }
 
     fn nearest_neighbor(&self, start: Self::NodeId) -> Option<Tour<Self::NodeId, W::Cost>> {
@@ -146,19 +150,19 @@ pub trait WeightlessGraph<N>:
     + Sized
     + Clone
 {
-    fn dfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
-        dfs_connected_components(self)
+    fn dfs_scc(&self) -> Vec<Tree<Self>> {
+        dfs_scc(self)
     }
 
-    fn bfs_connected_components(&self) -> ConnectedComponents<Self::NodeId> {
-        bfs_connected_components(self)
+    fn bfs_scc(&self) -> Vec<Tree<Self>> {
+        bfs_scc(self)
     }
 
-    fn dfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
-        dfs_tour(self, from)
+    fn dfs(&self, from: Self::NodeId) -> Tree<Self> {
+        dfs(self, from)
     }
 
-    fn bfs_tour(&self, from: Self::NodeId) -> Tour<Self::NodeId, ()> {
-        bfs_tour(self, from)
+    fn bfs(&self, from: Self::NodeId) -> Tree<Self> {
+        bfs(self, from)
     }
 }

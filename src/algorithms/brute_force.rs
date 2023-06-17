@@ -1,8 +1,9 @@
 use std::ops::AddAssign;
 
-use crate::graph::{Contains, Get, Index, Maximum, WeightCost};
-
-use super::Tour;
+use crate::{
+    graph::{Contains, Get, Index, Maximum, WeightCost},
+    structures::Tour,
+};
 
 pub fn brute_force<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where

@@ -1,4 +1,4 @@
-use super::{BaseGraph, EdgeIndex, NodeIndex};
+use super::{BaseGraph, RawEdgeId, RawNodeId};
 use crate::{
     edge_list::EdgeList,
     graph::{
@@ -13,7 +13,7 @@ use std::fmt::Debug;
 #[derive(Debug, Clone)]
 pub struct AdjacencyList<Node, Weight, const DI: bool = false> {
     pub(crate) base: BaseGraph<Node, Weight, DI>,
-    pub(crate) adjacencies: Vec<Vec<NodeIndex>>,
+    pub(crate) adjacencies: Vec<Vec<RawNodeId>>,
 }
 
 impl<Node, Weight, const DI: bool> AdjacencyList<Node, Weight, DI> {
@@ -35,7 +35,7 @@ impl<Node, Weight: Copy, const DI: bool> From<EdgeList<Node, Weight, DI>>
         let mut adj_list = Self::with_nodes(nodes.into_iter());
 
         for (from, to, weight) in edges.into_iter() {
-            let edge_id = EdgeIndex::between(NodeIndex(from), NodeIndex(to));
+            let edge_id = RawEdgeId::between(RawNodeId(from), RawNodeId(to));
 
             if !DI {
                 adj_list.insert_edge(edge_id.rev(), weight);
@@ -49,8 +49,8 @@ impl<Node, Weight: Copy, const DI: bool> From<EdgeList<Node, Weight, DI>>
 }
 
 impl<Node, Weight, const DI: bool> Base for AdjacencyList<Node, Weight, DI> {
-    type EdgeId = EdgeIndex;
-    type NodeId = NodeIndex;
+    type EdgeId = RawEdgeId;
+    type NodeId = RawNodeId;
 }
 
 impl<Node, Weight, const DI: bool> Capacity for AdjacencyList<Node, Weight, DI> {
@@ -116,7 +116,7 @@ impl<Node, Weight, const DI: bool> Create<Node> for AdjacencyList<Node, Weight, 
 }
 
 impl<Node, Weight, const DI: bool> Directed for AdjacencyList<Node, Weight, DI> {
-    fn directed(&self) -> bool {
+    fn directed() -> bool {
         DI
     }
 }
@@ -154,9 +154,9 @@ impl<Node, Weight, const DI: bool> GetMut<Node, Weight> for AdjacencyList<Node, 
 }
 
 impl<Node, Weight, const DI: bool> Index for AdjacencyList<Node, Weight, DI> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type EdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
     where Self: 'a;
-    type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type NodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
     where Self: 'a;
 
     fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a> {
@@ -169,14 +169,14 @@ impl<Node, Weight, const DI: bool> Index for AdjacencyList<Node, Weight, DI> {
 }
 
 impl<Node, Weight, const DI: bool> IndexAdjacent for AdjacencyList<Node, Weight, DI> {
-    type AdjacentEdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type AdjacentEdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
     where Self: 'a;
-    type AdjacentNodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type AdjacentNodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
     where Self: 'a;
 
     fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a> {
         self.adjacent_node_ids(node_id)
-            .map(move |to| EdgeIndex::between(node_id, to))
+            .map(move |to| RawEdgeId::between(node_id, to))
     }
     fn adjacent_node_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIds<'a> {
         self.adjacencies[node_id.0].iter().cloned()
@@ -240,7 +240,7 @@ impl<Node, Weight, const DI: bool> IterAdjacent<Node, Weight> for AdjacencyList<
 
     fn iter_adjacent_edges<'a>(&'a self, node_id: Self::NodeId) -> Self::Edges<'a> {
         self.adjacent_node_ids(node_id).map(move |to| {
-            let edge_id = EdgeIndex::between(node_id, to);
+            let edge_id = RawEdgeId::between(node_id, to);
             EdgeRef::new(edge_id, self.weight(edge_id).unwrap())
         })
     }
@@ -263,7 +263,7 @@ impl<Node, Weight, const DI: bool> IterAdjacentMut<Node, Weight>
         self.iter_nodes_mut()
             .enumerate()
             .filter_map(move |(i, node)| {
-                if ids.contains(&NodeIndex(i)) {
+                if ids.contains(&RawNodeId(i)) {
                     Some(node)
                 } else {
                     None

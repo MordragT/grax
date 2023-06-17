@@ -6,7 +6,7 @@ use crate::{
     prelude::{EdgeIdentifier, EdgeRefMut, NodeIdentifier},
 };
 
-use super::{EdgeIndex, NodeIndex};
+use super::{RawEdgeId, RawNodeId};
 use std::collections::HashMap;
 
 /// This Graph only implements a subset of the Graph traits.
@@ -15,14 +15,14 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaseGraph<Node, Weight, const DI: bool> {
     pub(crate) nodes: Vec<Node>,
-    pub(crate) edges: HashMap<EdgeIndex, Weight>,
+    pub(crate) edges: HashMap<RawEdgeId, Weight>,
 }
 
 impl<Node, Weight, const DI: bool> BaseGraph<Node, Weight, DI> {}
 
 impl<Node, Weight, const DI: bool> Base for BaseGraph<Node, Weight, DI> {
-    type EdgeId = EdgeIndex;
-    type NodeId = NodeIndex;
+    type EdgeId = RawEdgeId;
+    type NodeId = RawNodeId;
 }
 
 impl<Node, Weight, const DI: bool> Capacity for BaseGraph<Node, Weight, DI> {
@@ -52,11 +52,11 @@ impl<Node: PartialEq, Weight, const DI: bool> Contains<Node> for BaseGraph<Node,
             .iter()
             .enumerate()
             .find(|(_i, other)| *other == node)
-            .map(|(id, _)| NodeIndex(id))
+            .map(|(id, _)| RawNodeId(id))
     }
 
     fn contains_edge(&self, from: Self::NodeId, to: Self::NodeId) -> Option<Self::EdgeId> {
-        let edge_id = EdgeIndex::between(from, to);
+        let edge_id = RawEdgeId::between(from, to);
         if self.contains_edge_id(edge_id) {
             Some(edge_id)
         } else {
@@ -92,7 +92,7 @@ impl<Node, Weight, const DI: bool> Create<Node> for BaseGraph<Node, Weight, DI> 
 }
 
 impl<Node, Weight, const DI: bool> Directed for BaseGraph<Node, Weight, DI> {
-    fn directed(&self) -> bool {
+    fn directed() -> bool {
         DI
     }
 }
@@ -128,9 +128,9 @@ impl<Node, Weight, const DI: bool> GetMut<Node, Weight> for BaseGraph<Node, Weig
 }
 
 impl<Node, Weight, const DI: bool> Index for BaseGraph<Node, Weight, DI> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeIndex> + 'a
+    type EdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
     where Self: 'a;
-    type NodeIds<'a> = impl Iterator<Item = NodeIndex> + 'a
+    type NodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
     where Self: 'a;
 
     fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a> {
@@ -138,13 +138,13 @@ impl<Node, Weight, const DI: bool> Index for BaseGraph<Node, Weight, DI> {
     }
 
     fn node_ids<'a>(&'a self) -> Self::NodeIds<'a> {
-        (0..self.nodes.len()).map(NodeIndex)
+        (0..self.nodes.len()).map(RawNodeId)
     }
 }
 
 impl<Node, Weight, const DI: bool> Insert<Node, Weight> for BaseGraph<Node, Weight, DI> {
     fn add_node(&mut self, node: Node) -> Self::NodeId {
-        let node_id = NodeIndex(self.nodes.len());
+        let node_id = RawNodeId(self.nodes.len());
         self.nodes.push(node);
         return node_id;
     }

@@ -1,16 +1,17 @@
+use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-use super::{dfs_tour, dijkstra_between, kruskal_mst, Tour};
+use super::{dfs_iter, dijkstra_between, kruskal};
 use crate::graph::{
     Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
     Sortable, WeightCost,
 };
-use crate::structures::MinimumSpanningTree;
+use crate::structures::Tour;
 
 pub fn double_tree<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
 where
     N: PartialEq,
-    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C>,
+    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug,
     W: WeightCost<Cost = C> + Copy,
     G: Base
         + Count
@@ -25,26 +26,23 @@ where
         + Contains<N>
         + Clone,
 {
-    let MinimumSpanningTree::<G> { tree: mst, root } = kruskal_mst(graph);
+    let tree = kruskal(graph).0;
+    let route = dfs_iter(&tree, tree.root()).collect::<Vec<_>>();
+    let mut tour = Tour::new(route, C::default());
+    let mut total_cost = C::default();
 
-    let mut route = dfs_tour(&mst, root).route;
-    route.push(root);
-
-    if route.len() != graph.node_count() + 1 {
-        return None;
-    }
-
-    let mut total_weight = C::default();
-    for [from, to] in route.array_windows::<2>() {
-        let weight = match mst.contains_edge(*from, *to) {
-            Some(index) => *mst.weight(index).unwrap().cost(),
+    for (from, to) in tour.edges() {
+        let weight = match graph.contains_edge(*from, *to) {
+            Some(edge_id) => *graph.weight(edge_id).unwrap().cost(),
             None if let Some(weight) = dijkstra_between(graph, *from, *to) => weight,
             _ => return None,
         };
-        total_weight += weight;
+        total_cost += weight;
     }
 
-    Some(Tour::new(route, total_weight))
+    tour.weight = total_cost;
+
+    Some(tour)
 }
 
 #[cfg(test)]

@@ -28,10 +28,46 @@ pub mod prelude {
 pub mod test {
     use crate::{
         error::GraphResult,
-        graph::{BalancedNode, FlowWeight},
-        prelude::EdgeList,
+        graph::{BalancedNode, Base, FlowWeight},
+        prelude::{EdgeIdentifier, EdgeList},
     };
     use std::{fs, path::Path, str::FromStr};
+
+    #[derive(Debug)]
+    pub struct PhantomGraph;
+
+    impl Base for PhantomGraph {
+        type NodeId = usize;
+        type EdgeId = (usize, usize);
+    }
+
+    impl EdgeIdentifier for (usize, usize) {
+        type NodeId = usize;
+
+        fn between(from: Self::NodeId, to: Self::NodeId) -> Self {
+            (from, to)
+        }
+
+        fn contains(&self, index: usize) -> bool {
+            self.0 == index || self.1 == index
+        }
+
+        fn rev(&self) -> Self {
+            (self.1, self.0)
+        }
+
+        fn to(&self) -> Self::NodeId {
+            self.1
+        }
+
+        fn from(&self) -> Self::NodeId {
+            self.0
+        }
+
+        fn as_usize(&self) -> (usize, usize) {
+            *self
+        }
+    }
 
     pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>
     where

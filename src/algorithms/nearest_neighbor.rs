@@ -1,7 +1,8 @@
-use super::{dijkstra_between, Tour};
+use super::dijkstra_between;
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+    structures::Tour,
 };
 use std::ops::{Add, AddAssign};
 
