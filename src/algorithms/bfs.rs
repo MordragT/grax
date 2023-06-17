@@ -154,6 +154,7 @@ mod test {
         });
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn bfs_scc_graph_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = weightless_undigraph("data/Graph_ganzgross.txt").unwrap();
@@ -164,6 +165,7 @@ mod test {
         });
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn bfs_scc_graph_ganz_ganz_gross_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> =

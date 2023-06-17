@@ -2,11 +2,11 @@ use super::dijkstra_between;
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
-    structures::Tour,
+    structures::Route,
 };
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor_from_first<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
+pub fn nearest_neighbor_from_first<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: WeightCost<Cost = C>,
@@ -18,7 +18,7 @@ where
     }
 }
 
-pub fn nearest_neighbor<N, W, C, G>(graph: &G, start: G::NodeId) -> Option<Tour<G::NodeId, C>>
+pub fn nearest_neighbor<N, W, C, G>(graph: &G, start: G::NodeId) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: WeightCost<Cost = C>,
@@ -99,7 +99,7 @@ where
         accu
     });
 
-    Some(Tour::new(route, weight))
+    Some((Route::new(route), weight))
 }
 
 #[cfg(test)]
@@ -114,7 +114,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -124,7 +124,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 27.26 * 1.2);
         })
     }
@@ -134,7 +134,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -144,7 +144,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 36.13 * 1.2);
         })
     }
@@ -154,7 +154,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -164,7 +164,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 27.26 * 1.2);
         })
     }
@@ -174,7 +174,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -184,7 +184,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.nearest_neighbor_from_first().unwrap().weight;
+            let total = graph.nearest_neighbor_from_first().unwrap().1;
             assert_le!(total, 36.13 * 1.2);
         })
     }

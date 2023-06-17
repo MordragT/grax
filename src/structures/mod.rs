@@ -1,9 +1,9 @@
 pub use distances::*;
 pub use matrix::*;
 pub use parents::*;
-pub use tour::*;
+pub use route::*;
 
 mod distances;
 mod matrix;
 mod parents;
-mod tour;
+mod route;

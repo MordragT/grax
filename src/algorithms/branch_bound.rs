@@ -2,11 +2,11 @@ use super::{dijkstra_between, nearest_neighbor};
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable, WeightCost},
     prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
-    structures::Tour,
+    structures::Route,
 };
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
+pub fn branch_bound<N, W, C, G>(graph: &G) -> Option<(Route<G>, W::Cost)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: WeightCost<Cost = C>,
@@ -18,7 +18,7 @@ where
     }
 }
 
-pub fn branch_bound_rec<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, W::Cost>>
+pub fn branch_bound_rec<N, W, C, G>(graph: &G) -> Option<(Route<G>, W::Cost)>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum,
     W: WeightCost<Cost = C>,
@@ -27,7 +27,7 @@ where
     match graph.node_ids().next() {
         Some(start) => {
             let mut baseline = nearest_neighbor(graph, start)
-                .map(|tour| tour.weight)
+                .map(|tour| tour.1)
                 .unwrap_or(Maximum::max());
             let mut path = vec![start];
             let mut visited = vec![false; graph.node_count()];
@@ -43,13 +43,13 @@ where
                 &mut baseline,
             );
 
-            Some(Tour::new(path, baseline))
+            Some((Route::new(path), baseline))
         }
         None => None,
     }
 }
 
-pub(crate) fn _branch_bound<N, W, C, G>(graph: &G, start: G::NodeId) -> Tour<G::NodeId, W::Cost>
+pub(crate) fn _branch_bound<N, W, C, G>(graph: &G, start: G::NodeId) -> (Route<G>, W::Cost)
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: WeightCost<Cost = C>,
@@ -57,7 +57,7 @@ where
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
-        .map(|tour| tour.weight)
+        .map(|tour| tour.1)
         .unwrap_or(Maximum::max());
     let mut route = Vec::new();
 
@@ -100,7 +100,7 @@ where
         }
     }
 
-    Tour::new(route, total_cost)
+    (Route::new(route), total_cost)
 }
 
 pub(crate) fn _branch_bound_rec<N, W, C, G>(
@@ -151,7 +151,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -161,7 +161,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -171,7 +171,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -181,7 +181,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 36.13);
         })
     }
@@ -191,7 +191,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -201,7 +201,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -211,7 +211,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -221,7 +221,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 36.13);
         })
     }
@@ -231,7 +231,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -241,7 +241,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -251,7 +251,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -261,7 +261,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound().unwrap().weight as f32;
+            let total = graph.branch_bound().unwrap().1 as f32;
             assert_eq!(total, 36.13);
         })
     }
@@ -271,7 +271,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -281,7 +281,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -291,7 +291,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -301,7 +301,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.branch_bound_rec().unwrap().weight as f32;
+            let total = graph.branch_bound_rec().unwrap().1 as f32;
             assert_eq!(total, 36.13);
         })
     }

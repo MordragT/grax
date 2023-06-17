@@ -6,9 +6,9 @@ use crate::graph::{
     Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
     Sortable, WeightCost,
 };
-use crate::structures::Tour;
+use crate::structures::Route;
 
-pub fn double_tree<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
+pub fn double_tree<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug,
@@ -28,21 +28,15 @@ where
 {
     let tree = kruskal(graph).0;
     let route = dfs_iter(&tree, tree.root()).collect::<Vec<_>>();
-    let mut tour = Tour::new(route, C::default());
+    let route = Route::new(route);
     let mut total_cost = C::default();
 
-    for (from, to) in tour.edges() {
-        let weight = match graph.contains_edge(*from, *to) {
-            Some(edge_id) => *graph.weight(edge_id).unwrap().cost(),
-            None if let Some(weight) = dijkstra_between(graph, *from, *to) => weight,
-            _ => return None,
-        };
-        total_cost += weight;
+    for edge_id in route.edge_ids() {
+        let cost = *graph.weight(edge_id).unwrap().cost();
+        total_cost += cost;
     }
 
-    tour.weight = total_cost;
-
-    Some(tour)
+    Some((route, total_cost))
 }
 
 #[cfg(test)]
@@ -57,7 +51,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -67,7 +61,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 27.26 * 1.3);
         })
     }
@@ -77,7 +71,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -87,7 +81,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 36.13 * 1.2);
         })
     }
@@ -97,7 +91,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 38.41 * 1.2);
         })
     }
@@ -107,7 +101,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 27.26 * 1.3);
         })
     }
@@ -117,7 +111,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 45.19 * 1.2);
         })
     }
@@ -127,7 +121,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = graph.double_tree().unwrap().weight;
+            let total = graph.double_tree().unwrap().1;
             assert_le!(total, 36.13 * 1.2);
         })
     }

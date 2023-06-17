@@ -104,6 +104,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_10_200_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = undigraph("data/G_10_200.txt").unwrap();
@@ -114,6 +115,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_100_200_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = undigraph("data/G_100_200.txt").unwrap();
@@ -164,23 +166,25 @@ mod test {
         })
     }
 
-    // #[bench]
-    // fn prim_graph_10_200_adj_mat(b: &mut Bencher) {
-    //     let graph: AdjacencyMatrix<_, _> = undigraph("data/G_10_200.txt").unwrap();
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_10_200_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_10_200.txt").unwrap();
 
-    //     b.iter(|| {
-    //         let count = graph.prim() as f32;
-    //         assert_eq!(count, 372.14417);
-    //     })
-    // }
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
 
-    // #[bench]
-    // fn prim_graph_100_200_adj_mat(b: &mut Bencher) {
-    //     let graph: AdjacencyMatrix<_, _> = undigraph("data/G_100_200.txt").unwrap();
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_100_200_adj_mat(b: &mut Bencher) {
+        let graph: AdjacencyMatrix<_, _> = undigraph("data/G_100_200.txt").unwrap();
 
-    //     b.iter(|| {
-    //         let count = graph.prim() as f32;
-    //         assert_eq!(count, 27550.51488);
-    //     })
-    // }
+        b.iter(|| {
+            let count = graph.prim() as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
 }

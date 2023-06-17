@@ -3,6 +3,8 @@ use crate::{
     prelude::{EdgeIdentifier, NodeIdentifier},
 };
 
+use super::Route;
+
 // TODO parents wieder zurück in structures gerade adjacent nodes und adjacent indices sind nicht performant
 // stattdessen tree vernünftig als "subgraph" implementieren
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -50,95 +52,93 @@ impl<G: Base> Parents<G> {
             }
         })
     }
+
+    // only use this if parents is known to have cycle and "node" is in it
+    pub(crate) fn find_cycle(&self, start: G::NodeId) -> Route<G> {
+        let mut visited = vec![false; self.count()];
+        let mut path = Vec::new();
+        let mut node = start;
+
+        loop {
+            let ancestor = match self.parent(node) {
+                Some(predecessor_node) => predecessor_node,
+                None => node, // no predecessor, self cycle
+            };
+            // We have only 2 ways to find the cycle and break the loop:
+            // 1. start is reached
+            if ancestor == start {
+                path.push(ancestor);
+                break;
+            }
+            // 2. some node was reached twice
+            else if visited[ancestor.as_usize()] {
+                // Drop any node in path that is before the first ancestor
+                let pos = path
+                    .iter()
+                    .position(|&p| p == ancestor)
+                    .expect("we should always have a position");
+                path = path[pos..path.len()].to_vec();
+
+                break;
+            }
+
+            // None of the above, some middle path node
+            path.push(ancestor);
+            visited[ancestor.as_usize()] = true;
+            node = ancestor;
+        }
+
+        Route::new(path)
+    }
 }
 
-// impl<NodeId: NodeIdentifier> Parents<NodeId> {
-//     pub fn node_id_cycle<'a>(&self) -> Vec<NodeId> {
-//         let mut node = self.source;
-//         let mut visited = vec![false; self.count()];
-//         let mut cycle = Vec::new();
-//         let mut is_inner = false;
+#[cfg(test)]
+mod tests {
+    use crate::test::PhantomGraph;
 
-//         while let Some(parent) = self.parents[node.as_usize()] && parent != self.source {
-//             cycle.push(parent);
+    use super::*;
 
-//             // inner cycle
-//             if visited[parent.as_usize()] {
-//                 let pos = cycle.iter().position(|&p| p == parent).unwrap();
-//                 cycle = cycle[pos..].to_vec();
-//                 is_inner = true;
-//                 break;
-//             }
+    // Helper function to create a Parents struct from a given list of parent nodes
+    fn create_parents(parents: Vec<Option<usize>>) -> Parents<PhantomGraph> {
+        Parents(parents)
+    }
 
-//             visited[parent.as_usize()] = true;
-//             node = parent;
-//         }
+    #[test]
+    fn parents_find_cycle_no_cycle() {
+        let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(4), None]);
+        let start = 0;
+        let cycle = parents.find_cycle(start);
 
-//         cycle = if cycle.len() == self.count() {
-//             // complete cycle
-//             cycle.push(cycle[0]);
-//             cycle
-//         } else if is_inner {
-//             cycle
-//         } else {
-//             panic!()
-//         };
-//         cycle.reverse();
-//         cycle
-//     }
+        assert_eq!(cycle.count(), 0); // No cycle should be found
+    }
 
-//     pub fn edge_id_cycle<G: Base<NodeId = NodeId>>(&self) -> Vec<G::EdgeId> {
-//         let mut node = self.source;
-//         let mut visited = vec![false; self.count()];
-//         // let mut cycle = Vec::new();
-//         let mut is_inner = false;
+    #[test]
+    fn parents_find_cycle_self_cycle() {
+        let parents = create_parents(vec![Some(0), Some(2), Some(0), Some(3), Some(4)]);
+        let start = 0;
+        let cycle = parents.find_cycle(start);
 
-//         todo!()
-//     }
+        assert_eq!(cycle.count(), 1); // Self cycle should be found
+        assert_eq!(cycle.into_raw(), vec![0]);
+    }
 
-//     pub fn nodes<'a, N, W, G: Get<N, W> + Base<NodeId = NodeId>>(
-//         &'a self,
-//         graph: &'a G,
-//     ) -> Vec<&'a N> {
-//         let mut tour = self
-//             .iter()
-//             .map(|node_id| graph.node(node_id).unwrap())
-//             .collect::<Vec<_>>();
-//         tour.reverse();
-//         tour
-//     }
+    #[test]
+    fn parents_find_cycle_single_cycle() {
+        let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(0), Some(4)]);
+        let start = 0;
+        let cycle = parents.find_cycle(start);
 
-//     pub fn edges<N, W, G: Get<N, W>>(&self, graph: &G) -> Vec<EdgeRef<NodeId, W>> {
-//         todo!()
-//     }
+        assert_eq!(cycle.count(), 4); // Cycle with 4 nodes should be found
+        assert_eq!(cycle.into_raw(), vec![1, 2, 3, 0]);
+    }
 
-//     pub fn node_ids(&self) -> Vec<NodeId> {
-//         let mut node_ids = self.iter().collect::<Vec<_>>();
-//         node_ids.reverse();
-//         node_ids
-//     }
+    #[test]
+    fn parents_find_cycle_multiple_cycles() {
+        let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(0), Some(5), Some(4)]);
+        let start = 0;
+        let cycle = parents.find_cycle(start);
 
-//     pub fn iter<'a>(&'a self) -> impl Iterator<Item = NodeId> + 'a {
-//         let mut node = self.source;
-
-//         std::iter::from_fn(move || {
-//             if let Some(parent) = self.parents[node.as_usize()] && parent != self.source {
-//                 node = parent;
-//                 return Some(parent);
-//             }
-//             None
-//         })
-//     }
-// }
-
-// #[cfg(test)]
-// mod test {
-//     use super::Parents;
-
-//     #[test]
-//     fn parents_node_cycle() {
-//         let parents = Parents::<u32>::new(0, vec![None, Some(3), Some(0), None, Some(2)]);
-
-//         dbg!(parents.node_id_cycle());
-//     }
-// }
+        assert_eq!(cycle.count(), 4); // Cycle with 4 nodes should be found
+        assert_eq!(cycle.into_raw(), vec![1, 2, 3, 0]);
+    }
+}

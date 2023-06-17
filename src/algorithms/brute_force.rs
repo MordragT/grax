@@ -2,10 +2,10 @@ use std::ops::AddAssign;
 
 use crate::{
     graph::{Contains, Get, Index, Maximum, WeightCost},
-    structures::Tour,
+    structures::Route,
 };
 
-pub fn brute_force<N, W, C, G>(graph: &G) -> Option<Tour<G::NodeId, C>>
+pub fn brute_force<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
@@ -45,6 +45,6 @@ where
     if best_weight == C::max() {
         None
     } else {
-        Some(Tour::new(best_path, best_weight))
+        Some((Route::new(best_path), best_weight))
     }
 }

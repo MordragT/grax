@@ -44,7 +44,7 @@ pub fn brute_force(path: &str) {
 
     let now = Instant::now();
 
-    let total = graph.brute_force().unwrap().weight as f32;
+    let total = graph.brute_force().unwrap().1 as f32;
 
     println!("bf: {path}: {total} in {:?}", now.elapsed());
 }
@@ -56,7 +56,7 @@ pub fn branch_bound(path: &str) {
 
     let now = Instant::now();
 
-    let total = graph.branch_bound().unwrap().weight as f32;
+    let total = graph.branch_bound().unwrap().1 as f32;
 
     println!("bb: {path}: {total} in {:?}", now.elapsed());
 }
@@ -65,7 +65,7 @@ pub fn nearest_neighbor(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
-    let total = graph.nearest_neighbor_from_first().unwrap().weight as f32;
+    let total = graph.nearest_neighbor_from_first().unwrap().1 as f32;
 
     let now = Instant::now();
 
@@ -76,7 +76,7 @@ pub fn double_tree(path: &str) {
     let edge_list = fs::read_to_string(path).unwrap();
     let edge_list = EdgeList::from_str(&edge_list).unwrap();
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
-    let total = graph.double_tree().unwrap().weight as f32;
+    let total = graph.double_tree().unwrap().1 as f32;
 
     let now = Instant::now();
 
@@ -97,7 +97,7 @@ pub fn db() {
         4,
     );
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
-    let total = graph.double_tree().unwrap().weight;
+    let total = graph.double_tree().unwrap().1;
 
     println!("{total}")
 }
@@ -116,7 +116,7 @@ pub fn nn() {
         4,
     );
     let graph = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
-    let nn = graph.nearest_neighbor_from_first().unwrap().weight;
+    let nn = graph.nearest_neighbor_from_first().unwrap().1;
 
     println!("{nn}")
 }

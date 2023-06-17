@@ -81,6 +81,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_10_200_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = undigraph("data/G_10_200.txt").unwrap();
@@ -91,6 +92,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_100_200_adj_list(b: &mut Bencher) {
         let graph: AdjacencyList<_, _> = undigraph("data/G_100_200.txt").unwrap();
@@ -141,6 +143,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_10_200_adj_mat(b: &mut Bencher) {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/G_10_200.txt").unwrap();
@@ -151,6 +154,7 @@ mod test {
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_100_200_adj_mat(b: &mut Bencher) {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/G_100_200.txt").unwrap();

@@ -14,7 +14,7 @@ use crate::{
         nearest_neighbor, nearest_neighbor_from_first, prim,
     },
     prelude::Tree,
-    structures::{Distances, Parents, Tour},
+    structures::{Distances, Parents, Route},
 };
 
 mod edge;
@@ -101,28 +101,28 @@ pub trait Graph<N: Node, W: Weight>:
         bfs(self, from)
     }
 
-    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<Tour<Self::NodeId, W::Cost>> {
+    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<(Route<Self>, W::Cost)> {
         nearest_neighbor(self, start)
     }
 
-    fn nearest_neighbor_from_first(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
+    fn nearest_neighbor_from_first(&self) -> Option<(Route<Self>, W::Cost)> {
         nearest_neighbor_from_first(self)
     }
 
-    fn double_tree(&self) -> Option<Tour<Self::NodeId, W::Cost>>
+    fn double_tree(&self) -> Option<(Route<Self>, W::Cost)>
     {
         double_tree(self)
     }
 
-    fn branch_bound(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
+    fn branch_bound(&self) -> Option<(Route<Self>, W::Cost)> {
         branch_bound(self)
     }
 
-    fn branch_bound_rec(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
+    fn branch_bound_rec(&self) -> Option<(Route<Self>, W::Cost)> {
         branch_bound_rec(self)
     }
 
-    fn brute_force(&self) -> Option<Tour<Self::NodeId, W::Cost>> {
+    fn brute_force(&self) -> Option<(Route<Self>, W::Cost)> {
         brute_force(self)
     }
 }
