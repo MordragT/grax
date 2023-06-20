@@ -1,4 +1,3 @@
-use crate::prelude::RawNodeId;
 use std::num::{ParseFloatError, ParseIntError};
 use thiserror::Error;
 
@@ -7,9 +6,9 @@ pub type GraphResult<T> = Result<T, GraphError>;
 #[derive(Debug, Error)]
 pub enum GraphError {
     #[error("The edge between {from:?} and {to:?} already exists.")]
-    EdgeAlreadyExists { from: RawNodeId, to: RawNodeId },
+    EdgeAlreadyExists { from: usize, to: usize },
     #[error("Two sided edge forbidden between {from:?} and {to:?} in directed graph.")]
-    TwoSidedEdgeForbidden { from: RawNodeId, to: RawNodeId },
+    TwoSidedEdgeForbidden { from: usize, to: usize },
     #[error("The given edge list has a bad format")]
     BadEdgeListFormat,
     #[error("ParseIntError: {0}")]

@@ -1,7 +1,7 @@
 use super::dijkstra_between;
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable, WeightCost},
-    prelude::{EdgeIdentifier, EdgeRef, NodeIdentifier},
+    prelude::{EdgeRef, NodeId},
     structures::Route,
 };
 use std::ops::{Add, AddAssign};
@@ -18,7 +18,7 @@ where
     }
 }
 
-pub fn nearest_neighbor<N, W, C, G>(graph: &G, start: G::NodeId) -> Option<(Route<G>, C)>
+pub fn nearest_neighbor<N, W, C, G>(graph: &G, start: NodeId<G::Id>) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: WeightCost<Cost = C>,

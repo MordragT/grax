@@ -18,8 +18,7 @@ pub mod prelude {
     pub use crate::edge_list::EdgeList;
     pub use crate::error::GraphError;
     pub use crate::graph::{
-        Edge, EdgeIdentifier, EdgeRef, EdgeRefMut, Graph, Node, NodeIdentifier, Weight,
-        WeightlessGraph,
+        Edge, EdgeId, EdgeRef, EdgeRefMut, Graph, Identifier, Node, NodeId, Weight, WeightlessGraph,
     };
     pub use crate::graph_impl::*;
 }
@@ -29,7 +28,7 @@ pub mod test {
     use crate::{
         error::GraphResult,
         graph::{BalancedNode, Base, FlowWeight},
-        prelude::{EdgeIdentifier, EdgeList},
+        prelude::{EdgeList, NodeId},
     };
     use std::{fs, path::Path, str::FromStr};
 
@@ -37,36 +36,11 @@ pub mod test {
     pub struct PhantomGraph;
 
     impl Base for PhantomGraph {
-        type NodeId = usize;
-        type EdgeId = (usize, usize);
+        type Id = usize;
     }
 
-    impl EdgeIdentifier for (usize, usize) {
-        type NodeId = usize;
-
-        fn between(from: Self::NodeId, to: Self::NodeId) -> Self {
-            (from, to)
-        }
-
-        fn contains(&self, index: usize) -> bool {
-            self.0 == index || self.1 == index
-        }
-
-        fn rev(&self) -> Self {
-            (self.1, self.0)
-        }
-
-        fn to(&self) -> Self::NodeId {
-            self.1
-        }
-
-        fn from(&self) -> Self::NodeId {
-            self.0
-        }
-
-        fn as_usize(&self) -> (usize, usize) {
-            *self
-        }
+    pub fn id(raw: usize) -> NodeId<usize> {
+        NodeId::new_unchecked(raw)
     }
 
     pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>

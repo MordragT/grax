@@ -1,6 +1,6 @@
 use crate::{
     graph::{Count, Index, IndexAdjacent},
-    prelude::{EdgeIdentifier, NodeIdentifier, Tree},
+    prelude::{EdgeId, NodeId, Tree},
 };
 use std::collections::VecDeque;
 
@@ -23,7 +23,7 @@ where
     components
 }
 
-pub fn bfs<G>(graph: &G, from: G::NodeId) -> Tree<G>
+pub fn bfs<G>(graph: &G, from: NodeId<G::Id>) -> Tree<G>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -31,7 +31,7 @@ where
     bfs_marker(graph, from, &mut markers, true)
 }
 
-pub fn bfs_iter<G>(graph: &G, from: G::NodeId) -> impl Iterator<Item = G::NodeId> + '_
+pub fn bfs_iter<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = NodeId<G::Id>> + '_
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -56,7 +56,7 @@ where
     })
 }
 
-pub fn bfs_iter_edges<G>(graph: &G, from: G::NodeId) -> impl Iterator<Item = G::EdgeId> + '_
+pub fn bfs_iter_edges<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = EdgeId<G::Id>> + '_
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -72,7 +72,7 @@ where
                 if !visited[to.as_usize()] {
                     queue.push_back(to);
                     visited[to.as_usize()] = true;
-                    return Some(G::EdgeId::between(from, to));
+                    return Some(EdgeId::new_unchecked(from, to));
                 }
             }
         }
@@ -82,15 +82,15 @@ where
 
 pub fn bfs_marker<'a, G, M>(
     graph: &'a G,
-    from: G::NodeId,
-    markers: &'a mut Vec<M>,
+    from: NodeId<G::Id>,
+    markers: &mut Vec<M>,
     mark: M,
-) -> Tree<G>
+) -> Tree<'a, G>
 where
     G: Index + IndexAdjacent + Count,
     M: Default + PartialEq + Copy,
 {
-    let mut tree = Tree::new(from, graph.node_count());
+    let mut tree = Tree::new(from, graph);
     let mut queue = VecDeque::new();
     queue.push_front(from);
     markers[from.as_usize()] = mark;

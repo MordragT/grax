@@ -1,12 +1,12 @@
 use crate::{
     graph::{Count, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
-    prelude::{EdgeIdentifier, NodeIdentifier},
+    prelude::NodeId,
     structures::Distances,
 };
 use priq::PriorityQueue;
 use std::ops::Add;
 
-pub fn dijkstra_between<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Option<C>
+pub fn dijkstra_between<N, W, C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
     W: WeightCost<Cost = C>,
@@ -15,7 +15,11 @@ where
     dijkstra(graph, from, to).distances[to.as_usize()]
 }
 
-pub fn dijkstra<N, W, C, G>(graph: &G, from: G::NodeId, to: G::NodeId) -> Distances<G::NodeId, C>
+pub fn dijkstra<N, W, C, G>(
+    graph: &G,
+    from: NodeId<G::Id>,
+    to: NodeId<G::Id>,
+) -> Distances<G::Id, C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
     W: WeightCost<Cost = C>,
@@ -62,7 +66,7 @@ mod test {
     use crate::{
         algorithms::dijkstra_between,
         prelude::*,
-        test::{digraph, undigraph},
+        test::{digraph, id, undigraph},
     };
     use test::Bencher;
 
@@ -71,7 +75,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(0), RawNodeId(1)).unwrap();
+            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -81,7 +85,7 @@ mod test {
         let graph: AdjacencyList<_, _> = undigraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(0), RawNodeId(1)).unwrap();
+            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -91,7 +95,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -101,7 +105,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -112,7 +116,7 @@ mod test {
         let graph: AdjacencyList<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             // cycle
             assert_eq!(total as f32, 2.0)
         })
@@ -123,7 +127,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(0), RawNodeId(1)).unwrap();
+            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -133,7 +137,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _> = undigraph("data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(0), RawNodeId(1)).unwrap();
+            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -143,7 +147,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -153,7 +157,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -164,7 +168,7 @@ mod test {
         let graph: AdjacencyMatrix<_, _, true> = digraph("data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_between(&graph, RawNodeId(2), RawNodeId(0)).unwrap();
+            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
             // cycle
             assert_eq!(total as f32, 2.0)
         })

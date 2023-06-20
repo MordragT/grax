@@ -93,11 +93,29 @@ pub trait WeightCost {
 pub struct FlowWeight<W> {
     pub capacity: W,
     pub cost: W,
+    pub rev: bool,
 }
 
 impl<W> FlowWeight<W> {
     pub fn new(capacity: W, cost: W) -> Self {
-        Self { capacity, cost }
+        Self {
+            capacity,
+            cost,
+            rev: false,
+        }
+    }
+
+    pub fn rev(capacity: W, cost: W) -> Self {
+        Self {
+            capacity,
+            cost,
+            rev: true,
+        }
+    }
+
+    pub fn reverse(mut self) -> Self {
+        self.rev = !self.rev;
+        self
     }
 }
 

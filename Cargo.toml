@@ -11,6 +11,9 @@ priq = "0.2.0"
 more-asserts = "0.3.1"
 permute = "0.2.1"
 either = "1.8.1"
+petgraph = "0.6.3"
+pathfinding = "4.3.0"
+smallvec = "1.10.0"
 
 [features]
 extensive = []

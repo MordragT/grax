@@ -1,8 +1,65 @@
 use grph::prelude::*;
+use pathfinding::prelude::{edmonds_karp, DenseCapacity, SparseCapacity};
+use petgraph::{algo::find_negative_cycle, prelude::DiGraph};
 use std::{fs, str::FromStr, time::Instant};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    nearest_neighbor("data/K_10.txt");
+    let (_, cost, _) = edmonds_karp::<_, i32, _, DenseCapacity<_>>(
+        &[0, 1, 2, 3, 4, 5, 6],
+        &5,
+        &6,
+        [
+            ((0, 2), 2),
+            ((0, 4), 5),
+            ((2, 4), 3),
+            ((3, 1), 2),
+            ((3, 4), 2),
+            // source
+            ((5, 0), 4),
+            ((5, 3), 2),
+            // sink
+            ((1, 6), 1),
+            ((4, 6), 5),
+            // reverse
+            ((2, 0), 0),
+            ((4, 0), 0),
+            ((4, 2), 0),
+            ((1, 3), 0),
+            ((4, 3), 0),
+            // source
+            ((0, 5), 0),
+            ((3, 5), 0),
+            // sink
+            ((6, 1), 0),
+            ((6, 4), 0),
+        ],
+    );
+
+    dbg!(cost);
+
+    let residual_graph = DiGraph::<i32, f32>::from_edges([
+        (4, 2, 3.0),
+        (0, 5, 0.0),
+        (5, 3, 0.0),
+        (2, 0, -2.0),
+        (2, 4, -3.0),
+        (4, 3, -1.0),
+        (0, 2, 2.0),
+        (1, 3, -2.0),
+        (3, 1, 2.0),
+        (3, 5, 0.0),
+        (4, 0, -1.0),
+        (5, 0, 0.0),
+        (3, 4, 1.0),
+        (0, 4, 1.0),
+        (1, 6, 0.0),
+        (6, 1, 0.0),
+        (4, 6, 0.0),
+        (6, 4, 0.0),
+    ]);
+    dbg!(find_negative_cycle(&residual_graph, 0.into())); // ist auch 4, 2, 0
+
+    // nearest_neighbor("data/K_10.txt");
     // nearest_neighbor("data/K_10e.txt");
     // nearest_neighbor("data/K_12.txt");
     // nearest_neighbor("data/K_12e.txt");
@@ -14,7 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // nearest_neighbor("data/K_70.txt");
     // nearest_neighbor("data/K_100.txt");
 
-    double_tree("data/K_10.txt");
+    // double_tree("data/K_10.txt");
     // double_tree("data/K_10e.txt");
     // double_tree("data/K_12.txt");
     // double_tree("data/K_12e.txt");
@@ -26,9 +83,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // double_tree("data/K_70.txt");
     // double_tree("data/K_100.txt");
 
-    branch_bound("data/K_10.txt");
+    // branch_bound("data/K_10.txt");
 
-    brute_force("data/K_10.txt");
+    // brute_force("data/K_10.txt");
 
     // db();
 

@@ -1,6 +1,6 @@
 use crate::{
     graph::{Count, Index, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
-    prelude::NodeIdentifier,
+    prelude::NodeId,
 };
 use priq::PriorityQueue;
 use std::ops::AddAssign;
@@ -17,7 +17,7 @@ where
     }
 }
 
-pub(crate) fn _prim<N, W, C, G>(graph: &G, start: G::NodeId) -> C
+pub(crate) fn _prim<N, W, C, G>(graph: &G, start: NodeId<G::Id>) -> C
 where
     C: Default + Sortable + AddAssign + Copy,
     W: WeightCost<Cost = C>,

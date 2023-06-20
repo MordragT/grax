@@ -31,10 +31,10 @@ use crate::{
         BalancedNode, Count, FlowWeight, Get, GetMut, Index, IndexAdjacent, Insert, Iter,
         IterAdjacent, Maximum, Remove, WeightCapacity, WeightCost,
     },
-    prelude::{Edge, EdgeIdentifier, EdgeRef, GraphError},
+    prelude::{Edge, EdgeRef, GraphError, NodeId},
 };
 
-use super::_bellman_ford;
+use super::bellman_ford_cycle;
 
 pub fn cycle_canceling<N, C, G>(graph: &G) -> GraphResult<C>
 where
@@ -47,7 +47,8 @@ where
         + AddAssign
         + SubAssign
         + Add<C, Output = C>
-        + Debug,
+        + Debug
+        + Mul<C, Output = C>,
     G: Index
         + Get<BalancedNode<N, C>, FlowWeight<C>>
         + GetMut<BalancedNode<N, C>, FlowWeight<C>>
@@ -61,60 +62,74 @@ where
         + Debug,
 {
     let (start, mut residual_graph) = mcf_solvable(graph)?;
-    let mut node_ids = residual_graph.node_ids();
-    let start = node_ids.next().unwrap();
-    // let start = node_ids.next().unwrap();
+    let start = residual_graph.node_ids().next().unwrap();
     let mut total_flow = C::default();
 
-    // dbg!(residual_graph.iter_edges().collect::<Vec<_>>());
+    // dbg!(&residual_graph);
 
-    drop(node_ids);
+    for start in graph.node_ids() {
+        while let Either::Right(cycle) = bellman_ford_cycle(&residual_graph, start) {
+            let mut bottleneck = C::max();
 
-    // for start in graph.node_ids() {
-    while let Either::Right(parents) = _bellman_ford(&residual_graph, start, |weight| {
-        weight.capacity() > &C::default()
-    }) {
-        // // dbg!(&cycle);
-        // let cycle = parents.edge_id_cycle::<G>();
+            // assert!(bottleneck > C::default());
 
-        // let mut bottleneck = C::max();
+            for edge_id in cycle.edge_id_cycle() {
+                let residual_capacity = residual_graph.weight(edge_id).unwrap().capacity();
 
-        // assert!(bottleneck > C::default());
+                if residual_capacity < &bottleneck {
+                    bottleneck = *residual_capacity;
+                }
+            }
+            assert!(bottleneck >= C::default());
 
-        // for edge_id in &cycle {
-        //     // let edge_id = G::EdgeId::between(from, to);
-        //     let residual_capacity = residual_graph.weight(*edge_id).unwrap().capacity();
+            if bottleneck == C::default() {
+                break;
+            }
 
-        //     if residual_capacity < &bottleneck {
-        //         bottleneck = *residual_capacity;
-        //     }
-        // }
-        // assert!(bottleneck > C::default());
-        // total_flow += bottleneck;
+            total_flow += bottleneck;
 
-        // // dbg!(bottleneck);
+            // dbg!(bottleneck);
 
-        // for edge_id in cycle {
-        //     // let edge_id = G::EdgeId::between(from, to);
-        //     // dbg!(edge_id);
+            for edge_id in cycle.edge_id_cycle() {
+                // let edge_id = EdgeId<G::Id>::between(from, to);
+                // dbg!(edge_id);
 
-        //     let weight = residual_graph.weight_mut(edge_id).unwrap();
-        //     // dbg!(&weight);
-        //     *weight.capacity_mut() -= bottleneck;
-        //     assert!(weight.capacity >= C::default());
+                let weight = residual_graph.weight_mut(edge_id).unwrap();
 
-        //     let weight_rev: &mut FlowWeight<C> = residual_graph.weight_mut(edge_id.rev()).unwrap();
-        //     // dbg!(&weight_rev);
-        //     *weight_rev.capacity_mut() += bottleneck;
-        //     assert!(weight_rev.capacity >= C::default());
-        // }
-        todo!()
+                // if weight.rev {
+                //     *weight.capacity_mut() += bottleneck;
+                // } else {
+                //     *weight.capacity_mut() -= bottleneck;
+                // }
+
+                // dbg!(&weight);
+                *weight.capacity_mut() -= bottleneck;
+                assert!(weight.capacity >= C::default());
+
+                let weight_rev: &mut FlowWeight<C> =
+                    residual_graph.weight_mut(edge_id.rev()).unwrap();
+                // dbg!(&weight_rev);
+                *weight_rev.capacity_mut() += bottleneck;
+                assert!(weight_rev.capacity >= C::default());
+            }
+        }
     }
 
-    Ok(total_flow)
+    let maybe = residual_graph
+        .iter_edges()
+        .fold(C::default(), |mut akku, edge| {
+            if !edge.weight.rev {
+                akku += edge.weight.capacity * edge.weight.cost;
+            }
+            akku
+        });
+
+    dbg!(maybe);
+
+    Ok(maybe)
 }
 
-fn init_residual_graph<N, C, G>(graph: &G) -> (G::NodeId, G::NodeId, G)
+fn init_residual_graph<N, C, G>(graph: &G) -> (NodeId<G::Id>, NodeId<G::Id>, G)
 where
     N: Default,
     C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
@@ -130,37 +145,39 @@ where
 {
     let mut residual_graph = graph.clone();
 
-    let source = residual_graph.add_node(BalancedNode::new(N::default(), C::default()));
-    let sink = residual_graph.add_node(BalancedNode::new(N::default(), C::default()));
+    let source = residual_graph.insert_node(BalancedNode::new(N::default(), C::default()));
+    let sink = residual_graph.insert_node(BalancedNode::new(N::default(), C::default()));
 
     for node_id in graph.node_ids() {
         let node = residual_graph.node(node_id).unwrap();
 
         if node.balance > C::default() {
             // supply
-            let edge_id = G::EdgeId::between(source, node_id);
-            residual_graph.insert_edge(edge_id, FlowWeight::new(node.balance, C::default()));
-            residual_graph.insert_edge(edge_id.rev(), FlowWeight::default());
+            residual_graph.insert_edge(
+                source,
+                node_id,
+                FlowWeight::new(node.balance, C::default()),
+            );
+            residual_graph.insert_edge(node_id, source, FlowWeight::default().reverse());
         } else if node.balance < C::default() {
             // demand
-            let edge_id = G::EdgeId::between(node_id, sink);
-            residual_graph.insert_edge(edge_id, FlowWeight::new(-node.balance, C::default()));
-            residual_graph.insert_edge(edge_id.rev(), FlowWeight::default());
+            residual_graph.insert_edge(node_id, sink, FlowWeight::new(-node.balance, C::default()));
+            residual_graph.insert_edge(sink, node_id, FlowWeight::default().reverse());
         }
     }
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
         if !residual_graph.contains_edge_id(edge_id.rev()) {
-            let weight = FlowWeight::new(C::default(), -weight.cost);
+            let weight = FlowWeight::rev(C::default(), -weight.cost);
             // dbg!(&weight);
-            residual_graph.insert_edge(edge_id.rev(), weight);
+            residual_graph.insert_edge(edge_id.to(), edge_id.from(), weight);
         }
     }
 
     (source, sink, residual_graph)
 }
 
-fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<(G::NodeId, G)>
+fn mcf_solvable<N, C, G>(graph: &G) -> GraphResult<(NodeId<G::Id>, G)>
 where
     N: Default,
     C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
@@ -185,7 +202,7 @@ where
         akku
     });
 
-    // dbg!(total_flow, expected);
+    dbg!(total_flow, expected);
 
     if total_flow != expected {
         Err(GraphError::McfNotSolvable)
@@ -204,8 +221,8 @@ mod test {
 
     use crate::{
         graph::{Get, IndexAdjacent, Iter},
-        prelude::{AdjacencyList, EdgeIdentifier, EdgeRef, RawEdgeId, RawNodeId},
-        test::bgraph,
+        prelude::{AdjacencyList, EdgeId, EdgeRef},
+        test::{bgraph, id},
     };
 
     use super::{cycle_canceling, init_residual_graph, mcf_solvable};
@@ -217,7 +234,7 @@ mod test {
         let mut nodes = HashSet::new();
         for node_id in residual_graph.adjacent_node_ids(source) {
             let weight = residual_graph
-                .weight(RawEdgeId::between(source, node_id))
+                .weight(EdgeId::new_unchecked(source, node_id))
                 .unwrap();
             let balance = residual_graph.node(node_id).unwrap();
 
@@ -230,7 +247,7 @@ mod test {
             .enumerate()
             .filter_map(|(i, node)| {
                 if node.balance > 0.0 {
-                    Some(RawNodeId(i))
+                    Some(id(i))
                 } else {
                     None
                 }
@@ -242,7 +259,7 @@ mod test {
 
         for node_id in residual_graph.adjacent_node_ids(sink) {
             let weight = residual_graph
-                .weight(RawEdgeId::between(node_id, sink))
+                .weight(EdgeId::new_unchecked(node_id, sink))
                 .unwrap();
             let balance = residual_graph.node(node_id).unwrap();
 
@@ -255,7 +272,7 @@ mod test {
             .enumerate()
             .filter_map(|(i, node)| {
                 if node.balance < 0.0 {
-                    Some(RawNodeId(i))
+                    Some(id(i))
                 } else {
                     None
                 }

@@ -1,221 +1,170 @@
 use crate::{
-    graph::{
-        Base, Cost, Count, Directed, EdgeIdentifier, Get, Index, IndexAdjacent, Iter, IterAdjacent,
-        WeightCost,
-    },
-    prelude::{EdgeRef, NodeIdentifier},
+    graph::{Base, Count, Directed, Get, Index, IndexAdjacent, Iter, IterAdjacent},
+    prelude::{EdgeId, EdgeRef, NodeId},
     structures::Parents,
 };
-use std::{
-    collections::HashMap,
-    marker::PhantomData,
-    num::NonZeroU32,
-    ops::{Deref, DerefMut},
-};
+use std::{collections::HashSet, num::NonZeroU32};
+
+// TODO edges refactor to use simple usize like index so that hashset can be converted to vec for better performance
 
 pub struct TreeBuilder<G: Base> {
-    adjacencies: HashMap<G::NodeId, Vec<G::NodeId>>,
+    edges: HashSet<EdgeId<G::Id>>,
+    nodes: Vec<bool>,
     rank: Vec<Option<NonZeroU32>>,
     parents: Parents<G>,
-    edge_count: usize,
 }
 
 impl<G: Base> TreeBuilder<G> {
     pub fn with_count(count: usize) -> Self {
         Self {
-            adjacencies: HashMap::new(),
+            nodes: vec![false; count],
+            edges: HashSet::new(),
             rank: vec![None; count],
             parents: Parents::with_count(count),
-            edge_count: 0,
         }
     }
 
-    // pub fn root(&mut self, root: G::NodeId) -> &mut Self {
-    //     self.root = Some(root);
-    //     self
-    // }
-
-    pub fn insert(&mut self, from: G::NodeId, to: G::NodeId) -> &mut Self {
-        if let Some(adj) = self.adjacencies.get_mut(&from) {
-            adj.push(to);
-        } else {
-            self.adjacencies.insert(from, vec![to]);
-        }
-
-        if let Some(adj) = self.adjacencies.get_mut(&to) {
-            adj.push(from);
-        } else {
-            self.adjacencies.insert(to, vec![from]);
-        }
+    pub fn insert(&mut self, from: NodeId<G::Id>, to: NodeId<G::Id>) -> &mut Self {
+        self.nodes[from.as_usize()] = true;
+        self.nodes[to.as_usize()] = true;
 
         self.parents.insert(to, from);
         self.parents.insert(from, to);
-        self.edge_count += 1;
+
+        let edge_id = EdgeId::new_unchecked(from, to);
+        self.edges.insert(edge_id);
+        self.edges.insert(edge_id.rev());
         self
     }
 
-    pub fn rank(&mut self, node: G::NodeId, rank: u32) -> &mut Self {
+    pub fn rank(&mut self, node: NodeId<G::Id>, rank: u32) -> &mut Self {
         self.rank[node.as_usize()] = NonZeroU32::new(rank);
         self
     }
-
     // TODO return error
-    pub fn build(self, root: G::NodeId) -> Tree<G> {
+    pub fn build(self, root: NodeId<G::Id>, graph: &G) -> Tree<G> {
         let Self {
-            adjacencies,
+            nodes,
+            edges,
             parents,
             rank,
-            edge_count,
         } = self;
 
         Tree {
             root,
-            adjacencies,
+            graph,
+            nodes,
+            edges,
             parents,
             rank,
-            edge_count,
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Tree<G: Base> {
-    root: G::NodeId,
-    adjacencies: HashMap<G::NodeId, Vec<G::NodeId>>,
+pub struct Tree<'a, G: Base> {
+    graph: &'a G,
+    root: NodeId<G::Id>,
+    nodes: Vec<bool>,
+    edges: HashSet<EdgeId<G::Id>>,
     parents: Parents<G>,
     rank: Vec<Option<NonZeroU32>>,
-    edge_count: usize,
 }
 
-impl<G: Base> Tree<G> {
-    pub fn new(root: G::NodeId, count: usize) -> Self {
+impl<'a, G: Base + Count> Tree<'a, G> {
+    pub fn new(root: NodeId<G::Id>, graph: &'a G) -> Self {
+        let count = graph.node_count();
+
         Self {
             root,
-            adjacencies: HashMap::new(),
+            graph,
+            nodes: vec![false; count],
+            edges: HashSet::new(),
             rank: vec![None; count],
             parents: Parents::with_count(count),
-            edge_count: 0,
         }
     }
 
-    pub fn root(&self) -> G::NodeId {
+    pub fn root(&self) -> NodeId<G::Id> {
         self.root
     }
-    pub fn insert(&mut self, from: G::NodeId, to: G::NodeId) -> G::EdgeId {
-        if let Some(adj) = self.adjacencies.get_mut(&from) {
-            adj.push(to);
-        } else {
-            self.adjacencies.insert(from, vec![to]);
-        }
-
-        if let Some(adj) = self.adjacencies.get_mut(&to) {
-            adj.push(from);
-        } else {
-            self.adjacencies.insert(to, vec![from]);
-        }
+    pub fn insert(&mut self, from: NodeId<G::Id>, to: NodeId<G::Id>) -> EdgeId<G::Id> {
+        self.nodes[from.as_usize()] = true;
+        self.nodes[to.as_usize()] = true;
 
         self.parents.insert(to, from);
         self.parents.insert(from, to);
-        self.edge_count += 1;
-        G::EdgeId::between(from, to)
+
+        let edge_id = EdgeId::new_unchecked(from, to);
+        self.edges.insert(edge_id);
+        self.edges.insert(edge_id.rev());
+        edge_id
     }
 }
 
-impl<G: Base> Base for Tree<G> {
-    type EdgeId = G::EdgeId;
-    type NodeId = G::NodeId;
+impl<G: Base> Base for Tree<'_, G> {
+    type Id = G::Id;
 }
 
-impl<G: Base> Directed for Tree<G> {
+impl<G: Base> Directed for Tree<'_, G> {
     fn directed() -> bool {
         false
     }
 }
 
-impl<G: Base> Count for Tree<G> {
+impl<G: Base> Count for Tree<'_, G> {
     fn node_count(&self) -> usize {
         self.parents.count()
     }
 
     fn edge_count(&self) -> usize {
-        // self.adjacencies.values().fold(0, |mut akku, vec| {
-        //     akku += vec.len();
-        //     akku
-        // })
-        self.edge_count
+        self.edges.len()
     }
 }
 
-impl<G: Base> Index for Tree<G> {
-    type NodeIds<'a> = impl Iterator<Item = Self::NodeId>
+impl<'b, G: Base + Index> Index for Tree<'b, G> {
+    type NodeIds<'a> = impl Iterator<Item = NodeId<Self::Id>> + 'a
     where Self: 'a;
-    type EdgeIds<'a> = impl Iterator<Item = Self::EdgeId> + 'a
+    type EdgeIds<'a> = impl Iterator<Item = EdgeId<Self::Id>> + 'a
     where Self: 'a;
 
     fn node_ids<'a>(&'a self) -> Self::NodeIds<'a> {
-        (0..self.adjacencies.len()).map(G::NodeId::from)
+        self.graph
+            .node_ids()
+            .filter(|node_id| self.nodes[node_id.as_usize()])
     }
 
     fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a> {
-        self.parents.edge_ids()
+        self.edges.iter().cloned()
     }
 }
 
-impl<G: Base> IndexAdjacent for Tree<G> {
-    type AdjacentNodeIds<'a> = impl Iterator<Item = Self::NodeId> + 'a
+impl<G: IndexAdjacent> IndexAdjacent for Tree<'_, G> {
+    type AdjacentNodeIds<'a> = impl Iterator<Item = NodeId<Self::Id>> + 'a
     where Self: 'a;
-    type AdjacentEdgeIds<'a> = impl Iterator<Item = Self::EdgeId> + 'a
+    type AdjacentEdgeIds<'a> = impl Iterator<Item = EdgeId<Self::Id>> + 'a
     where Self: 'a;
 
-    fn adjacent_node_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentNodeIds<'a> {
-        self.adjacencies
-            .get(&node_id)
-            .into_iter()
-            .flatten()
-            .cloned()
+    fn adjacent_node_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::AdjacentNodeIds<'a> {
+        self.graph
+            .adjacent_edge_ids(node_id)
+            .filter(|edge_id| self.edges.contains(edge_id))
+            .map(|edge_id| edge_id.to())
     }
 
-    fn adjacent_edge_ids<'a>(&'a self, node_id: Self::NodeId) -> Self::AdjacentEdgeIds<'a> {
-        self.adjacencies
-            .get(&node_id)
-            .into_iter()
-            .flatten()
-            .map(move |&to| G::EdgeId::between(node_id, to))
+    fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::AdjacentEdgeIds<'a> {
+        self.graph
+            .adjacent_edge_ids(node_id)
+            .filter(|edge_id| self.edges.contains(edge_id))
     }
 }
 
-pub struct TreeVisitor<'a, N, W, G: Get<N, W>> {
-    tree: Tree<G>,
-    graph: &'a G,
-    node: PhantomData<N>,
-    weight: PhantomData<W>,
-}
-
-impl<'a, N, W, G: Get<N, W>> Deref for TreeVisitor<'a, N, W, G> {
-    type Target = Tree<G>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.tree
-    }
-}
-
-impl<'a, N, W, G: Get<N, W>> DerefMut for TreeVisitor<'a, N, W, G> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.tree
-    }
-}
-
-impl<'a, N, W, G: Get<N, W>> Base for TreeVisitor<'a, N, W, G> {
-    type NodeId = G::NodeId;
-    type EdgeId = G::EdgeId;
-}
-
-impl<'a, N, W, G: Get<N, W>> Iter<N, W> for TreeVisitor<'a, N, W, G> {
+impl<'a, N, W, G: Get<N, W> + Index> Iter<N, W> for Tree<'a, G> {
     type Nodes<'b> = impl Iterator<Item = &'b N> + 'b
-    where Self: 'b;
+    where Self: 'b, N: 'b;
 
-    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::EdgeId, W>> + 'b
-    where Self: 'b;
+    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, W>> + 'b
+    where Self: 'b, W: 'b;
 
     fn iter_nodes<'b>(&'b self) -> Self::Nodes<'b> {
         self.node_ids()
@@ -230,46 +179,20 @@ impl<'a, N, W, G: Get<N, W>> Iter<N, W> for TreeVisitor<'a, N, W, G> {
     }
 }
 
-impl<'a, N, W, G: Get<N, W>> IterAdjacent<N, W> for TreeVisitor<'a, N, W, G> {
+impl<'a, N, W, G: Get<N, W> + IndexAdjacent> IterAdjacent<N, W> for Tree<'a, G> {
     type Nodes<'b> = impl Iterator<Item = &'b N> + 'b
-    where Self: 'b;
+    where Self: 'b, N: 'b;
 
-    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::EdgeId, W>> + 'b
-    where Self: 'b;
+    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, W>> + 'b
+    where Self: 'b, W: 'b;
 
-    fn iter_adjacent_nodes<'b>(&'b self, node_id: Self::NodeId) -> Self::Nodes<'b> {
+    fn iter_adjacent_nodes<'b>(&'b self, node_id: NodeId<Self::Id>) -> Self::Nodes<'b> {
         self.adjacent_node_ids(node_id)
             .map(|node_id| self.graph.node(node_id).unwrap())
     }
 
-    fn iter_adjacent_edges<'b>(&'b self, node_id: Self::NodeId) -> Self::Edges<'b> {
-        self.adjacent_node_ids(node_id).map(move |to| {
-            let edge_id = G::EdgeId::between(node_id, to);
-            EdgeRef::new(edge_id, self.graph.weight(edge_id).unwrap())
-        })
-    }
-}
-
-impl<'a, N, W, G: Get<N, W>> TreeVisitor<'a, N, W, G> {
-    pub fn new(tree: Tree<G>, graph: &'a G) -> Self {
-        Self {
-            tree,
-            graph,
-            node: PhantomData,
-            weight: PhantomData,
-        }
-    }
-}
-
-impl<'a, N, W: WeightCost<Cost: Cost>, G: Get<N, W>> TreeVisitor<'a, N, W, G> {
-    pub fn total_cost(&self) -> W::Cost {
-        self.tree
-            .edge_ids()
-            .map(|edge_id| self.graph.weight(edge_id).unwrap().cost())
-            .cloned()
-            .fold(W::Cost::default(), |mut akku, cost| {
-                akku += cost;
-                akku
-            })
+    fn iter_adjacent_edges<'b>(&'b self, node_id: NodeId<Self::Id>) -> Self::Edges<'b> {
+        self.adjacent_edge_ids(node_id)
+            .map(move |edge_id| EdgeRef::new(edge_id, self.graph.weight(edge_id).unwrap()))
     }
 }

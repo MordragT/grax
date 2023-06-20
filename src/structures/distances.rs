@@ -1,17 +1,16 @@
-use crate::graph::NodeIdentifier;
-
+use crate::prelude::{Identifier, NodeId};
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Distances<NodeId: NodeIdentifier, Weight> {
+pub struct Distances<Id: Identifier, Weight> {
     pub distances: Vec<Option<Weight>>,
-    pub from: NodeId,
+    pub from: NodeId<Id>,
 }
 
-impl<NodeId: NodeIdentifier, Weight> Distances<NodeId, Weight> {
-    pub fn new(from: NodeId, distances: Vec<Option<Weight>>) -> Self {
+impl<Id: Identifier, Weight> Distances<Id, Weight> {
+    pub fn new(from: NodeId<Id>, distances: Vec<Option<Weight>>) -> Self {
         Self { distances, from }
     }
 
-    pub fn to(&self, to: NodeId) -> Option<&Weight> {
+    pub fn to(&self, to: NodeId<Id>) -> Option<&Weight> {
         self.distances[to.as_usize()].as_ref()
     }
 }

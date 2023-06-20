@@ -1,6 +1,6 @@
 use crate::{
     graph::{Count, Index, IndexAdjacent},
-    prelude::{EdgeIdentifier, NodeIdentifier, Tree},
+    prelude::{EdgeId, NodeId, Tree},
 };
 
 pub fn dfs_scc<G>(graph: &G) -> Vec<Tree<G>>
@@ -22,7 +22,7 @@ where
     components
 }
 
-pub fn dfs<G>(graph: &G, from: G::NodeId) -> Tree<G>
+pub fn dfs<G>(graph: &G, from: NodeId<G::Id>) -> Tree<G>
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -30,7 +30,7 @@ where
     dfs_marker(graph, from, &mut markers, true)
 }
 
-pub fn dfs_iter<G>(graph: &G, from: G::NodeId) -> impl Iterator<Item = G::NodeId> + '_
+pub fn dfs_iter<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = NodeId<G::Id>> + '_
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -55,7 +55,7 @@ where
     })
 }
 
-pub fn dfs_iter_edges<G>(graph: &G, from: G::NodeId) -> impl Iterator<Item = G::EdgeId> + '_
+pub fn dfs_iter_edges<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = EdgeId<G::Id>> + '_
 where
     G: Index + IndexAdjacent + Count,
 {
@@ -71,7 +71,7 @@ where
                 if !visited[to.as_usize()] {
                     stack.push(to);
                     visited[to.as_usize()] = true;
-                    return Some(G::EdgeId::between(from, to));
+                    return Some(EdgeId::new_unchecked(from, to));
                 }
             }
         }
@@ -81,15 +81,15 @@ where
 
 pub fn dfs_marker<'a, G, M>(
     graph: &'a G,
-    from: G::NodeId,
-    markers: &'a mut Vec<M>,
+    from: NodeId<G::Id>,
+    markers: &mut Vec<M>,
     mark: M,
-) -> Tree<G>
+) -> Tree<'a, G>
 where
     G: Index + IndexAdjacent + Count,
     M: Default + PartialEq + Copy,
 {
-    let mut tree = Tree::new(from, graph.node_count());
+    let mut tree = Tree::new(from, graph);
     let mut stack = Vec::new();
     stack.push(from);
     markers[from.as_usize()] = mark;

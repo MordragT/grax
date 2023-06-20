@@ -13,7 +13,7 @@ use crate::{
         brute_force, dfs, dfs_scc, dijkstra, dijkstra_between, double_tree, edmonds_karp, kruskal,
         nearest_neighbor, nearest_neighbor_from_first, prim,
     },
-    prelude::Tree,
+    prelude::{Tree, TreeBuilder},
     structures::{Distances, Parents, Route},
 };
 
@@ -50,26 +50,26 @@ pub trait Graph<N: Node, W: Weight>:
     + Clone
     + Debug
 {
-    fn bellman_ford_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W::Cost> {
+    fn bellman_ford_between(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<W::Cost> {
         bellman_ford_between(self, from, to)
     }
 
     fn bellman_ford(
         &self,
-        start: Self::NodeId,
-    ) -> Either<Distances<Self::NodeId, W::Cost>, Parents<Self>> {
+        start: NodeId<Self::Id>,
+    ) -> Option<Distances<Self::Id, W::Cost>> {
         bellman_ford(self, start)
     }
 
-    fn dijkstra_between(&self, from: Self::NodeId, to: Self::NodeId) -> Option<W::Cost> {
+    fn dijkstra_between(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<W::Cost> {
         dijkstra_between(self, from, to)
     }
 
-    fn dijkstra(&self, from: Self::NodeId, to: Self::NodeId) -> Distances<Self::NodeId, W::Cost> {
+    fn dijkstra(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Distances<Self::Id, W::Cost> {
         dijkstra(self, from, to)
     }
 
-    // fn edmonds_karp(&self, from: Self::NodeId, to: Self::NodeId) -> W {
+    // fn edmonds_karp(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> W {
     //     edmonds_karp(self, from, to)
     // }
 
@@ -93,15 +93,15 @@ pub trait Graph<N: Node, W: Weight>:
         bfs_scc(self)
     }
 
-    fn dfs(&self, from: Self::NodeId) -> Tree<Self> {
+    fn dfs(&self, from: NodeId<Self::Id>) -> Tree<Self> {
         dfs(self, from)
     }
 
-    fn bfs(&self, from: Self::NodeId) -> Tree<Self> {
+    fn bfs(&self, from: NodeId<Self::Id>) -> Tree<Self> {
         bfs(self, from)
     }
 
-    fn nearest_neighbor(&self, start: Self::NodeId) -> Option<(Route<Self>, W::Cost)> {
+    fn nearest_neighbor(&self, start: NodeId<Self::Id>) -> Option<(Route<Self>, W::Cost)> {
         nearest_neighbor(self, start)
     }
 
@@ -158,11 +158,11 @@ pub trait WeightlessGraph<N>:
         bfs_scc(self)
     }
 
-    fn dfs(&self, from: Self::NodeId) -> Tree<Self> {
+    fn dfs(&self, from: NodeId<Self::Id>) -> Tree<Self> {
         dfs(self, from)
     }
 
-    fn bfs(&self, from: Self::NodeId) -> Tree<Self> {
+    fn bfs(&self, from: NodeId<Self::Id>) -> Tree<Self> {
         bfs(self, from)
     }
 }
