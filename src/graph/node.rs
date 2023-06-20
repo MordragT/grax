@@ -12,6 +12,25 @@ impl<N, W> BalancedNode<N, W> {
     }
 }
 
+impl<N, W> NodeBalance for BalancedNode<N, W> {
+    type Balance = W;
+
+    fn balance(&self) -> &Self::Balance {
+        &self.balance
+    }
+
+    fn balance_mut(&mut self) -> &mut Self::Balance {
+        &mut self.balance
+    }
+}
+
+pub trait NodeBalance {
+    type Balance;
+
+    fn balance(&self) -> &Self::Balance;
+    fn balance_mut(&mut self) -> &mut Self::Balance;
+}
+
 pub trait Node: Default + PartialEq + Clone + Debug {}
 
 impl<T: Default + PartialEq + Clone + Debug> Node for T {}

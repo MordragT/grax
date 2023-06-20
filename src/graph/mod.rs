@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 
 pub use edge::*;
-use either::Either;
 pub use index::*;
 pub use node::*;
 pub use traits::*;
@@ -13,8 +12,8 @@ use crate::{
         brute_force, dfs, dfs_scc, dijkstra, dijkstra_between, double_tree, edmonds_karp, kruskal,
         nearest_neighbor, nearest_neighbor_from_first, prim,
     },
-    prelude::{Tree, TreeBuilder},
-    structures::{Distances, Parents, Route},
+    prelude::{Tree},
+    structures::{Distances,  Route},
 };
 
 mod edge;
@@ -50,14 +49,16 @@ pub trait Graph<N: Node, W: Weight>:
     + Clone
     + Debug
 {
-    fn bellman_ford_between(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<W::Cost> {
+    fn bellman_ford_between(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<W::Cost>
+    where W: EdgeCapacity<Capacity = W::Cost> + EdgeFlow<Flow = W::Cost> {
         bellman_ford_between(self, from, to)
     }
 
     fn bellman_ford(
         &self,
         start: NodeId<Self::Id>,
-    ) -> Option<Distances<Self::Id, W::Cost>> {
+    ) -> Option<Distances<Self::Id, W::Cost>> 
+    where W: EdgeCapacity<Capacity = W::Cost> + EdgeFlow<Flow = W::Cost> {
         bellman_ford(self, start)
     }
 
@@ -69,7 +70,8 @@ pub trait Graph<N: Node, W: Weight>:
         dijkstra(self, from, to)
     }
 
-    // fn edmonds_karp(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> W {
+    // fn edmonds_karp(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> W::Cost 
+    // where Self::Id = usize{
     //     edmonds_karp(self, from, to)
     // }
 

@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, IndexAdjacent, IterAdjacent, Sortable, WeightCost},
+    graph::{Count, EdgeCost, IndexAdjacent, IterAdjacent, Sortable},
     prelude::NodeId,
     structures::Distances,
 };
@@ -9,7 +9,7 @@ use std::ops::Add;
 pub fn dijkstra_between<N, W, C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
-    W: WeightCost<Cost = C>,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     dijkstra(graph, from, to).distances[to.as_usize()]
@@ -22,7 +22,7 @@ pub fn dijkstra<N, W, C, G>(
 ) -> Distances<G::Id, C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
-    W: WeightCost<Cost = C>,
+    W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent<N, W>,
 {
     let mut priority_queue = PriorityQueue::new();

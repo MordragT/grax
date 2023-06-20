@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-use super::{dfs_iter, dijkstra_between, kruskal};
+use super::{dfs_iter, kruskal};
 use crate::graph::{
-    Base, Clear, Contains, Count, Create, Get, Index, IndexAdjacent, Insert, Iter, IterAdjacent,
-    Sortable, WeightCost,
+    Base, Clear, Contains, Count, Create, EdgeCost, Get, Index, IndexAdjacent, Insert, Iter,
+    IterAdjacent, Sortable,
 };
 use crate::structures::Route;
 
@@ -12,7 +12,7 @@ pub fn double_tree<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug,
-    W: WeightCost<Cost = C> + Copy,
+    W: EdgeCost<Cost = C> + Copy,
     G: Base
         + Count
         + IndexAdjacent

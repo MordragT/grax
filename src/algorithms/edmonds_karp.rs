@@ -1,32 +1,36 @@
 use std::{
     collections::VecDeque,
-    ops::{AddAssign, Neg, SubAssign},
+    ops::{AddAssign, Neg, Sub, SubAssign},
 };
 
 use crate::{
     graph::{
-        Base, Count, Create, FlowWeight, Get, GetMut, IndexAdjacent, Insert, Iter, WeightCapacity,
-        WeightCost,
+        Base, Count, Create, EdgeCapacity, EdgeCost, EdgeFlow, FlowWeight, Get, GetMut,
+        IndexAdjacent, Insert, Iter,
     },
     prelude::{AdjacencyList, EdgeId, EdgeRef, NodeId},
 };
 
+// TODO fix edmonds karp to not use adj list but graph representation itself
+
 pub fn edmonds_karp<N, W, C, G>(graph: &G, source: NodeId<G::Id>, sink: NodeId<G::Id>) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C>,
-    W: WeightCost<Cost = C>,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C> + Sub<C, Output = C>,
+    W: EdgeCost<Cost = C>,
     G: Iter<N, W> + Base<Id = usize> + Get<N, W>,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
-        let capacity = FlowWeight::new(*weight.cost(), *weight.cost());
+        let cost = *weight.cost();
+
+        let capacity = FlowWeight::new(cost, cost, C::default());
         residual_graph.insert_edge(edge_id.from(), edge_id.to(), capacity);
 
         if !graph.contains_edge_id(edge_id.rev()) {
             residual_graph.insert_edge(
                 edge_id.to(),
                 edge_id.from(),
-                FlowWeight::new(C::default(), -*weight.cost()),
+                FlowWeight::new(cost, -cost, cost),
             );
         }
     }
@@ -40,8 +44,8 @@ pub(crate) fn _edmonds_karp<N, W, C, G>(
     sink: NodeId<G::Id>,
 ) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign,
-    W: WeightCapacity<Capacity = C>,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C>,
+    W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
     G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
 {
     let mut total_flow = C::default();
@@ -56,7 +60,9 @@ where
         while to != source {
             let from = parent[to.as_usize()].unwrap();
             let edge_id = EdgeId::new_unchecked(from, to);
-            let residual_capacity = graph.weight(edge_id).unwrap().capacity();
+
+            let weight = graph.weight(edge_id).unwrap();
+            let residual_capacity = *weight.capacity() - *weight.flow();
 
             bottleneck = match bottleneck {
                 Some(b) => {
@@ -72,7 +78,7 @@ where
             to = from;
         }
 
-        let bottleneck = *bottleneck.unwrap();
+        let bottleneck = bottleneck.unwrap();
         total_flow += bottleneck;
         to = sink;
 
@@ -81,10 +87,10 @@ where
             let from = parent[to.as_usize()].unwrap();
 
             let weight = graph.weight_mut(EdgeId::new_unchecked(from, to)).unwrap();
-            *weight.capacity_mut() -= bottleneck;
+            *weight.flow_mut() += bottleneck;
 
             let weight_rev = graph.weight_mut(EdgeId::new_unchecked(to, from)).unwrap();
-            *weight_rev.capacity_mut() += bottleneck;
+            *weight_rev.flow_mut() -= bottleneck;
 
             to = from;
         }
@@ -101,8 +107,8 @@ fn bfs_augmenting_path<N, W, C, G>(
     parent: &mut Vec<Option<NodeId<G::Id>>>,
 ) -> bool
 where
-    C: Default + PartialOrd,
-    W: WeightCapacity<Capacity = C>,
+    C: Default + PartialOrd + Sub<C, Output = C> + Copy,
+    W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
     G: Count + IndexAdjacent + Get<N, W>,
 {
     let mut queue = VecDeque::new();
@@ -117,12 +123,9 @@ where
         }
 
         for to in graph.adjacent_node_ids(from) {
-            let cap = graph
-                .weight(EdgeId::new_unchecked(from, to))
-                .unwrap()
-                .capacity();
+            let weight = graph.weight(EdgeId::new_unchecked(from, to)).unwrap();
 
-            if !visited[to.as_usize()] && cap > &C::default() {
+            if !visited[to.as_usize()] && (*weight.capacity() - *weight.flow()) > C::default() {
                 parent[to.as_usize()] = Some(from);
                 queue.push_back(to);
                 visited[to.as_usize()] = true;

@@ -1,7 +1,7 @@
 use std::{
     cmp::Ordering,
     fmt::Debug,
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
 
 pub trait Sortable: PartialOrd {
@@ -56,6 +56,7 @@ pub trait Cost:
     + Sub<Self, Output = Self>
     + AddAssign
     + SubAssign
+    + Neg
     + Copy
     + Debug
 {
@@ -69,57 +70,92 @@ impl<
             + Sub<T, Output = T>
             + AddAssign
             + SubAssign
+            + Neg
             + Copy
             + Debug,
     > Cost for T
 {
 }
 
-pub trait WeightCapacity {
+// TODO split into mutable and non mutable
+// so that cost weights can just return the maximum capacity
+pub trait EdgeCapacity {
     type Capacity;
 
     fn capacity(&self) -> &Self::Capacity;
     fn capacity_mut(&mut self) -> &mut Self::Capacity;
 }
 
-pub trait WeightCost {
+pub trait EdgeCost {
     type Cost;
 
     fn cost(&self) -> &Self::Cost;
     fn cost_mut(&mut self) -> &mut Self::Cost;
 }
 
+pub trait EdgeDirection {
+    fn is_reverse(&self) -> bool;
+    fn reverse(&mut self);
+}
+
+pub trait EdgeFlow {
+    type Flow;
+
+    fn flow(&self) -> &Self::Flow;
+    fn flow_mut(&mut self) -> &mut Self::Flow;
+}
+
 #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct FlowWeight<W> {
+    pub flow: W,
     pub capacity: W,
     pub cost: W,
     pub rev: bool,
 }
 
 impl<W> FlowWeight<W> {
-    pub fn new(capacity: W, cost: W) -> Self {
+    pub fn new(capacity: W, cost: W, flow: W) -> Self {
         Self {
             capacity,
             cost,
             rev: false,
+            flow,
         }
     }
 
-    pub fn rev(capacity: W, cost: W) -> Self {
+    pub fn rev(capacity: W, cost: W, flow: W) -> Self {
         Self {
             capacity,
             cost,
             rev: true,
+            flow,
         }
-    }
-
-    pub fn reverse(mut self) -> Self {
-        self.rev = !self.rev;
-        self
     }
 }
 
-impl<W> WeightCapacity for FlowWeight<W> {
+impl<W> EdgeFlow for FlowWeight<W> {
+    type Flow = W;
+
+    fn flow(&self) -> &Self::Flow {
+        &self.flow
+    }
+
+    fn flow_mut(&mut self) -> &mut Self::Flow {
+        &mut self.flow
+    }
+}
+
+impl<W> EdgeDirection for FlowWeight<W> {
+    fn is_reverse(&self) -> bool {
+        self.rev
+    }
+
+    fn reverse(&mut self) {
+        self.rev = !self.rev;
+    }
+}
+
+impl<W> EdgeCapacity for FlowWeight<W> {
     type Capacity = W;
 
     fn capacity(&self) -> &Self::Capacity {
@@ -131,7 +167,7 @@ impl<W> WeightCapacity for FlowWeight<W> {
     }
 }
 
-impl<W> WeightCost for FlowWeight<W> {
+impl<W> EdgeCost for FlowWeight<W> {
     type Cost = W;
 
     fn cost(&self) -> &Self::Cost {
@@ -143,7 +179,7 @@ impl<W> WeightCost for FlowWeight<W> {
     }
 }
 
-impl WeightCost for f32 {
+impl EdgeCost for f32 {
     type Cost = f32;
 
     fn cost(&self) -> &Self::Cost {
@@ -155,7 +191,7 @@ impl WeightCost for f32 {
     }
 }
 
-impl WeightCost for f64 {
+impl EdgeCost for f64 {
     type Cost = f64;
 
     fn cost(&self) -> &Self::Cost {
@@ -167,6 +203,54 @@ impl WeightCost for f64 {
     }
 }
 
-pub trait Weight: WeightCost<Cost: Cost> + Copy + Debug {}
+impl EdgeCapacity for f32 {
+    type Capacity = f32;
 
-impl<T: WeightCost<Cost: Cost> + Copy + Debug> Weight for T {}
+    fn capacity(&self) -> &Self::Capacity {
+        &f32::MAX
+    }
+
+    fn capacity_mut(&mut self) -> &mut Self::Capacity {
+        panic!("Cannot mutate capacity of cost only weight")
+    }
+}
+
+impl EdgeCapacity for f64 {
+    type Capacity = f64;
+
+    fn capacity(&self) -> &Self::Capacity {
+        &f64::MAX
+    }
+
+    fn capacity_mut(&mut self) -> &mut Self::Capacity {
+        panic!("Cannot mutate capacity of cost only weight")
+    }
+}
+
+impl EdgeFlow for f32 {
+    type Flow = f32;
+
+    fn flow(&self) -> &Self::Flow {
+        &0.0
+    }
+
+    fn flow_mut(&mut self) -> &mut Self::Flow {
+        panic!("Cannot mutate flow of cost only weight")
+    }
+}
+
+impl EdgeFlow for f64 {
+    type Flow = f64;
+
+    fn flow(&self) -> &Self::Flow {
+        &0.0
+    }
+
+    fn flow_mut(&mut self) -> &mut Self::Flow {
+        panic!("Cannot mutate flow of cost only weight")
+    }
+}
+
+pub trait Weight: EdgeCost<Cost: Cost> + Copy + Debug {}
+
+impl<T: EdgeCost<Cost: Cost> + Copy + Debug> Weight for T {}

@@ -1,7 +1,7 @@
 use std::ops::AddAssign;
 
 use crate::{
-    graph::{Contains, Get, Index, Maximum, WeightCost},
+    graph::{Contains, EdgeCost, Get, Index, Maximum},
     structures::Route,
 };
 
@@ -9,7 +9,7 @@ pub fn brute_force<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
-    W: WeightCost<Cost = C>,
+    W: EdgeCost<Cost = C>,
     G: Get<N, W> + Index + Contains<N>,
 {
     let mut best_path = Vec::new();

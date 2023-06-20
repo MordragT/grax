@@ -61,7 +61,7 @@ impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowWeight<f
             let cost = cost.parse::<f64>()?;
             let capacity = capacity.parse::<f64>()?;
 
-            edges.insert(from, to, FlowWeight::new(capacity, cost));
+            edges.insert(from, to, FlowWeight::new(capacity, cost, 0.0));
         }
 
         Ok(Self {
