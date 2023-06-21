@@ -26,7 +26,14 @@ impl<G: Base> Mcf<G> {
             + Default
             + EdgeDirection
             + EdgeFlow<Flow = C>,
-        C: Default + PartialOrd + Copy + Neg<Output = C> + AddAssign + SubAssign + Debug,
+        C: Default
+            + PartialOrd
+            + Copy
+            + Neg<Output = C>
+            + AddAssign
+            + SubAssign
+            + Debug
+            + Sub<C, Output = C>,
         G: Index
             + Get<N, W>
             + GetMut<N, W>
@@ -73,7 +80,7 @@ impl<G: Base> Mcf<G> {
                 let mut w = W::default();
                 *w.cost_mut() = -*weight.cost();
                 *w.capacity_mut() = *weight.capacity();
-                *w.flow_mut() = *weight.capacity();
+                *w.flow_mut() = *weight.capacity() - *weight.flow();
                 w.reverse();
 
                 residual_graph.insert_edge(edge_id.to(), edge_id.from(), w);
@@ -119,6 +126,9 @@ impl<G: Base> Mcf<G> {
                 }
                 akku
             });
+
+        self.residual_graph.remove_node(self.source);
+        self.residual_graph.remove_node(self.sink);
 
         total_flow == expected
     }

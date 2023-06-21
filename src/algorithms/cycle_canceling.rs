@@ -93,22 +93,22 @@ where
             for edge_id in cycle.edge_id_cycle() {
                 let weight = residual_graph.weight_mut(edge_id).unwrap();
                 *weight.flow_mut() += bottleneck;
-                assert!(weight.capacity() >= &C::default());
+                // *weight.capacity_mut() -= bottleneck;
+                assert!(weight.flow() >= &C::default());
 
                 let weight_rev = residual_graph.weight_mut(edge_id.rev()).unwrap();
                 *weight_rev.flow_mut() -= bottleneck;
-                assert!(weight_rev.capacity() >= &C::default());
+                // *weight_rev.capacity_mut() += bottleneck;
+                assert!(weight_rev.flow() >= &C::default());
             }
         }
     }
-
-    dbg!(&residual_graph);
 
     let cost = residual_graph
         .iter_edges()
         .fold(C::default(), |mut akku, edge| {
             let weight = edge.weight;
-            if (weight.capacity() > &C::default() && weight.flow() > &C::default()) {
+            if !weight.is_reverse() {
                 akku += *weight.flow() * *weight.cost();
             }
 
