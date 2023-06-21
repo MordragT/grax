@@ -1,22 +1,3 @@
-// no more sink and source (st) -> no st-flow
-// b (balance)
-// b-flow: sum of all b-flow in the graph is 0
-// edge cannot carry more flow than its capacity
-// the difference in flow entering and leaving a node
-// must be equal b(v) (flow balance)
-
-// wenn capacity von edge == 0 -> edge ignorieren
-// supply und demand nodes
-// wenn balance < 0 demand node, wenn balance > 0 supply node
-// flow kann nicht mehr als die capacities sein aber auch nicht weniger als 0
-// differenz zwischen flow der raus geht und reingeht muss gleich dem supply oder demand sein
-// wenn flow durch nodes geht, dann muss bei demand-nodes der demand vom flow abgezogen werden,
-// analog bei supply-nodes wird der supply addiert.
-// möglicherweise nicht solvable wenn im netzwerk weniger supply als demand vorhanden ist, oder mehr supply als demand
-// wir können checken ob MCF möglich wenn wir das problem in ein max flow problem überführen
-
-// neuer graph g'
-
 use super::{bellman_ford_cycle, Mcf};
 use crate::graph::{
     Count, EdgeCapacity, EdgeCost, EdgeDirection, EdgeFlow, Get, GetMut, Index, IndexAdjacent,
@@ -72,7 +53,7 @@ where
 
     for start in graph.node_ids() {
         while let Either::Right(cycle) = bellman_ford_cycle(&residual_graph, start) {
-            let mut bottleneck = C::max();
+            let mut bottleneck = C::MAX;
 
             for edge_id in cycle.edge_id_cycle() {
                 let weight = residual_graph.weight(edge_id).unwrap();
@@ -120,10 +101,8 @@ where
 
 #[cfg(test)]
 mod test {
-
-    use crate::{prelude::AdjacencyList, test::bgraph};
-
     use super::cycle_canceling;
+    use crate::{prelude::AdjacencyList, test::bgraph};
 
     #[test]
     fn cycle_canceling_kostenminimal_1() {

@@ -13,7 +13,7 @@ where
     G: Get<N, W> + Index + Contains<N>,
 {
     let mut best_path = Vec::new();
-    let mut best_weight = C::max();
+    let mut best_weight = C::MAX;
 
     let start = graph.node_ids().collect::<Vec<_>>();
 
@@ -42,7 +42,7 @@ where
         }
     }
 
-    if best_weight == C::max() {
+    if best_weight == C::MAX {
         None
     } else {
         Some((Route::new(best_path), best_weight))

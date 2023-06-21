@@ -1,15 +1,15 @@
-use std::{
-    collections::VecDeque,
-    ops::{AddAssign, Neg, Sub, SubAssign},
-};
+use std::ops::{AddAssign, Neg, Sub, SubAssign};
 
 use crate::{
     graph::{
         Base, Count, Create, EdgeCapacity, EdgeCost, EdgeFlow, FlowWeight, Get, GetMut,
         IndexAdjacent, Insert, Iter,
     },
-    prelude::{AdjacencyList, EdgeId, EdgeRef, NodeId},
+    prelude::{AdjacencyList, EdgeRef, NodeId},
+    structures::Parents,
 };
+
+use super::{_ford_fulkerson, bfs_sp};
 
 // TODO fix edmonds karp to not use adj list but graph representation itself
 
@@ -48,91 +48,22 @@ where
     W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
     G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
 {
-    let mut total_flow = C::default();
-    let mut parent = vec![None; graph.node_count()];
-
-    // loop while bfs finds a path
-    while bfs_augmenting_path(graph, source, sink, &mut parent) {
-        let mut to = sink;
-        let mut bottleneck = None;
-
-        // compute the bottleneck
-        while to != source {
-            let from = parent[to.as_usize()].unwrap();
-            let edge_id = EdgeId::new_unchecked(from, to);
-
-            let weight = graph.weight(edge_id).unwrap();
-            let residual_capacity = *weight.capacity() - *weight.flow();
-
-            bottleneck = match bottleneck {
-                Some(b) => {
-                    if b > residual_capacity {
-                        Some(residual_capacity)
-                    } else {
-                        Some(b)
-                    }
-                }
-                None => Some(residual_capacity),
-            };
-
-            to = from;
-        }
-
-        let bottleneck = bottleneck.unwrap();
-        total_flow += bottleneck;
-        to = sink;
-
-        // assign the bottleneck to every edge in the path
-        while to != source {
-            let from = parent[to.as_usize()].unwrap();
-
-            let weight = graph.weight_mut(EdgeId::new_unchecked(from, to)).unwrap();
-            *weight.flow_mut() += bottleneck;
-
-            let weight_rev = graph.weight_mut(EdgeId::new_unchecked(to, from)).unwrap();
-            *weight_rev.flow_mut() -= bottleneck;
-
-            to = from;
-        }
+    fn shortest_path<N, W, C, G>(
+        graph: &G,
+        source: NodeId<G::Id>,
+        sink: NodeId<G::Id>,
+    ) -> Option<Parents<G>>
+    where
+        C: Default + Sub<C, Output = C> + PartialOrd + Copy,
+        W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
+        G: IndexAdjacent + Count + Get<N, W>,
+    {
+        bfs_sp(graph, source, sink, |weight: &W| {
+            (*weight.capacity() - *weight.flow()) > C::default()
+        })
     }
 
-    total_flow
-}
-
-// TODO use bfs just put nodes with cap < 0 in visited vec
-fn bfs_augmenting_path<N, W, C, G>(
-    graph: &G,
-    source: NodeId<G::Id>,
-    sink: NodeId<G::Id>,
-    parent: &mut Vec<Option<NodeId<G::Id>>>,
-) -> bool
-where
-    C: Default + PartialOrd + Sub<C, Output = C> + Copy,
-    W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Count + IndexAdjacent + Get<N, W>,
-{
-    let mut queue = VecDeque::new();
-    let mut visited = vec![false; graph.node_count()];
-
-    queue.push_front(source);
-    visited[source.as_usize()] = true;
-
-    while let Some(from) = queue.pop_front() {
-        if from == sink {
-            return true;
-        }
-
-        for to in graph.adjacent_node_ids(from) {
-            let weight = graph.weight(EdgeId::new_unchecked(from, to)).unwrap();
-
-            if !visited[to.as_usize()] && (*weight.capacity() - *weight.flow()) > C::default() {
-                parent[to.as_usize()] = Some(from);
-                queue.push_back(to);
-                visited[to.as_usize()] = true;
-            }
-        }
-    }
-    false
+    _ford_fulkerson(graph, source, sink, shortest_path)
 }
 
 #[cfg(test)]

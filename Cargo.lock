@@ -43,6 +43,7 @@ version = "0.1.0"
 dependencies = [
  "either",
  "more-asserts",
+ "num-traits",
  "pathfinding",
  "permute",
  "petgraph",

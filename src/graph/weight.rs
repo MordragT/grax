@@ -1,11 +1,19 @@
 use std::{
-    cmp::Ordering,
+    cmp::{max_by, min_by, Ordering},
     fmt::Debug,
     ops::{Add, AddAssign, Neg, Sub, SubAssign},
 };
 
-pub trait Sortable: PartialOrd {
+pub trait Sortable: PartialOrd + Sized {
     fn sort(&self, other: &Self) -> Ordering;
+
+    fn min(self, other: Self) -> Self {
+        min_by(self, other, Self::sort)
+    }
+
+    fn max(self, other: Self) -> Self {
+        max_by(self, other, Self::sort)
+    }
 }
 
 default impl<T: PartialOrd> Sortable for T {
@@ -27,25 +35,19 @@ impl Sortable for f32 {
 }
 
 pub trait Maximum {
-    fn max() -> Self;
+    const MAX: Self;
 }
 
 impl Maximum for f64 {
-    fn max() -> Self {
-        f64::INFINITY
-    }
+    const MAX: Self = f64::INFINITY;
 }
 
 impl Maximum for f32 {
-    fn max() -> Self {
-        f32::INFINITY
-    }
+    const MAX: Self = f32::INFINITY;
 }
 
 impl Maximum for u32 {
-    fn max() -> Self {
-        u32::MAX
-    }
+    const MAX: Self = u32::MAX;
 }
 
 pub trait Cost:

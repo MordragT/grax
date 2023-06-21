@@ -28,7 +28,7 @@ where
         Some(start) => {
             let mut baseline = nearest_neighbor(graph, start)
                 .map(|tour| tour.1)
-                .unwrap_or(Maximum::max());
+                .unwrap_or(Maximum::MAX);
             let mut path = vec![start];
             let mut visited = vec![false; graph.node_count()];
             let cost = C::default();
@@ -58,7 +58,7 @@ where
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
         .map(|tour| tour.1)
-        .unwrap_or(Maximum::max());
+        .unwrap_or(Maximum::MAX);
     let mut route = Vec::new();
 
     let mut visited = vec![false; graph.node_count()];

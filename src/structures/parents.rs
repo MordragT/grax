@@ -37,7 +37,7 @@ impl<G: Base> Parents<G> {
     }
 
     pub unsafe fn parent_unchecked(&self, child: NodeId<G::Id>) -> NodeId<G::Id> {
-        self.0[child.as_usize()].unwrap()
+        self.0.get_unchecked(child.as_usize()).unwrap_unchecked()
     }
 
     pub fn edge_ids(&self) -> impl Iterator<Item = EdgeId<G::Id>> + '_ {

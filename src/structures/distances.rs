@@ -1,7 +1,10 @@
 use crate::prelude::{Identifier, NodeId};
+
+use super::Parents;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Distances<Id: Identifier, Weight> {
     pub distances: Vec<Option<Weight>>,
+    // pub parents: Parents<G>,
     pub from: NodeId<Id>,
 }
 

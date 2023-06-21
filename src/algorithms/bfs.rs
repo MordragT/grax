@@ -1,6 +1,7 @@
 use crate::{
-    graph::{Count, Index, IndexAdjacent},
+    graph::{Count, Get, Index, IndexAdjacent},
     prelude::{EdgeId, NodeId, Tree},
+    structures::Parents,
 };
 use std::collections::VecDeque;
 
@@ -25,7 +26,7 @@ where
 
 pub fn bfs<G>(graph: &G, from: NodeId<G::Id>) -> Tree<G>
 where
-    G: Index + IndexAdjacent + Count,
+    G: IndexAdjacent + Count,
 {
     let mut markers = vec![false; graph.node_count()];
     bfs_marker(graph, from, &mut markers, true)
@@ -33,7 +34,7 @@ where
 
 pub fn bfs_iter<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = NodeId<G::Id>> + '_
 where
-    G: Index + IndexAdjacent + Count,
+    G: IndexAdjacent + Count,
 {
     let mut visited = vec![false; graph.node_count()];
     let mut queue = VecDeque::new();
@@ -58,7 +59,7 @@ where
 
 pub fn bfs_iter_edges<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = EdgeId<G::Id>> + '_
 where
-    G: Index + IndexAdjacent + Count,
+    G: IndexAdjacent + Count,
 {
     let mut visited = vec![false; graph.node_count()];
     let mut queue = VecDeque::new();
@@ -80,14 +81,50 @@ where
     })
 }
 
-pub fn bfs_marker<'a, G, M>(
+pub fn bfs_sp<N, W, F, G>(
+    graph: &G,
+    source: NodeId<G::Id>,
+    sink: NodeId<G::Id>,
+    mut cost: F,
+) -> Option<Parents<G>>
+where
+    F: FnMut(&W) -> bool,
+    G: IndexAdjacent + Count + Get<N, W>,
+{
+    let count = graph.node_count();
+    let mut queue = VecDeque::new();
+    let mut visited = vec![false; count];
+    let mut parents = Parents::with_count(count);
+
+    queue.push_front(source);
+    visited[source.as_usize()] = true;
+
+    while let Some(from) = queue.pop_front() {
+        if from == sink {
+            return Some(parents);
+        }
+
+        for to in graph.adjacent_node_ids(from) {
+            let weight = graph.weight(EdgeId::new_unchecked(from, to)).unwrap();
+
+            if !visited[to.as_usize()] && cost(weight) {
+                parents.insert(from, to);
+                queue.push_back(to);
+                visited[to.as_usize()] = true;
+            }
+        }
+    }
+    None
+}
+
+pub(crate) fn bfs_marker<'a, G, M>(
     graph: &'a G,
     from: NodeId<G::Id>,
     markers: &mut Vec<M>,
     mark: M,
 ) -> Tree<'a, G>
 where
-    G: Index + IndexAdjacent + Count,
+    G: IndexAdjacent + Count,
     M: Default + PartialEq + Copy,
 {
     let mut tree = Tree::new(from, graph);

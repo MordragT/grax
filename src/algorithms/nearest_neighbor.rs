@@ -41,7 +41,7 @@ where
     while let Some((node, _)) = path.last() && path.len() < graph.node_count() {
 
         let mut min_node = None;
-        let mut min_cost = C::max();
+        let mut min_cost = C::MAX;
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
             let to = edge_id.to();
