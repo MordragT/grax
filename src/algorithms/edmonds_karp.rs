@@ -17,7 +17,7 @@ pub fn edmonds_karp<N, W, C, G>(graph: &G, source: NodeId<G::Id>, sink: NodeId<G
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C> + Sub<C, Output = C>,
     W: EdgeCost<Cost = C>,
-    G: Iter<N, W> + Base<Id = usize> + Get<N, W>,
+    G: Iter + Base<Id = usize> + Get + Base<Node = N, Weight = W>,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
@@ -46,7 +46,7 @@ pub(crate) fn _edmonds_karp<N, W, C, G>(
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C>,
     W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
+    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W>,
 {
     fn shortest_path<N, W, C, G>(
         graph: &G,
@@ -56,7 +56,7 @@ where
     where
         C: Default + Sub<C, Output = C> + PartialOrd + Copy,
         W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-        G: IndexAdjacent + Count + Get<N, W>,
+        G: IndexAdjacent + Count + Get + Base<Node = N, Weight = W>,
     {
         bfs_sp(graph, source, sink, |weight: &W| {
             (*weight.capacity() - *weight.flow()) > C::default()

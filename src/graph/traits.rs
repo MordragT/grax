@@ -4,6 +4,8 @@ use super::{EdgeId, EdgeRef, EdgeRefMut, Identifier, NodeId};
 /// Must be implemented first to implement all the other Graph traits.
 pub trait Base: Sized {
     type Id: Identifier;
+    type Node;
+    type Weight;
 }
 
 pub trait Capacity {
@@ -17,8 +19,8 @@ pub trait Clear {
     fn clear_edges(&mut self);
 }
 
-pub trait Contains<Node>: Base {
-    fn contains_node(&self, node: &Node) -> Option<NodeId<Self::Id>>;
+pub trait Contains: Base {
+    fn contains_node(&self, node: &Self::Node) -> Option<NodeId<Self::Id>>;
     fn contains_edge(
         &self,
         from: NodeId<Self::Id>,
@@ -40,26 +42,26 @@ pub trait Count {
 }
 
 /// Creatable Graph
-pub trait Create<Node>: Sized {
+pub trait Create: Base {
     fn with_capacity(nodes: usize, edges: usize) -> Self;
-    fn with_nodes(nodes: impl IntoIterator<Item = Node>) -> Self;
+    fn with_nodes(nodes: impl IntoIterator<Item = Self::Node>) -> Self;
 }
 
 pub trait Directed {
     fn directed() -> bool;
 }
 
-pub trait Extend<Node, Weight>: Base {
-    fn extend_nodes(&mut self, nodes: impl Iterator<Item = Node>);
+pub trait Extend: Base {
+    fn extend_nodes(&mut self, nodes: impl Iterator<Item = Self::Node>);
     fn extend_edges(
         &mut self,
-        edges: impl Iterator<Item = (NodeId<Self::Id>, NodeId<Self::Id>, Weight)>,
+        edges: impl Iterator<Item = (NodeId<Self::Id>, NodeId<Self::Id>, Self::Weight)>,
     );
 }
 
-pub trait Get<Node, Weight>: Base {
-    fn node(&self, node_id: NodeId<Self::Id>) -> Option<&Node>;
-    fn weight(&self, edge_id: EdgeId<Self::Id>) -> Option<&Weight>;
+pub trait Get: Base {
+    fn node(&self, node_id: NodeId<Self::Id>) -> Option<&Self::Node>;
+    fn weight(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::Weight>;
 
     fn contains_node_id(&self, node_id: NodeId<Self::Id>) -> bool {
         self.node(node_id).is_some()
@@ -70,17 +72,21 @@ pub trait Get<Node, Weight>: Base {
     }
 }
 
-pub trait GetMut<Node, Weight>: Base {
-    fn node_mut(&mut self, node_id: NodeId<Self::Id>) -> Option<&mut Node>;
-    fn weight_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Weight>;
+pub trait GetMut: Base {
+    fn node_mut(&mut self, node_id: NodeId<Self::Id>) -> Option<&mut Self::Node>;
+    fn weight_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::Weight>;
 
-    fn update_node(&mut self, node_id: NodeId<Self::Id>, node: Node) -> Option<Node> {
+    fn update_node(&mut self, node_id: NodeId<Self::Id>, node: Self::Node) -> Option<Self::Node> {
         match self.node_mut(node_id) {
             Some(dest) => Some(std::mem::replace(dest, node)),
             None => None,
         }
     }
-    fn update_edge(&mut self, edge_id: EdgeId<Self::Id>, weight: Weight) -> Option<Weight> {
+    fn update_edge(
+        &mut self,
+        edge_id: EdgeId<Self::Id>,
+        weight: Self::Weight,
+    ) -> Option<Self::Weight> {
         match self.weight_mut(edge_id) {
             Some(dest) => Some(std::mem::replace(dest, weight)),
             None => None,
@@ -100,14 +106,14 @@ pub trait Index: Base {
     fn edge_ids<'a>(&'a self) -> Self::EdgeIds<'a>;
 }
 
-pub trait Iter<Node, Weight>: Base {
-    type Nodes<'a>: Iterator<Item = &'a Node> + 'a
+pub trait Iter: Base {
+    type Nodes<'a>: Iterator<Item = &'a Self::Node> + 'a
     where
-        Node: 'a,
+        Self::Node: 'a,
         Self: 'a;
-    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Weight>> + 'a
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::Weight>> + 'a
     where
-        Weight: 'a,
+        Self::Weight: 'a,
         Self: 'a;
 
     /// This returns an iterator over all nodes in the graph.
@@ -130,14 +136,14 @@ pub trait Iter<Node, Weight>: Base {
     fn iter_edges<'a>(&'a self) -> Self::Edges<'a>;
 }
 
-pub trait IterMut<Node, Weight>: Base {
-    type NodesMut<'a>: Iterator<Item = &'a mut Node> + 'a
+pub trait IterMut: Base {
+    type NodesMut<'a>: Iterator<Item = &'a mut Self::Node> + 'a
     where
-        Node: 'a,
+        Self::Node: 'a,
         Self: 'a;
-    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Weight>> + 'a
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::Weight>> + 'a
     where
-        Weight: 'a,
+        Self::Weight: 'a,
         Self: 'a;
 
     /// This returns an mutable iterator over all nodes in the graph.
@@ -173,14 +179,14 @@ pub trait IndexAdjacent: Base {
     fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::AdjacentEdgeIds<'a>;
 }
 
-pub trait IterAdjacent<Node, Weight>: Base {
-    type Nodes<'a>: Iterator<Item = &'a Node> + 'a
+pub trait IterAdjacent: Base {
+    type Nodes<'a>: Iterator<Item = &'a Self::Node> + 'a
     where
-        Node: 'a,
+        Self::Node: 'a,
         Self: 'a;
-    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Weight>> + 'a
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::Weight>> + 'a
     where
-        Weight: 'a,
+        Self::Weight: 'a,
         Self: 'a;
 
     /// This returns an iterator over all nodes adjacent to the specified node in the graph.
@@ -204,14 +210,14 @@ pub trait IterAdjacent<Node, Weight>: Base {
     fn iter_adjacent_edges<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::Edges<'a>;
 }
 
-pub trait IterAdjacentMut<Node, Weight>: Base {
-    type NodesMut<'a>: Iterator<Item = &'a mut Node> + 'a
+pub trait IterAdjacentMut: Base {
+    type NodesMut<'a>: Iterator<Item = &'a mut Self::Node> + 'a
     where
-        Node: 'a,
+        Self::Node: 'a,
         Self: 'a;
-    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Weight>> + 'a
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::Weight>> + 'a
     where
-        Weight: 'a,
+        Self::Weight: 'a,
         Self: 'a;
     /// This returns an mutable iterator over all nodes adjacent to the specified node in the graph.
     /// Due to constraints in the type system of rust this cannot be automatically implemented.
@@ -232,19 +238,19 @@ pub trait IterAdjacentMut<Node, Weight>: Base {
     fn iter_adjacent_edges_mut<'a>(&'a mut self, node_id: NodeId<Self::Id>) -> Self::EdgesMut<'a>;
 }
 
-pub trait Insert<Node, Weight>: Base {
-    fn insert_node(&mut self, node: Node) -> NodeId<Self::Id>;
+pub trait Insert: Base {
+    fn insert_node(&mut self, node: Self::Node) -> NodeId<Self::Id>;
     fn insert_edge(
         &mut self,
         from: NodeId<Self::Id>,
         to: NodeId<Self::Id>,
-        weight: Weight,
+        weight: Self::Weight,
     ) -> EdgeId<Self::Id>;
 }
 
-pub trait Remove<Node, Weight>: Base {
-    fn remove_node(&mut self, node_id: NodeId<Self::Id>) -> Node;
-    fn remove_edge(&mut self, edge_id: EdgeId<Self::Id>) -> Option<Weight>;
+pub trait Remove: Base {
+    fn remove_node(&mut self, node_id: NodeId<Self::Id>) -> Self::Node;
+    fn remove_edge(&mut self, edge_id: EdgeId<Self::Id>) -> Option<Self::Weight>;
 }
 
 pub trait Reserve {

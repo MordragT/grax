@@ -37,6 +37,8 @@ pub mod test {
 
     impl Base for PhantomGraph {
         type Id = usize;
+        type Node = usize;
+        type Weight = f32;
     }
 
     pub fn id(raw: usize) -> NodeId<usize> {

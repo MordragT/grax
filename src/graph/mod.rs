@@ -25,24 +25,24 @@ mod traits;
 mod weight;
 
 pub trait Graph<N: Node, W: Weight>:
-    Base
+    Base<Node = N, Weight = W>
     + Capacity
     + Clear
-    + Contains<N>
+    + Contains
     + Count
-    + Create<N>
+    + Create
     + Directed
-    + Extend<N, W>
-    + Get<N, W>
-    + GetMut<N, W>
+    + Extend
+    + Get
+    + GetMut
     + Index
     + IndexAdjacent
-    + Insert<N, W>
-    + Iter<N, W>
-    + IterMut<N, W>
-    + IterAdjacent<N, W>
-    + IterAdjacentMut<N, W>
-    + Remove<N, W>
+    + Insert
+    + Iter
+    + IterMut
+    + IterAdjacent
+    + IterAdjacentMut
+    + Remove
     + Reserve
     // + for<'a> Ref<'a, N, W>
     + Sized
@@ -133,9 +133,9 @@ pub trait WeightlessGraph<N>:
     Base
     + Capacity
     + Clear
-    + Contains<N>
+    + Contains
     + Count
-    + Create<N>
+    + Create
     + Directed
     // + Extend<N, ()>
     // + Get<N, ()>

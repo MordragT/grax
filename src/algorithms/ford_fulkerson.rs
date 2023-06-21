@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, EdgeCapacity, EdgeFlow, Get, GetMut, IndexAdjacent},
+    graph::{Base, Count, EdgeCapacity, EdgeFlow, Get, GetMut, IndexAdjacent},
     prelude::{EdgeId, NodeId},
     structures::Parents,
 };
@@ -15,7 +15,7 @@ where
     F: FnMut(&G, NodeId<G::Id>, NodeId<G::Id>) -> Option<Parents<G>>,
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C>,
     W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Count + IndexAdjacent + Get<N, W> + GetMut<N, W>,
+    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W>,
 {
     let mut total_flow = C::default();
 

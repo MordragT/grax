@@ -1,6 +1,6 @@
 use super::{dijkstra_between, nearest_neighbor};
 use crate::{
-    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
+    graph::{Base, Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Maximum, Sortable},
     prelude::{EdgeRef, NodeId},
     structures::Route,
 };
@@ -10,7 +10,7 @@ pub fn branch_bound<N, W, C, G>(graph: &G) -> Option<(Route<G>, W::Cost)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: EdgeCost<Cost = C>,
-    G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
+    G: Index + IndexAdjacent + Count + IterAdjacent + Base<Node = N, Weight = W>,
 {
     match graph.node_ids().next() {
         Some(start) => Some(_branch_bound(graph, start)),
@@ -22,7 +22,7 @@ pub fn branch_bound_rec<N, W, C, G>(graph: &G) -> Option<(Route<G>, W::Cost)>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum,
     W: EdgeCost<Cost = C>,
-    G: Index + IndexAdjacent + Count + IterAdjacent<N, W>,
+    G: Index + IndexAdjacent + Count + IterAdjacent + Base<Node = N, Weight = W>,
 {
     match graph.node_ids().next() {
         Some(start) => {
@@ -53,7 +53,7 @@ pub(crate) fn _branch_bound<N, W, C, G>(graph: &G, start: NodeId<G::Id>) -> (Rou
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable,
     W: EdgeCost<Cost = C>,
-    G: Count + IndexAdjacent + IterAdjacent<N, W>,
+    G: Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
@@ -114,7 +114,7 @@ pub(crate) fn _branch_bound_rec<N, W, C, G>(
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable,
     W: EdgeCost<Cost = C>,
-    G: IndexAdjacent + IterAdjacent<N, W> + Count,
+    G: IndexAdjacent + IterAdjacent + Count + Base<Node = N, Weight = W>,
 {
     if visited.iter().all(|v| *v) && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;

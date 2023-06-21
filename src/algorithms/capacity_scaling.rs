@@ -2,13 +2,13 @@ use std::cmp::min_by;
 
 use num_traits::{Float, Pow};
 
-use crate::graph::{EdgeCapacity, Iter, Sortable};
+use crate::graph::{Base, EdgeCapacity, Iter, Sortable};
 
 pub fn capcity_scaling<N, W, C, G>(graph: &G) -> Option<C>
 where
     C: Float,
     W: EdgeCapacity<Capacity = C>,
-    G: Iter<N, W>,
+    G: Iter + Base<Node = N, Weight = W>,
 {
     let delta = match graph
         .iter_edges()

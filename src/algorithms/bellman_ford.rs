@@ -15,7 +15,7 @@ pub fn bellman_ford_between<N, W, C, G>(
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+    G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
 {
     bellman_ford(graph, from).and_then(|d| d.distances[to.as_usize()])
 }
@@ -27,7 +27,7 @@ pub fn bellman_ford<N, W, C, G>(
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+    G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
 {
     let mut bf = BellmanFord::init(graph, start);
 
@@ -60,7 +60,7 @@ pub fn bellman_ford_cycle<N, W, C, G>(
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+    G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
 {
     let mut bf = BellmanFord::init(graph, start);
 
@@ -110,7 +110,7 @@ where
     fn relax<N, W>(&mut self)
     where
         W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-        G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+        G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
     {
         for from in self.graph.node_ids() {
             if let Some(cost) = self.cost_table[from.as_usize()] {
@@ -139,7 +139,7 @@ where
     fn relax_cycle<N, W>(&mut self) -> NodeId<G::Id>
     where
         W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-        G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+        G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
     {
         for from in self.graph.node_ids() {
             if let Some(cost) = self.cost_table[from.as_usize()] {

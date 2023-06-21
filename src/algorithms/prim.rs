@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Sortable},
+    graph::{Base, Count, EdgeCost, Index, IndexAdjacent, IterAdjacent, Sortable},
     prelude::NodeId,
 };
 use priq::PriorityQueue;
@@ -9,7 +9,7 @@ pub fn prim<N, W, C, G>(graph: &G) -> C
 where
     C: Default + Sortable + AddAssign + Copy,
     W: EdgeCost<Cost = C>,
-    G: Index + Count + IndexAdjacent + IterAdjacent<N, W>,
+    G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
 {
     match graph.node_ids().next() {
         Some(start) => _prim(graph, start),
@@ -21,7 +21,7 @@ pub(crate) fn _prim<N, W, C, G>(graph: &G, start: NodeId<G::Id>) -> C
 where
     C: Default + Sortable + AddAssign + Copy,
     W: EdgeCost<Cost = C>,
-    G: IndexAdjacent + Count + IterAdjacent<N, W>,
+    G: IndexAdjacent + Count + IterAdjacent + Base<Node = N, Weight = W>,
 {
     let n = graph.node_count();
     let mut visited = vec![false; n];

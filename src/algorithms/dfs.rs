@@ -1,5 +1,5 @@
 use crate::{
-    graph::{Count, Get, Index, IndexAdjacent},
+    graph::{Base, Count, Get, Index, IndexAdjacent},
     prelude::{EdgeId, NodeId, Tree},
     structures::Parents,
 };
@@ -88,7 +88,7 @@ pub fn dfs_sp<N, W, F, G>(
 ) -> Option<Parents<G>>
 where
     F: FnMut(&W) -> bool,
-    G: IndexAdjacent + Count + Get<N, W>,
+    G: IndexAdjacent + Count + Get + Base<Node = N, Weight = W>,
 {
     let count = graph.node_count();
     let mut stack = Vec::new();

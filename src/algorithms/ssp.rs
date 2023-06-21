@@ -9,8 +9,8 @@ use num_traits::{Float, Pow};
 use crate::{
     algorithms::{Mcf, _ford_fulkerson, bfs_sp},
     graph::{
-        Count, EdgeCapacity, EdgeCost, EdgeDirection, EdgeFlow, Get, GetMut, Index, IndexAdjacent,
-        Insert, Iter, NodeBalance, Remove, Sortable,
+        Base, Count, EdgeCapacity, EdgeCost, EdgeDirection, EdgeFlow, Get, GetMut, Index,
+        IndexAdjacent, Insert, Iter, NodeBalance, Remove, Sortable,
     },
     prelude::NodeId,
     structures::Parents,
@@ -35,14 +35,15 @@ where
         + Sub<C, Output = C>
         + Mul<C, Output = C>,
     G: Index
-        + Get<N, W>
-        + GetMut<N, W>
-        + Insert<N, W>
-        + Remove<N, W>
+        + Get
+        + GetMut
+        + Insert
+        + Remove
         + Count
         + IndexAdjacent
-        + Iter<N, W>
-        + Clone,
+        + Iter
+        + Clone
+        + Base<Node = N, Weight = W>,
 {
     let Mcf {
         mut residual_graph,

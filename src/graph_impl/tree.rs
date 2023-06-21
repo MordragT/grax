@@ -104,6 +104,8 @@ impl<'a, G: Base + Count> Tree<'a, G> {
 
 impl<G: Base> Base for Tree<'_, G> {
     type Id = G::Id;
+    type Node = G::Node;
+    type Weight = G::Weight;
 }
 
 impl<G: Base> Directed for Tree<'_, G> {
@@ -159,12 +161,12 @@ impl<G: IndexAdjacent> IndexAdjacent for Tree<'_, G> {
     }
 }
 
-impl<'a, N, W, G: Get<N, W> + Index> Iter<N, W> for Tree<'a, G> {
-    type Nodes<'b> = impl Iterator<Item = &'b N> + 'b
-    where Self: 'b, N: 'b;
+impl<'a, G: Get + Index> Iter for Tree<'a, G> {
+    type Nodes<'b> = impl Iterator<Item = &'b Self::Node> + 'b
+    where Self: 'b, Self::Node: 'b;
 
-    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, W>> + 'b
-    where Self: 'b, W: 'b;
+    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, Self::Weight>> + 'b
+    where Self: 'b, Self::Weight: 'b;
 
     fn iter_nodes<'b>(&'b self) -> Self::Nodes<'b> {
         self.node_ids()
@@ -179,12 +181,12 @@ impl<'a, N, W, G: Get<N, W> + Index> Iter<N, W> for Tree<'a, G> {
     }
 }
 
-impl<'a, N, W, G: Get<N, W> + IndexAdjacent> IterAdjacent<N, W> for Tree<'a, G> {
-    type Nodes<'b> = impl Iterator<Item = &'b N> + 'b
-    where Self: 'b, N: 'b;
+impl<'a, G: Get + IndexAdjacent> IterAdjacent for Tree<'a, G> {
+    type Nodes<'b> = impl Iterator<Item = &'b Self::Node> + 'b
+    where Self: 'b, Self::Node: 'b;
 
-    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, W>> + 'b
-    where Self: 'b, W: 'b;
+    type Edges<'b> = impl Iterator<Item = EdgeRef<'b, G::Id, Self::Weight>> + 'b
+    where Self: 'b, Self::Weight: 'b;
 
     fn iter_adjacent_nodes<'b>(&'b self, node_id: NodeId<Self::Id>) -> Self::Nodes<'b> {
         self.adjacent_node_ids(node_id)

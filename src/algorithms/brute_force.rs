@@ -1,7 +1,7 @@
 use std::ops::AddAssign;
 
 use crate::{
-    graph::{Contains, EdgeCost, Get, Index, Maximum},
+    graph::{Base, Contains, EdgeCost, Get, Index, Maximum},
     structures::Route,
 };
 
@@ -10,7 +10,7 @@ where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
     W: EdgeCost<Cost = C>,
-    G: Get<N, W> + Index + Contains<N>,
+    G: Get + Index + Contains + Base<Node = N, Weight = W>,
 {
     let mut best_path = Vec::new();
     let mut best_weight = C::MAX;

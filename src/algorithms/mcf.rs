@@ -35,14 +35,15 @@ impl<G: Base> Mcf<G> {
             + Debug
             + Sub<C, Output = C>,
         G: Index
-            + Get<N, W>
-            + GetMut<N, W>
-            + Insert<N, W>
-            + Remove<N, W>
+            + Get
+            + GetMut
+            + Insert
+            + Remove
             + Count
             + IndexAdjacent
-            + Iter<N, W>
-            + Clone,
+            + Iter
+            + Clone
+            + Base<Node = N, Weight = W>,
     {
         let mut residual_graph = graph.clone();
         let source = residual_graph.insert_node(N::default());
@@ -107,14 +108,15 @@ impl<G: Base> Mcf<G> {
             + Sub<C, Output = C>,
         W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
         G: Index
-            + Get<N, W>
-            + GetMut<N, W>
-            + Insert<N, W>
-            + Remove<N, W>
+            + Get
+            + GetMut
+            + Insert
+            + Remove
             + Count
             + IndexAdjacent
-            + Iter<N, W>
-            + Clone,
+            + Iter
+            + Clone
+            + Base<Node = N, Weight = W>,
     {
         let total_flow = _edmonds_karp(&mut self.residual_graph, self.source, self.sink);
         let expected = self

@@ -1,5 +1,5 @@
 use super::UnionFind;
-use crate::graph::{Count, EdgeCost, Get, Index, Iter, Sortable};
+use crate::graph::{Base, Count, EdgeCost, Get, Index, Iter, Sortable};
 use crate::prelude::{Tree, TreeBuilder};
 use std::ops::AddAssign;
 
@@ -7,7 +7,7 @@ pub fn kruskal<N, W, C, G>(graph: &G) -> (Tree<G>, C)
 where
     C: Sortable + Default + AddAssign + Copy,
     W: EdgeCost<Cost = C>,
-    G: Iter<N, W> + Index + Count + Get<N, W>,
+    G: Iter + Index + Count + Get + Base<Node = N, Weight = W>,
 {
     let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
     priority_queue.sort_by(|this, other| this.weight.cost().sort(other.weight.cost()));

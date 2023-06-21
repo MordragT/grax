@@ -1,7 +1,7 @@
 use super::{bellman_ford_cycle, Mcf};
 use crate::graph::{
-    Count, EdgeCapacity, EdgeCost, EdgeDirection, EdgeFlow, Get, GetMut, Index, IndexAdjacent,
-    Insert, Iter, IterAdjacent, Maximum, NodeBalance, Remove,
+    Base, Count, EdgeCapacity, EdgeCost, EdgeDirection, EdgeFlow, Get, GetMut, Index,
+    IndexAdjacent, Insert, Iter, IterAdjacent, Maximum, NodeBalance, Remove,
 };
 use either::Either;
 use std::{
@@ -29,15 +29,16 @@ where
         + Sub<C, Output = C>
         + Debug,
     G: Index
-        + Get<N, W>
-        + GetMut<N, W>
-        + Insert<N, W>
-        + Remove<N, W>
+        + Get
+        + GetMut
+        + Insert
+        + Remove
         + Count
         + IndexAdjacent
         + Index
-        + Iter<N, W>
-        + IterAdjacent<N, W>
+        + Iter
+        + IterAdjacent
+        + Base<Node = N, Weight = W>
         + Clone
         + Debug,
 {

@@ -2,13 +2,13 @@ use super::Graph;
 use more_asserts::*;
 
 // + Extend<N, W>
-// + GetMut<N, W>
+// + GetMut
 // + IndexAdjacent
-// + Iter<N, W>
+// + Iter
 // + IterMut<N, W>
-// + IterAdjacent<N, W>
+// + IterAdjacent
 // + IterAdjacentMut<N, W>
-// + Remove<N, W>
+// + Remove
 // + Reserve
 
 pub fn graph_create_with_nodes<G: Graph<usize, f32>>() {

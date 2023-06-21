@@ -13,17 +13,17 @@ where
     N: PartialEq,
     C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug,
     W: EdgeCost<Cost = C> + Copy,
-    G: Base
+    G: Base<Node = N, Weight = W>
         + Count
         + IndexAdjacent
-        + IterAdjacent<N, W>
-        + Iter<N, W>
+        + IterAdjacent
+        + Iter
         + Index
-        + Get<N, W>
-        + Create<N>
-        + Insert<N, W>
+        + Get
+        + Create
+        + Insert
         + Clear
-        + Contains<N>
+        + Contains
         + Clone,
 {
     let tree = kruskal(graph).0;
