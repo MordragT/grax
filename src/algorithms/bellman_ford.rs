@@ -20,10 +20,7 @@ where
     bellman_ford(graph, from).and_then(|d| d.distances[to.as_usize()])
 }
 
-pub fn bellman_ford<N, W, C, G>(
-    graph: &G,
-    start: NodeId<G::Id>,
-) -> Option<Distances<G::Id, W::Cost>>
+pub fn bellman_ford<N, W, C, G>(graph: &G, start: NodeId<G::Id>) -> Option<Distances<W::Cost, G>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
@@ -40,14 +37,13 @@ where
     }
 
     let BellmanFord {
-        cost_table,
-        parents: _,
+        distances,
         updated,
         graph: _,
     } = bf;
 
     if !updated {
-        Some(Distances::new(start, cost_table))
+        Some(distances)
     } else {
         None
     }
@@ -56,7 +52,7 @@ where
 pub fn bellman_ford_cycle<N, W, C, G>(
     graph: &G,
     start: NodeId<G::Id>,
-) -> Either<Distances<G::Id, W::Cost>, Route<G>>
+) -> Either<Distances<W::Cost, G>, Route<G>>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     W: EdgeCost<Cost = C> + EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
@@ -74,38 +70,38 @@ where
 
     if bf.updated {
         let to = bf.relax_cycle();
-        let route = bf.parents.find_cycle(to);
+        let route = bf.distances.parents.find_cycle(to);
         Either::Right(route)
     } else {
-        Either::Left(Distances::new(start, bf.cost_table))
+        Either::Left(bf.distances)
     }
 }
 
-struct BellmanFord<'a, C, G: Base> {
-    cost_table: Vec<Option<C>>,
-    parents: Parents<G>,
+struct BellmanFord<'a, C, G: Base<Weight: EdgeCost<Cost = C>>> {
+    distances: Distances<C, G>,
     updated: bool,
     graph: &'a G,
 }
 
-impl<'a, C: Default + Clone, G: Base + Count> BellmanFord<'a, C, G> {
+impl<'a, C: Default + Clone, G: Base<Weight: EdgeCost<Cost = C>> + Count> BellmanFord<'a, C, G> {
     fn init(graph: &'a G, start: NodeId<G::Id>) -> Self {
         let count = graph.node_count();
-        let mut cost_table = vec![None; count];
-        cost_table[start.as_usize()] = Some(C::default());
+        let mut distances = Distances::with_count(count);
+
+        distances.add_cost(start, C::default());
 
         Self {
-            cost_table,
-            parents: Parents::with_count(count),
+            distances,
             updated: false,
             graph,
         }
     }
 }
 
-impl<'a, C, G: Base> BellmanFord<'a, C, G>
+impl<'a, C, G> BellmanFord<'a, C, G>
 where
     C: Default + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    G: Base<Weight: EdgeCost<Cost = C>>,
 {
     fn relax<N, W>(&mut self)
     where
@@ -113,21 +109,20 @@ where
         G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
     {
         for from in self.graph.node_ids() {
-            if let Some(cost) = self.cost_table[from.as_usize()] {
+            if let Some(&cost) = self.distances.distance(from) {
                 for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
                     let to = edge_id.to();
                     let combined_cost = cost + *weight.cost();
-                    let to_cost = self.cost_table[to.as_usize()];
+                    let to_cost = self.distances.distance(to);
 
                     let update = match to_cost {
-                        Some(c) => c > combined_cost,
+                        Some(&c) => c > combined_cost,
                         None => true,
                     } && (*weight.capacity() - *weight.flow()) > C::default();
 
                     if update {
-                        self.cost_table[to.as_usize()] = Some(combined_cost);
+                        self.distances.insert(from, to, combined_cost);
                         self.updated = true;
-                        self.parents.insert(from, to);
                     }
                 }
             } else {
@@ -142,14 +137,14 @@ where
         G: Index + Count + IndexAdjacent + IterAdjacent + Base<Node = N, Weight = W>,
     {
         for from in self.graph.node_ids() {
-            if let Some(cost) = self.cost_table[from.as_usize()] {
+            if let Some(&cost) = self.distances.distance(from) {
                 for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
                     let to = edge_id.to();
                     let combined_cost = cost + *weight.cost();
-                    let to_cost = self.cost_table[to.as_usize()];
+                    let to_cost = self.distances.distance(to);
 
                     let update = match to_cost {
-                        Some(c) => c > combined_cost,
+                        Some(&c) => c > combined_cost,
                         None => true,
                     } && (*weight.capacity() - *weight.flow()) > C::default();
 

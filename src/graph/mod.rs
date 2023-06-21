@@ -57,16 +57,12 @@ pub trait Graph<N: Node, W: Weight>:
     fn bellman_ford(
         &self,
         start: NodeId<Self::Id>,
-    ) -> Option<Distances<Self::Id, W::Cost>> 
+    ) -> Option<Distances<W::Cost, Self>> 
     where W: EdgeCapacity<Capacity = W::Cost> + EdgeFlow<Flow = W::Cost> {
         bellman_ford(self, start)
     }
 
-    fn dijkstra_between(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<W::Cost> {
-        dijkstra_between(self, from, to)
-    }
-
-    fn dijkstra(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Distances<Self::Id, W::Cost> {
+    fn dijkstra(&self, from: NodeId<Self::Id>, to: NodeId<Self::Id>) -> Option<Distances<W::Cost, Self>> {
         dijkstra(self, from, to)
     }
 

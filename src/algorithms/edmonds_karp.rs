@@ -1,4 +1,7 @@
-use std::ops::{AddAssign, Neg, Sub, SubAssign};
+use std::{
+    fmt::Debug,
+    ops::{AddAssign, Neg, Sub, SubAssign},
+};
 
 use crate::{
     graph::{
@@ -15,9 +18,17 @@ use super::{_ford_fulkerson, bfs_sp};
 
 pub fn edmonds_karp<N, W, C, G>(graph: &G, source: NodeId<G::Id>, sink: NodeId<G::Id>) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Neg<Output = C> + Sub<C, Output = C>,
+    N: Debug,
+    C: Default
+        + PartialOrd
+        + Copy
+        + AddAssign
+        + SubAssign
+        + Neg<Output = C>
+        + Sub<C, Output = C>
+        + Debug,
     W: EdgeCost<Cost = C>,
-    G: Iter + Base<Id = usize> + Get + Base<Node = N, Weight = W>,
+    G: Iter + Base<Id = usize> + Get + Base<Node = N, Weight = W> + Debug,
 {
     let mut residual_graph = AdjacencyList::<_, _, true>::with_nodes(graph.iter_nodes());
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
@@ -46,7 +57,7 @@ pub(crate) fn _edmonds_karp<N, W, C, G>(
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C>,
     W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W>,
+    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W> + Debug,
 {
     fn shortest_path<N, W, C, G>(
         graph: &G,

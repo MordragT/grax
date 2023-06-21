@@ -24,6 +24,10 @@ impl<G: Base> Parents<G> {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.iter().all(|p| p.is_none())
+    }
+
     pub fn insert(&mut self, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<NodeId<G::Id>> {
         std::mem::replace(&mut self.0[to.as_usize()], Some(from))
     }
@@ -37,7 +41,8 @@ impl<G: Base> Parents<G> {
     }
 
     pub unsafe fn parent_unchecked(&self, child: NodeId<G::Id>) -> NodeId<G::Id> {
-        self.0.get_unchecked(child.as_usize()).unwrap_unchecked()
+        // self.0.get_unchecked(child.as_usize()).unwrap_unchecked()
+        self.0[child.as_usize()].unwrap()
     }
 
     pub fn edge_ids(&self) -> impl Iterator<Item = EdgeId<G::Id>> + '_ {

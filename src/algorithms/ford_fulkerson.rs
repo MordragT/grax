@@ -3,7 +3,10 @@ use crate::{
     prelude::{EdgeId, NodeId},
     structures::Parents,
 };
-use std::ops::{AddAssign, Sub, SubAssign};
+use std::{
+    fmt::Debug,
+    ops::{AddAssign, Sub, SubAssign},
+};
 
 pub(crate) fn _ford_fulkerson<N, W, C, G, F>(
     graph: &mut G,
@@ -15,12 +18,16 @@ where
     F: FnMut(&G, NodeId<G::Id>, NodeId<G::Id>) -> Option<Parents<G>>,
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C>,
     W: EdgeCapacity<Capacity = C> + EdgeFlow<Flow = C>,
-    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W>,
+    G: Count + IndexAdjacent + Get + GetMut + Base<Node = N, Weight = W> + Debug,
 {
     let mut total_flow = C::default();
 
     // loop while bfs finds a path
     while let Some(parents) = sp(graph, source, sink) {
+        if parents.is_empty() {
+            break;
+        }
+
         let mut to = sink;
         let mut bottleneck = None;
 

@@ -116,7 +116,8 @@ impl<G: Base> Mcf<G> {
             + IndexAdjacent
             + Iter
             + Clone
-            + Base<Node = N, Weight = W>,
+            + Base<Node = N, Weight = W>
+            + Debug,
     {
         let total_flow = _edmonds_karp(&mut self.residual_graph, self.source, self.sink);
         let expected = self

@@ -12,31 +12,31 @@ where
     W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent + Base<Node = N, Weight = W>,
 {
-    dijkstra(graph, from, to).distances[to.as_usize()]
+    dijkstra(graph, from, to).and_then(|distances| distances.distance(to).cloned())
 }
 
 pub fn dijkstra<N, W, C, G>(
     graph: &G,
     from: NodeId<G::Id>,
     to: NodeId<G::Id>,
-) -> Distances<G::Id, C>
+) -> Option<Distances<W::Cost, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C>,
     W: EdgeCost<Cost = C>,
     G: IndexAdjacent + Count + IterAdjacent + Base<Node = N, Weight = W>,
 {
     let mut priority_queue = PriorityQueue::new();
-    let mut distances = vec![None; graph.node_count()];
+    let mut distances = Distances::with_count(graph.node_count());
 
-    distances[from.as_usize()] = Some(C::default());
+    distances.add_cost(from, C::default());
     priority_queue.put(C::default(), from);
 
     while let Some((dist, node)) = priority_queue.pop() {
         if node == to {
-            return Distances::new(from, distances);
+            return Some(distances);
         }
 
-        if let Some(d) = distances[node.as_usize()] && dist > d {
+        if let Some(d) = distances.distance(node) && dist > *d {
             continue;
         }
 
@@ -44,19 +44,19 @@ where
             let to = edge.edge_id.to();
             let next_dist = dist + *edge.weight.cost();
 
-            let visited_or_geq = match &distances[to.as_usize()] {
+            let visited_or_geq = match distances.distance(to) {
                 Some(d) => next_dist >= *d,
                 None => false,
             };
 
             if !visited_or_geq {
-                distances[to.as_usize()] = Some(next_dist);
+                distances.insert(from, to, next_dist);
                 priority_queue.put(next_dist, to);
             }
         }
     }
 
-    Distances::new(from, distances)
+    None
 }
 
 #[cfg(test)]
