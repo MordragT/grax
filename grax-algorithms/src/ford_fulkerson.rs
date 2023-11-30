@@ -37,7 +37,7 @@ where
             let from = parents.parent(to).unwrap();
             let edge_id = EdgeId::new_unchecked(from, to);
 
-            let weight = graph.flow(edge_id).unwrap();
+            let weight = graph.edge(edge_id).unwrap().weight;
             let residual_capacity = *weight.capacity() - *weight.flow();
 
             bottleneck = match bottleneck {
@@ -62,10 +62,16 @@ where
         while to != source {
             let from = parents.parent(to).unwrap();
 
-            let weight = graph.flow_mut(EdgeId::new_unchecked(from, to)).unwrap();
+            let weight = graph
+                .edge_mut(EdgeId::new_unchecked(from, to))
+                .unwrap()
+                .weight;
             *weight.flow_mut() += bottleneck;
 
-            let weight_rev = graph.flow_mut(EdgeId::new_unchecked(to, from)).unwrap();
+            let weight_rev = graph
+                .edge_mut(EdgeId::new_unchecked(to, from))
+                .unwrap()
+                .weight;
             *weight_rev.flow_mut() -= bottleneck;
 
             to = from;

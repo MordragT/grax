@@ -113,17 +113,15 @@ where
     fn relax(&mut self) {
         for from in self.graph.node_ids() {
             if let Some(&cost) = self.distances.distance(from) {
-                for EdgeRef { edge_id, weight: _ } in self.graph.iter_adjacent_edges(from) {
-                    let flow_weight = self.graph.flow(edge_id).unwrap();
+                for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
                     let to = edge_id.to();
-                    let combined_cost = cost + *self.graph.cost(edge_id).unwrap().cost();
+                    let combined_cost = cost + *weight.cost();
                     let to_cost = self.distances.distance(to);
 
                     let update = match to_cost {
                         Some(&c) => c > combined_cost,
                         None => true,
-                    } && (*flow_weight.capacity() - *flow_weight.flow())
-                        > C::default();
+                    } && (*weight.capacity() - *weight.flow()) > C::default();
 
                     if update {
                         self.distances.insert(from, to, combined_cost);
@@ -139,17 +137,15 @@ where
     fn relax_cycle(&mut self) -> NodeId<G::Id> {
         for from in self.graph.node_ids() {
             if let Some(&cost) = self.distances.distance(from) {
-                for EdgeRef { edge_id, weight: _ } in self.graph.iter_adjacent_edges(from) {
-                    let flow_weight = self.graph.flow(edge_id).unwrap();
+                for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
                     let to = edge_id.to();
-                    let combined_cost = cost + *self.graph.cost(edge_id).unwrap().cost();
+                    let combined_cost = cost + *weight.cost();
                     let to_cost = self.distances.distance(to);
 
                     let update = match to_cost {
                         Some(&c) => c > combined_cost,
                         None => true,
-                    } && (*flow_weight.capacity() - *flow_weight.flow())
-                        > C::default();
+                    } && (*weight.capacity() - *weight.flow()) > C::default();
 
                     if update {
                         return to;
@@ -170,14 +166,14 @@ mod test {
 
     use super::{bellman_ford, bellman_ford_between};
     use crate::test::{digraph, id, undigraph};
-    use grax_core::adaptor::flow::FlowGraphAdaptor;
+    use grax_core::adaptor::flow::flow_adaptor;
     use grax_impl::*;
     use test::Bencher;
 
     #[bench]
     fn bellman_ford_g_1_2_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+        let graph: AdjGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
@@ -187,8 +183,8 @@ mod test {
 
     #[bench]
     fn bellman_ford_g_1_2_undi_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+        let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
@@ -198,8 +194,8 @@ mod test {
 
     #[bench]
     fn bellman_ford_wege_1_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege1.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+        let graph = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
@@ -209,8 +205,8 @@ mod test {
 
     #[bench]
     fn bellman_ford_wege_2_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+        let graph = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
@@ -220,8 +216,8 @@ mod test {
 
     #[bench]
     fn bellman_ford_wege_3_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege3.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+        let graph = flow_adaptor(graph);
 
         b.iter(|| {
             let result = bellman_ford(&graph, id(2));
@@ -230,9 +226,9 @@ mod test {
     }
 
     #[bench]
-    fn bellman_ford_g_1_2_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+    fn bellman_ford_g_1_2_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph: SparseMatGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
@@ -241,9 +237,9 @@ mod test {
     }
 
     #[bench]
-    fn bellman_ford_g_1_2_undi_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+    fn bellman_ford_g_1_2_undi_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: SparseMatGraph<_, _> = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
@@ -252,9 +248,9 @@ mod test {
     }
 
     #[bench]
-    fn bellman_ford_wege_1_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege1.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+    fn bellman_ford_wege_1_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+        let graph: SparseMatGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
@@ -263,9 +259,9 @@ mod test {
     }
 
     #[bench]
-    fn bellman_ford_wege_2_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege2.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+    fn bellman_ford_wege_2_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+        let graph: SparseMatGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
             let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
@@ -274,9 +270,9 @@ mod test {
     }
 
     #[bench]
-    fn bellman_ford_wege_3_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege3.txt").unwrap();
-        let graph = FlowGraphAdaptor::new(&graph);
+    fn bellman_ford_wege_3_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+        let graph: SparseMatGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
             let result = bellman_ford(&graph, id(2));

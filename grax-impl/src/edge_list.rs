@@ -1,7 +1,7 @@
-use grax_core::variant::{balance::BalancedNode, flow::FlowBundle};
+use grax_core::adaptor::flow::FlowBundle;
 
-use crate::error::*;
-use std::str::FromStr;
+use crate::{error::*, flow::BalancedNode};
+use std::{fmt::Debug, str::FromStr};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct EdgeList<N, W, const DI: bool = false> {
@@ -23,7 +23,7 @@ impl<W, const DI: bool> EdgeList<usize, W, DI> {
     }
 }
 
-impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowBundle<f64>, DI> {
+impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowBundle<f64, f64>, DI> {
     type Err = GraphError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -43,7 +43,7 @@ impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowBundle<f
 
         let edges = lines
             .map(
-                |line| -> Result<(usize, usize, FlowBundle<f64>), Self::Err> {
+                |line| -> Result<(usize, usize, FlowBundle<f64, f64>), Self::Err> {
                     let mut split = line.split_whitespace();
                     let from = split.next().ok_or(GraphError::BadEdgeListFormat)?;
                     let to = split.next().ok_or(GraphError::BadEdgeListFormat)?;
@@ -56,6 +56,7 @@ impl<const DI: bool> FromStr for EdgeList<BalancedNode<usize, f64>, FlowBundle<f
                     let capacity = capacity.parse::<f64>()?;
 
                     let bundle = FlowBundle {
+                        weight: cost,
                         capacity,
                         cost,
                         flow: 0.0,
@@ -156,7 +157,7 @@ impl<const DI: bool> FromStr for EdgeList<usize, f32, DI> {
 
 #[cfg(test)]
 mod test {
-    use crate::memory::AdjacencyList;
+    use crate::memory::AdjGraph;
 
     use super::EdgeList;
     use std::{fs, str::FromStr};
@@ -165,20 +166,20 @@ mod test {
     fn unweighted() {
         let edge_list = fs::read_to_string("../data/Graph_gross.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, ()>::try_from(edge_list).unwrap();
+        let _adj_list = AdjGraph::<usize, ()>::try_from(edge_list).unwrap();
     }
 
     #[test]
     fn weighted() {
         let edge_list = fs::read_to_string("../data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, f64>::try_from(edge_list).unwrap();
+        let _adj_list = AdjGraph::<usize, f64>::try_from(edge_list).unwrap();
     }
     #[test]
     fn directed() {
         let edge_list = fs::read_to_string("../data/G_1_200.txt").unwrap();
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
-        let _adj_list = AdjacencyList::<usize, f64, true>::try_from(edge_list).unwrap();
+        let _adj_list = AdjGraph::<usize, f64, true>::try_from(edge_list).unwrap();
     }
 
     // #[test]

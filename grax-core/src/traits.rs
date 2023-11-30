@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use crate::{
-    edge::{EdgeCost, EdgeFlow},
-    node::NodeBalance,
+    edge::{Edge, EdgeCost, EdgeFlow},
+    node::{Node, NodeBalance, NodeRef, NodeRefMut},
     view::{AttrMap, Distances, Parents, UnionFind, VisitMap},
 };
 
@@ -18,8 +18,8 @@ use super::{
 /// Must be implemented first to implement all the other Graph traits.
 pub trait Base: Sized {
     type Id: Identifier;
-    type Node;
-    type Weight;
+    type NodeWeight;
+    type EdgeWeight;
 }
 
 // pub trait Ref: Base {
@@ -70,7 +70,7 @@ pub trait Clear {
 // }
 
 pub trait Contains: Base {
-    fn contains_node(&self, node: &Self::Node) -> Option<NodeId<Self::Id>>;
+    fn contains_node(&self, node: &Self::NodeWeight) -> Option<NodeId<Self::Id>>;
     fn contains_edge(
         &self,
         from: NodeId<Self::Id>,
@@ -119,7 +119,7 @@ pub trait Count {
 pub trait Create: Base {
     fn new() -> Self;
     fn with_capacity(nodes: usize, edges: usize) -> Self;
-    fn with_nodes(nodes: impl IntoIterator<Item = Self::Node>) -> Self;
+    fn with_nodes(nodes: impl IntoIterator<Item = Self::NodeWeight>) -> Self;
 }
 
 pub trait Directed {
@@ -127,24 +127,24 @@ pub trait Directed {
 }
 
 pub trait Extend: Base {
-    fn extend_nodes(&mut self, nodes: impl IntoIterator<Item = Self::Node>);
+    fn extend_nodes(&mut self, nodes: impl IntoIterator<Item = Self::NodeWeight>);
     /// Is allowed to panic if the specified nodes are not within the graph
     fn extend_edges(
         &mut self,
-        edges: impl IntoIterator<Item = (NodeId<Self::Id>, NodeId<Self::Id>, Self::Weight)>,
+        edges: impl IntoIterator<Item = (NodeId<Self::Id>, NodeId<Self::Id>, Self::EdgeWeight)>,
     );
 }
 
 pub trait Get: Base {
-    fn node(&self, node_id: NodeId<Self::Id>) -> Option<&Self::Node>;
-    fn weight(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::Weight>;
+    fn node(&self, node_id: NodeId<Self::Id>) -> Option<NodeRef<Self::Id, Self::NodeWeight>>;
+    fn edge(&self, edge_id: EdgeId<Self::Id>) -> Option<EdgeRef<Self::Id, Self::EdgeWeight>>;
 
     fn contains_node_id(&self, node_id: NodeId<Self::Id>) -> bool {
         self.node(node_id).is_some()
     }
 
     fn contains_edge_id(&self, edge_id: EdgeId<Self::Id>) -> bool {
-        self.weight(edge_id).is_some()
+        self.edge(edge_id).is_some()
     }
 }
 
@@ -159,97 +159,64 @@ pub trait Get: Base {
 // }
 
 pub trait GetMut: Base {
-    fn node_mut(&mut self, node_id: NodeId<Self::Id>) -> Option<&mut Self::Node>;
-    fn weight_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::Weight>;
+    fn node_mut(
+        &mut self,
+        node_id: NodeId<Self::Id>,
+    ) -> Option<NodeRefMut<Self::Id, Self::NodeWeight>>;
+    fn edge_mut(
+        &mut self,
+        edge_id: EdgeId<Self::Id>,
+    ) -> Option<EdgeRefMut<Self::Id, Self::EdgeWeight>>;
 
-    fn update_node(&mut self, node_id: NodeId<Self::Id>, node: Self::Node) -> Option<Self::Node> {
+    fn update_node(
+        &mut self,
+        node_id: NodeId<Self::Id>,
+        node: Self::NodeWeight,
+    ) -> Option<Self::NodeWeight> {
         match self.node_mut(node_id) {
-            Some(dest) => Some(std::mem::replace(dest, node)),
+            Some(dest) => Some(std::mem::replace(dest.weight, node)),
             None => None,
         }
     }
     fn update_edge(
         &mut self,
         edge_id: EdgeId<Self::Id>,
-        weight: Self::Weight,
-    ) -> Option<Self::Weight> {
-        match self.weight_mut(edge_id) {
-            Some(dest) => Some(std::mem::replace(dest, weight)),
+        weight: Self::EdgeWeight,
+    ) -> Option<Self::EdgeWeight> {
+        match self.edge_mut(edge_id) {
+            Some(dest) => Some(std::mem::replace(dest.weight, weight)),
             None => None,
         }
     }
 }
 
-pub trait Cost<C>: Base {
-    type EdgeCost: EdgeCost<Cost = C>;
-
-    fn cost(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::EdgeCost>;
-    fn cost_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::EdgeCost>;
+pub trait AdaptNode<G, N>: Base
+where
+    G: Base<NodeWeight = N>,
+{
+    fn map_node<F>(self, f: F) -> G
+    where
+        F: Fn(Node<Self::Id, Self::NodeWeight>) -> Node<Self::Id, N>;
 }
 
-// default impl<T: Base<Weight: EdgeCost> + Get + GetMut> Cost<<T::Weight as EdgeCost>::Cost> for T {
-//     type EdgeCost = T::Weight;
+pub trait AdaptEdge<G, W>: Base
+where
+    G: Base<EdgeWeight = W>,
+{
+    fn map_edge<F>(self, f: F) -> G
+    where
+        F: Fn(Edge<Self::Id, Self::EdgeWeight>) -> Edge<Self::Id, W>;
 
-//     fn cost(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::EdgeCost> {
-//         self.weight(edge_id)
-//     }
-
-//     fn cost_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::EdgeCost> {
-//         self.weight_mut(edge_id)
-//     }
-// }
-
-pub trait Flow<F>: Base {
-    type EdgeFlow: EdgeFlow<Flow = F>;
-
-    fn flow(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::EdgeFlow>;
-    fn flow_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::EdgeFlow>;
-
-    // fn flow_weight(&self, edge_id: EdgeId<Self::Id>) -> Option<(&Self::Weight, &Self::EdgeFlow)> {
-    //     self.weight(edge_id)
-    //         .map(|weight| self.flow(edge_id).map(|flow| (weight, flow)))
-    //         .flatten()
-    // }
+    fn split_map_edge<F>(self, f: F) -> G
+    where
+        F: Fn(Edge<Self::Id, Self::EdgeWeight>) -> Vec<Edge<Self::Id, W>>;
 }
 
-// default impl<T: Base<Weight: EdgeFlow> + Get + GetMut> Flow<<T::Weight as EdgeFlow>::Flow> for T {
-//     type EdgeFlow = T::Weight;
+pub trait Cost<C>: Base<EdgeWeight: EdgeCost<Cost = C>> {}
 
-//     fn flow(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::EdgeFlow> {
-//         self.weight(edge_id)
-//     }
+pub trait Flow<F>: Base<EdgeWeight: EdgeFlow<Flow = F>> {}
 
-//     fn flow_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::EdgeFlow> {
-//         self.weight_mut(edge_id)
-//     }
-// }
-
-pub trait Balance<B>: Base {
-    type NodeBalance: NodeBalance<Balance = B>;
-
-    fn balance(&self, node_id: NodeId<Self::Id>) -> Option<&Self::NodeBalance>;
-    fn balance_mut(&mut self, node_id: NodeId<Self::Id>) -> Option<&mut Self::NodeBalance>;
-
-    // fn balance_node(&self, node_id: NodeId<Self::Id>) -> Option<(&Self::Node, &Self::NodeBalance)> {
-    //     self.node(node_id)
-    //         .map(|node| self.balance(node_id).map(|balance| (node, balance)))
-    //         .flatten()
-    // }
-}
-
-// default impl<T: Base<Node: NodeBalance> + Get + GetMut> Balance<<T::Node as NodeBalance>::Balance>
-//     for T
-// {
-//     type NodeBalance = T::Node;
-
-//     fn balance(&self, node_id: NodeId<Self::Id>) -> Option<&Self::NodeBalance> {
-//         self.node(node_id)
-//     }
-
-//     fn balance_mut(&mut self, node_id: NodeId<Self::Id>) -> Option<&mut Self::NodeBalance> {
-//         self.node_mut(node_id)
-//     }
-// }
+pub trait Balance<B>: Base<NodeWeight: NodeBalance<Balance = B>> {}
 
 pub trait Index: Base {
     type EdgeIds<'a>: Iterator<Item = EdgeId<Self::Id>> + 'a
@@ -264,13 +231,13 @@ pub trait Index: Base {
 }
 
 pub trait Iter: Base {
-    type Nodes<'a>: Iterator<Item = &'a Self::Node> + 'a
+    type Nodes<'a>: Iterator<Item = NodeRef<'a, Self::Id, Self::NodeWeight>> + 'a
     where
-        Self::Node: 'a,
+        Self::NodeWeight: 'a,
         Self: 'a;
-    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::Weight>> + 'a
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::EdgeWeight>> + 'a
     where
-        Self::Weight: 'a,
+        Self::EdgeWeight: 'a,
         Self: 'a;
 
     /// This returns an iterator over all nodes in the graph.
@@ -294,13 +261,13 @@ pub trait Iter: Base {
 }
 
 pub trait IterMut: Base {
-    type NodesMut<'a>: Iterator<Item = &'a mut Self::Node> + 'a
+    type NodesMut<'a>: Iterator<Item = NodeRefMut<'a, Self::Id, Self::NodeWeight>> + 'a
     where
-        Self::Node: 'a,
+        Self::NodeWeight: 'a,
         Self: 'a;
-    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::Weight>> + 'a
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::EdgeWeight>> + 'a
     where
-        Self::Weight: 'a,
+        Self::EdgeWeight: 'a,
         Self: 'a;
 
     fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a>;
@@ -308,25 +275,25 @@ pub trait IterMut: Base {
 }
 
 pub trait IndexAdjacent: Base {
-    type AdjacentNodeIds<'a>: Iterator<Item = NodeId<Self::Id>> + 'a
+    type NodeIds<'a>: Iterator<Item = NodeId<Self::Id>> + 'a
     where
         Self: 'a;
-    type AdjacentEdgeIds<'a>: Iterator<Item = EdgeId<Self::Id>> + 'a
+    type EdgeIds<'a>: Iterator<Item = EdgeId<Self::Id>> + 'a
     where
         Self: 'a;
 
-    fn adjacent_node_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::AdjacentNodeIds<'a>;
-    fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::AdjacentEdgeIds<'a>;
+    fn adjacent_node_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::NodeIds<'a>;
+    fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::EdgeIds<'a>;
 }
 
 pub trait IterAdjacent: Base {
-    type Nodes<'a>: Iterator<Item = &'a Self::Node> + 'a
+    type Nodes<'a>: Iterator<Item = NodeRef<'a, Self::Id, Self::NodeWeight>> + 'a
     where
-        Self::Node: 'a,
+        Self::NodeWeight: 'a,
         Self: 'a;
-    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::Weight>> + 'a
+    type Edges<'a>: Iterator<Item = EdgeRef<'a, Self::Id, Self::EdgeWeight>> + 'a
     where
-        Self::Weight: 'a,
+        Self::EdgeWeight: 'a,
         Self: 'a;
 
     /// This returns an iterator over all nodes adjacent to the specified node in the graph.
@@ -351,13 +318,13 @@ pub trait IterAdjacent: Base {
 }
 
 pub trait IterAdjacentMut: Base {
-    type NodesMut<'a>: Iterator<Item = &'a mut Self::Node> + 'a
+    type NodesMut<'a>: Iterator<Item = NodeRefMut<'a, Self::Id, Self::NodeWeight>> + 'a
     where
-        Self::Node: 'a,
+        Self::NodeWeight: 'a,
         Self: 'a;
-    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::Weight>> + 'a
+    type EdgesMut<'a>: Iterator<Item = EdgeRefMut<'a, Self::Id, Self::EdgeWeight>> + 'a
     where
-        Self::Weight: 'a,
+        Self::EdgeWeight: 'a,
         Self: 'a;
 
     fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: NodeId<Self::Id>) -> Self::NodesMut<'a>;
@@ -365,19 +332,25 @@ pub trait IterAdjacentMut: Base {
 }
 
 pub trait Insert: Base {
-    fn insert_node(&mut self, node: Self::Node) -> NodeId<Self::Id>;
+    fn insert_node(&mut self, node: Self::NodeWeight) -> NodeId<Self::Id>;
     /// Is allowed to panic if from or to are not in the graph
     fn insert_edge(
         &mut self,
         from: NodeId<Self::Id>,
         to: NodeId<Self::Id>,
-        weight: Self::Weight,
+        weight: Self::EdgeWeight,
     ) -> EdgeId<Self::Id>;
 }
 
 pub trait Remove: Base {
-    fn remove_node(&mut self, node_id: NodeId<Self::Id>) -> Option<Self::Node>;
-    fn remove_edge(&mut self, edge_id: EdgeId<Self::Id>) -> Option<Self::Weight>;
+    fn remove_node(
+        &mut self,
+        node_id: NodeId<Self::Id>,
+    ) -> Option<Node<Self::Id, Self::NodeWeight>>;
+    fn remove_edge(
+        &mut self,
+        edge_id: EdgeId<Self::Id>,
+    ) -> Option<Edge<Self::Id, Self::EdgeWeight>>;
 }
 
 pub trait Reserve {

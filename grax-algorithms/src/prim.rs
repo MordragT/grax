@@ -3,6 +3,7 @@ use grax_core::prelude::*;
 use grax_core::traits::*;
 use grax_core::view::AttrMap;
 use grax_core::view::VisitMap;
+use grax_core::weight::Sortable;
 
 use priq::PriorityQueue;
 use std::fmt::Debug;
@@ -11,7 +12,7 @@ use std::ops::AddAssign;
 pub fn prim<C, G>(graph: &G) -> C
 where
     C: Default + Sortable + AddAssign + Copy + Debug,
-    G: Index + IndexAdjacent + Cost<C> + Visitable + Count + Viewable,
+    G: Index + IterAdjacent + Cost<C> + Visitable + Count + Viewable,
 {
     match graph.node_ids().next() {
         Some(start) => _prim(graph, start),
@@ -22,7 +23,7 @@ where
 pub(crate) fn _prim<C, G>(graph: &G, start: NodeId<G::Id>) -> C
 where
     C: Default + Sortable + AddAssign + Copy + Debug,
-    G: IndexAdjacent + Cost<C> + Visitable + Count + Viewable,
+    G: IterAdjacent + Cost<C> + Visitable + Count + Viewable,
 {
     let mut visit = graph.visit_map();
     let mut priority_queue = PriorityQueue::with_capacity(graph.node_count());
@@ -39,10 +40,10 @@ where
         visit.visit(to);
         total_cost += cost;
 
-        for edge_id in graph.adjacent_edge_ids(to) {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(to) {
             let to = edge_id.to();
             if !visit.is_visited(to) {
-                let edge_cost = *graph.cost(edge_id).unwrap().cost();
+                let edge_cost = *weight.cost();
 
                 if let Some(cost) = &mut costs.get_mut(to) {
                     if *cost > edge_cost {
@@ -70,7 +71,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_2_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -80,7 +81,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_20_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -90,7 +91,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_200_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -100,7 +101,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_20_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -108,10 +109,9 @@ mod test {
         })
     }
 
-    #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_10_200_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -119,10 +119,9 @@ mod test {
         })
     }
 
-    #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_100_200_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -130,9 +129,11 @@ mod test {
         })
     }
 
+    // sparse
+
     #[bench]
-    fn prim_graph_1_2_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+    fn prim_graph_1_2_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -141,8 +142,8 @@ mod test {
     }
 
     #[bench]
-    fn prim_graph_1_20_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+    fn prim_graph_1_20_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -152,8 +153,8 @@ mod test {
 
     #[cfg(feature = "extensive")]
     #[bench]
-    fn prim_graph_1_200_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+    fn prim_graph_1_200_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -162,8 +163,8 @@ mod test {
     }
 
     #[bench]
-    fn prim_graph_10_20_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+    fn prim_graph_10_20_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -173,8 +174,8 @@ mod test {
 
     #[cfg(feature = "extensive")]
     #[bench]
-    fn prim_graph_10_200_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+    fn prim_graph_10_200_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -184,8 +185,8 @@ mod test {
 
     #[cfg(feature = "extensive")]
     #[bench]
-    fn prim_graph_100_200_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+    fn prim_graph_100_200_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;

@@ -22,6 +22,12 @@ default impl<T: PartialOrd> Sortable for T {
     }
 }
 
+impl Sortable for usize {
+    fn sort(&self, other: &Self) -> Ordering {
+        self.cmp(other)
+    }
+}
+
 impl Sortable for f64 {
     fn sort(&self, other: &Self) -> Ordering {
         self.total_cmp(other)
@@ -50,6 +56,10 @@ impl Maximum for u32 {
     const MAX: Self = u32::MAX;
 }
 
+impl Maximum for usize {
+    const MAX: Self = usize::MAX;
+}
+
 pub trait Ratio:
     Sortable
     + Maximum
@@ -76,5 +86,32 @@ impl<
             + Copy
             + Debug,
     > Ratio for T
+{
+}
+
+pub trait Num:
+    Sortable
+    + Maximum
+    + Default
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + AddAssign
+    + SubAssign
+    + Copy
+    + Debug
+{
+}
+
+impl<
+        T: Sortable
+            + Maximum
+            + Default
+            + Add<T, Output = T>
+            + Sub<T, Output = T>
+            + AddAssign
+            + SubAssign
+            + Copy
+            + Debug,
+    > Num for T
 {
 }

@@ -1,9 +1,9 @@
 use grax_core::edge::*;
-use grax_core::node::*;
+use grax_core::node::NodeBalance;
 use grax_core::prelude::*;
 use grax_core::traits::*;
+use grax_core::weight::Num;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 use super::attr::{AttrHashMap, AttrVec};
@@ -13,14 +13,14 @@ type RawNodeId = NodeId<usize>;
 type RawEdgeId = EdgeId<usize>;
 
 #[derive(Debug, Clone)]
-pub struct AdjacencyList<Node, Weight, const DI: bool = false> {
-    pub(crate) nodes: Vec<Node>,
-    pub(crate) edges: Vec<Vec<Edge<usize, Weight>>>,
+pub struct AdjGraph<N, W, const DI: bool = false> {
+    pub(crate) nodes: Vec<Node<usize, N>>,
+    pub(crate) edges: Vec<Vec<Edge<usize, W>>>,
 }
 
-impl<Weight: Clone, const DI: bool> AdjacencyList<usize, Weight, DI> {
+impl<W: Clone, const DI: bool> AdjGraph<usize, W, DI> {
     pub fn with_edges(
-        edges: impl IntoIterator<Item = (usize, usize, Weight)>,
+        edges: impl IntoIterator<Item = (usize, usize, W)>,
         node_count: usize,
     ) -> Self {
         let mut adj_list = Self::with_nodes(0..node_count);
@@ -36,10 +36,8 @@ impl<Weight: Clone, const DI: bool> AdjacencyList<usize, Weight, DI> {
     }
 }
 
-impl<Node, Weight: Copy, const DI: bool> From<EdgeList<Node, Weight, DI>>
-    for AdjacencyList<Node, Weight, DI>
-{
-    fn from(edge_list: EdgeList<Node, Weight, DI>) -> Self {
+impl<N, W: Copy, const DI: bool> From<EdgeList<N, W, DI>> for AdjGraph<N, W, DI> {
+    fn from(edge_list: EdgeList<N, W, DI>) -> Self {
         let EdgeList {
             nodes,
             edges,
@@ -63,20 +61,20 @@ impl<Node, Weight: Copy, const DI: bool> From<EdgeList<Node, Weight, DI>>
     }
 }
 
-impl<Node, Weight, const DI: bool> Base for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Base for AdjGraph<N, W, DI> {
     type Id = usize;
-    type Node = Node;
-    type Weight = Weight;
+    type NodeWeight = N;
+    type EdgeWeight = W;
 }
 
-// impl<Node, Weight, const DI: bool> Ref for AdjacencyList<Node, Weight, DI> {
-//     type GraphRef<'a> = AdjacencyList<&'a Node, &'a Weight, DI>
+// impl<N, W, const DI: bool> Ref for AdjacencyList<N, W, DI> {
+//     type GraphRef<'a> = AdjacencyList<&'a N, &'a W, DI>
 //     where
-//         Node: 'a,
-//         Weight: 'a;
+//         N: 'a,
+//         W: 'a;
 // }
 
-impl<Node, Weight, const DI: bool> Capacity for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Capacity for AdjGraph<N, W, DI> {
     fn edges_capacity(&self) -> usize {
         self.edges
             .first()
@@ -89,7 +87,7 @@ impl<Node, Weight, const DI: bool> Capacity for AdjacencyList<Node, Weight, DI> 
     }
 }
 
-impl<Node, Weight, const DI: bool> Clear for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Clear for AdjGraph<N, W, DI> {
     fn clear(&mut self) {
         self.nodes.clear();
         self.clear_edges();
@@ -102,12 +100,12 @@ impl<Node, Weight, const DI: bool> Clear for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node: PartialEq, Weight, const DI: bool> Contains for AdjacencyList<Node, Weight, DI> {
-    fn contains_node(&self, node: &Node) -> Option<RawNodeId> {
+impl<N: PartialEq, W, const DI: bool> Contains for AdjGraph<N, W, DI> {
+    fn contains_node(&self, node: &N) -> Option<RawNodeId> {
         self.nodes
             .iter()
             .enumerate()
-            .find(|(_i, other)| *other == node)
+            .find(|(_i, other)| &other.weight == node)
             .map(|(id, _)| RawNodeId::new_unchecked(id))
     }
 
@@ -124,18 +122,19 @@ impl<Node: PartialEq, Weight, const DI: bool> Contains for AdjacencyList<Node, W
     }
 }
 
-impl<Node, Weight, const DI: bool> Count for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Count for AdjGraph<N, W, DI> {
     fn edge_count(&self) -> usize {
         let count = self.edges.iter().fold(0, |mut akku, edges| {
             akku += edges.len();
             akku
         });
 
-        if DI {
-            count
-        } else {
-            count / 2
-        }
+        // if DI {
+        //     count
+        // } else {
+        //     count / 2
+        // }
+        count
     }
 
     fn node_count(&self) -> usize {
@@ -143,7 +142,7 @@ impl<Node, Weight, const DI: bool> Count for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight: Clone, const DI: bool> Create for AdjacencyList<Node, Weight, DI> {
+impl<N, W: Clone, const DI: bool> Create for AdjGraph<N, W, DI> {
     fn with_capacity(nodes: usize, edges: usize) -> Self {
         let nodes = Vec::with_capacity(nodes);
         let edges = Vec::with_capacity(nodes.len());
@@ -151,8 +150,12 @@ impl<Node, Weight: Clone, const DI: bool> Create for AdjacencyList<Node, Weight,
         Self { nodes, edges }
     }
 
-    fn with_nodes(nodes: impl IntoIterator<Item = Node>) -> Self {
-        let nodes = nodes.into_iter().collect::<Vec<_>>();
+    fn with_nodes(nodes: impl IntoIterator<Item = N>) -> Self {
+        let nodes = nodes
+            .into_iter()
+            .enumerate()
+            .map(|(id, weight)| Node::new(RawNodeId::new_unchecked(id), weight))
+            .collect::<Vec<_>>();
         let edges = vec![Vec::new(); nodes.len()];
 
         Self { nodes, edges }
@@ -166,36 +169,39 @@ impl<Node, Weight: Clone, const DI: bool> Create for AdjacencyList<Node, Weight,
     }
 }
 
-impl<Node, Weight, const DI: bool> Directed for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Directed for AdjGraph<N, W, DI> {
     fn directed() -> bool {
         DI
     }
 }
 
-impl<Node, Weight, const DI: bool> Extend for AdjacencyList<Node, Weight, DI> {
-    fn extend_edges(&mut self, edges: impl IntoIterator<Item = (RawNodeId, RawNodeId, Weight)>) {
+impl<N, W, const DI: bool> Extend for AdjGraph<N, W, DI> {
+    fn extend_edges(&mut self, edges: impl IntoIterator<Item = (RawNodeId, RawNodeId, W)>) {
         for (from, to, weight) in edges {
             self.insert_edge(from, to, weight);
         }
     }
 
-    fn extend_nodes(&mut self, nodes: impl IntoIterator<Item = Node>) {
+    fn extend_nodes(&mut self, nodes: impl IntoIterator<Item = N>) {
         for node in nodes {
             self.insert_node(node);
         }
     }
 }
 
-impl<Node, Weight, const DI: bool> Get for AdjacencyList<Node, Weight, DI> {
-    fn node(&self, node_id: RawNodeId) -> Option<&Node> {
-        self.nodes.get(node_id.raw())
+impl<N, W, const DI: bool> Get for AdjGraph<N, W, DI> {
+    // fn node(&self, node_id: RawNodeId) -> Option<&N> {
+    // }
+
+    fn node(&self, node_id: NodeId<Self::Id>) -> Option<NodeRef<Self::Id, Self::NodeWeight>> {
+        self.nodes.get(node_id.raw()).map(Into::into)
     }
 
-    fn weight(&self, edge_id: RawEdgeId) -> Option<&Weight> {
+    fn edge(&self, edge_id: EdgeId<Self::Id>) -> Option<EdgeRef<Self::Id, Self::EdgeWeight>> {
         self.edges.get(edge_id.from().raw()).and_then(|adj| {
             adj.iter().find_map(|edge| {
                 if edge.to() == edge_id.to() {
-                    Some(&edge.weight)
+                    Some(edge.into())
                 } else {
                     None
                 }
@@ -204,16 +210,22 @@ impl<Node, Weight, const DI: bool> Get for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight, const DI: bool> GetMut for AdjacencyList<Node, Weight, DI> {
-    fn node_mut(&mut self, node_id: RawNodeId) -> Option<&mut Node> {
-        self.nodes.get_mut(node_id.raw())
+impl<N, W, const DI: bool> GetMut for AdjGraph<N, W, DI> {
+    fn node_mut(
+        &mut self,
+        node_id: NodeId<Self::Id>,
+    ) -> Option<NodeRefMut<Self::Id, Self::NodeWeight>> {
+        self.nodes.get_mut(node_id.raw()).map(Into::into)
     }
 
-    fn weight_mut(&mut self, edge_id: RawEdgeId) -> Option<&mut Weight> {
+    fn edge_mut(
+        &mut self,
+        edge_id: EdgeId<Self::Id>,
+    ) -> Option<EdgeRefMut<Self::Id, Self::EdgeWeight>> {
         self.edges.get_mut(edge_id.from().raw()).and_then(|adj| {
             adj.iter_mut().find_map(|edge| {
                 if edge.to() == edge_id.to() {
-                    Some(&mut edge.weight)
+                    Some(edge.into())
                 } else {
                     None
                 }
@@ -222,7 +234,7 @@ impl<Node, Weight, const DI: bool> GetMut for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight, const DI: bool> Index for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Index for AdjGraph<N, W, DI> {
     type EdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
     where Self: 'a;
     type NodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
@@ -240,20 +252,20 @@ impl<Node, Weight, const DI: bool> Index for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight, const DI: bool> IndexAdjacent for AdjacencyList<Node, Weight, DI> {
-    type AdjacentEdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
+impl<N, W, const DI: bool> IndexAdjacent for AdjGraph<N, W, DI> {
+    type EdgeIds<'a> = impl Iterator<Item = RawEdgeId> + 'a
     where Self: 'a;
-    type AdjacentNodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
+    type NodeIds<'a> = impl Iterator<Item = RawNodeId> + 'a
     where Self: 'a;
 
-    fn adjacent_edge_ids<'a>(&'a self, node_id: RawNodeId) -> Self::AdjacentEdgeIds<'a> {
+    fn adjacent_edge_ids<'a>(&'a self, node_id: RawNodeId) -> Self::EdgeIds<'a> {
         self.edges
             .get(node_id.raw())
             .map(|adj| adj.iter().map(|edge| edge.edge_id))
             .into_iter()
             .flatten()
     }
-    fn adjacent_node_ids<'a>(&'a self, node_id: RawNodeId) -> Self::AdjacentNodeIds<'a> {
+    fn adjacent_node_ids<'a>(&'a self, node_id: RawNodeId) -> Self::NodeIds<'a> {
         self.edges
             .get(node_id.raw())
             .map(|adj| adj.iter().map(|edge| edge.to()))
@@ -262,19 +274,19 @@ impl<Node, Weight, const DI: bool> IndexAdjacent for AdjacencyList<Node, Weight,
     }
 }
 
-impl<Node, Weight, const DI: bool> Iter for AdjacencyList<Node, Weight, DI> {
-    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
+impl<N, W, const DI: bool> Iter for AdjGraph<N, W, DI> {
+    type Nodes<'a> = impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
     where
-        Node: 'a,
+        N: 'a,
         Self: 'a;
 
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, Weight>> + 'a
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
-        Weight: 'a,
+        W: 'a,
         Self: 'a;
 
     fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a> {
-        self.nodes.iter()
+        self.nodes.iter().map(Into::into)
     }
 
     fn iter_edges<'a>(&'a self) -> Self::Edges<'a> {
@@ -285,19 +297,19 @@ impl<Node, Weight, const DI: bool> Iter for AdjacencyList<Node, Weight, DI> {
             .map(Into::into)
     }
 }
-impl<Node, Weight, const DI: bool> IterMut for AdjacencyList<Node, Weight, DI> {
-    type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
+impl<N, W, const DI: bool> IterMut for AdjGraph<N, W, DI> {
+    type NodesMut<'a> =  impl Iterator<Item = NodeRefMut<'a, usize, N>> + 'a
     where
-        Node: 'a,
+        N: 'a,
         Self: 'a;
 
-    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, usize, Weight>> + 'a
+    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, usize, W>> + 'a
     where
-        Weight: 'a,
+        W: 'a,
         Self: 'a;
 
     fn iter_nodes_mut<'a>(&'a mut self) -> Self::NodesMut<'a> {
-        self.nodes.iter_mut()
+        self.nodes.iter_mut().map(Into::into)
     }
 
     fn iter_edges_mut<'a>(&'a mut self) -> Self::EdgesMut<'a> {
@@ -309,15 +321,15 @@ impl<Node, Weight, const DI: bool> IterMut for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight, const DI: bool> IterAdjacent for AdjacencyList<Node, Weight, DI> {
-    type Nodes<'a> = impl Iterator<Item = &'a Node> + 'a
+impl<N, W, const DI: bool> IterAdjacent for AdjGraph<N, W, DI> {
+    type Nodes<'a> =  impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
     where
-        Node: 'a,
+        N: 'a,
         Self: 'a;
 
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, Weight>> + 'a
+    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
-        Weight: 'a,
+        W: 'a,
         Self: 'a;
 
     fn iter_adjacent_nodes<'a>(&'a self, node_id: RawNodeId) -> Self::Nodes<'a> {
@@ -333,15 +345,15 @@ impl<Node, Weight, const DI: bool> IterAdjacent for AdjacencyList<Node, Weight, 
             .flatten()
     }
 }
-impl<Node, Weight, const DI: bool> IterAdjacentMut for AdjacencyList<Node, Weight, DI> {
-    type NodesMut<'a> = impl Iterator<Item = &'a mut Node> + 'a
+impl<N, W, const DI: bool> IterAdjacentMut for AdjGraph<N, W, DI> {
+    type NodesMut<'a> =  impl Iterator<Item = NodeRefMut<'a, usize, N>> + 'a
     where
-        Node: 'a,
+        N: 'a,
         Self: 'a;
 
-    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, usize, Weight>> + 'a
+    type EdgesMut<'a> = impl Iterator<Item = EdgeRefMut<'a, usize, W>> + 'a
     where
-        Weight: 'a,
+        W: 'a,
         Self: 'a;
 
     fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: RawNodeId) -> Self::NodesMut<'a> {
@@ -367,16 +379,16 @@ impl<Node, Weight, const DI: bool> IterAdjacentMut for AdjacencyList<Node, Weigh
     }
 }
 
-impl<Node, Weight, const DI: bool> Insert for AdjacencyList<Node, Weight, DI> {
-    fn insert_node(&mut self, node: Node) -> RawNodeId {
+impl<N, W, const DI: bool> Insert for AdjGraph<N, W, DI> {
+    fn insert_node(&mut self, node: N) -> RawNodeId {
         let node_id = RawNodeId::new_unchecked(self.nodes.len());
-        self.nodes.push(node);
+        self.nodes.push(Node::new(node_id, node));
         self.edges.push(Vec::new());
         node_id
     }
 
     // TODO undirected ??
-    fn insert_edge(&mut self, from: RawNodeId, to: RawNodeId, weight: Weight) -> RawEdgeId {
+    fn insert_edge(&mut self, from: RawNodeId, to: RawNodeId, weight: W) -> RawEdgeId {
         let edge_id = RawEdgeId::new_unchecked(from, to);
         let edge = Edge::new(edge_id, weight);
         self.edges[from.raw()].push(edge);
@@ -384,8 +396,11 @@ impl<Node, Weight, const DI: bool> Insert for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node: Default, Weight, const DI: bool> Remove for AdjacencyList<Node, Weight, DI> {
-    fn remove_node(&mut self, node_id: RawNodeId) -> Option<Node> {
+impl<N: Default, W, const DI: bool> Remove for AdjGraph<N, W, DI> {
+    fn remove_node(
+        &mut self,
+        node_id: NodeId<Self::Id>,
+    ) -> Option<Node<Self::Id, Self::NodeWeight>> {
         if let Some(adj) = self.edges.get_mut(node_id.raw()) {
             adj.clear();
         }
@@ -396,19 +411,22 @@ impl<Node: Default, Weight, const DI: bool> Remove for AdjacencyList<Node, Weigh
 
         // TODO replace with Option::None
         if let Some(node) = self.nodes.get_mut(node_id.raw()) {
-            Some(std::mem::replace(node, Node::default()))
+            let weight = std::mem::replace(&mut node.weight, N::default());
+            Some(Node::new(node_id, weight))
         } else {
             None
         }
     }
 
-    fn remove_edge(&mut self, edge_id: RawEdgeId) -> Option<Weight> {
-        // self.edges[edge_id.from().raw()].
+    fn remove_edge(
+        &mut self,
+        edge_id: EdgeId<Self::Id>,
+    ) -> Option<Edge<Self::Id, Self::EdgeWeight>> {
         todo!()
     }
 }
 
-impl<Node, Weight, const DI: bool> Reserve for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Reserve for AdjGraph<N, W, DI> {
     fn reserve_edges(&mut self, additional: usize) {
         todo!()
     }
@@ -418,7 +436,7 @@ impl<Node, Weight, const DI: bool> Reserve for AdjacencyList<Node, Weight, DI> {
     }
 }
 
-impl<Node, Weight, const DI: bool> Visitable for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Visitable for AdjGraph<N, W, DI> {
     type VisitMap = AttrVec<bool>;
 
     fn visit_map(&self) -> Self::VisitMap {
@@ -426,7 +444,7 @@ impl<Node, Weight, const DI: bool> Visitable for AdjacencyList<Node, Weight, DI>
     }
 }
 
-impl<Node, Weight, const DI: bool> Viewable for AdjacencyList<Node, Weight, DI> {
+impl<N, W, const DI: bool> Viewable for AdjGraph<N, W, DI> {
     type NodeMap<Attr: Clone + Default + Debug> = AttrVec<Attr>;
     type EdgeMap<Attr: Clone + Default + Debug> = AttrHashMap<EdgeId<Self::Id>, Attr>;
 
@@ -435,10 +453,12 @@ impl<Node, Weight, const DI: bool> Viewable for AdjacencyList<Node, Weight, DI> 
     }
 
     fn edge_map<Attr: Clone + Default + Debug>(&self) -> Self::EdgeMap<Attr> {
-        let mut map = HashMap::new();
-        for edge_id in self.edge_ids() {
-            map.insert(edge_id, Attr::default());
-        }
+        let mut map = HashMap::with_capacity(self.edge_count());
+        map.extend(self.edge_ids().map(|edge_id| (edge_id, Attr::default())));
+
+        // for edge_id in self.edge_ids() {
+        //     map.insert(edge_id, Attr::default());
+        // }
         AttrHashMap(map)
     }
 
@@ -462,62 +482,95 @@ impl<Node, Weight, const DI: bool> Viewable for AdjacencyList<Node, Weight, DI> 
     // }
 }
 
-impl<C, Node, Weight: EdgeCost<Cost = C>, const DI: bool> Cost<C>
-    for AdjacencyList<Node, Weight, DI>
-{
-    type EdgeCost = Weight;
+impl<C, N, W: EdgeCost<Cost = C>, const DI: bool> Cost<C> for AdjGraph<N, W, DI> {}
 
-    fn cost(&self, edge_id: EdgeId<Self::Id>) -> Option<&Self::EdgeCost> {
-        self.weight(edge_id)
+impl<F, N, W: EdgeFlow<Flow = F>, const DI: bool> Flow<F> for AdjGraph<N, W, DI> {}
+
+impl<B, N: NodeBalance<Balance = B>, W, const DI: bool> Balance<B> for AdjGraph<N, W, DI> {}
+
+impl<N, W1, W2: Clone, const DI: bool> AdaptEdge<AdjGraph<N, W2, DI>, W2> for AdjGraph<N, W1, DI> {
+    fn map_edge<F>(self, f: F) -> AdjGraph<N, W2, DI>
+    where
+        F: Fn(Edge<Self::Id, Self::EdgeWeight>) -> Edge<Self::Id, W2>,
+    {
+        let Self { nodes, edges } = self;
+
+        let edges = edges.into_iter().flat_map(|neighs| {
+            neighs.into_iter().map(|edge| {
+                let edge = f(edge);
+                (edge.edge_id.from(), edge.edge_id.to(), edge.weight)
+            })
+        });
+
+        let mut adj_list = AdjGraph::with_nodes(nodes.into_iter().map(|node| node.weight));
+        adj_list.extend_edges(edges);
+
+        adj_list
     }
 
-    fn cost_mut(&mut self, edge_id: EdgeId<Self::Id>) -> Option<&mut Self::EdgeCost> {
-        self.weight_mut(edge_id)
+    fn split_map_edge<F>(self, f: F) -> AdjGraph<N, W2, DI>
+    where
+        F: Fn(Edge<Self::Id, Self::EdgeWeight>) -> Vec<Edge<Self::Id, W2>>,
+    {
+        let Self { nodes, edges } = self;
+
+        let edges = edges.into_iter().flat_map(|neighs| {
+            neighs.into_iter().flat_map(|edge| {
+                f(edge)
+                    .into_iter()
+                    .map(|edge| (edge.edge_id.from(), edge.edge_id.to(), edge.weight))
+            })
+        });
+
+        let mut adj_list = AdjGraph::with_nodes(nodes.into_iter().map(|node| node.weight));
+        adj_list.extend_edges(edges);
+
+        adj_list
     }
 }
 
-impl<N: Node, W: Debug + Clone, const DI: bool> Graph<N, W> for AdjacencyList<N, W, DI> {}
+impl<N: Num, W: Num, const DI: bool> Graph<N, W> for AdjGraph<N, W, DI> {}
 
-impl<N: Node, const DI: bool> WeightlessGraph<N> for AdjacencyList<N, (), DI> {}
+impl<N: Num, const DI: bool> WeightlessGraph<N> for AdjGraph<N, (), DI> {}
 
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::AdjacencyList;
+    use super::AdjGraph;
     use crate::test::*;
 
     #[test]
     pub fn adj_list_create_with_nodes() {
-        graph_create_with_nodes::<AdjacencyList<_, _>>()
+        graph_create_with_nodes::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_create_with_capacity() {
-        graph_create_with_capacity::<AdjacencyList<_, _>>()
+        graph_create_with_capacity::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_insert_and_contains() {
-        graph_insert_and_contains::<AdjacencyList<_, _>>()
+        graph_insert_and_contains::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_clear() {
-        graph_clear::<AdjacencyList<_, _>>()
+        graph_clear::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_get() {
-        graph_get::<AdjacencyList<_, _>>()
+        graph_get::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_index() {
-        graph_index::<AdjacencyList<_, _>>()
+        graph_index::<AdjGraph<_, _>>()
     }
 
     #[test]
     pub fn adj_list_index_adjacent() {
-        graph_index_adjacent::<AdjacencyList<_, _>>()
+        graph_index_adjacent::<AdjGraph<_, _>>()
     }
 }

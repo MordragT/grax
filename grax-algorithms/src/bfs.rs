@@ -1,11 +1,11 @@
-use grax_core::adaptor::partial::PartialGraphAdaptor;
 use grax_core::prelude::*;
 use grax_core::traits::*;
+use grax_core::view::FilterEdgeView;
 use grax_core::view::{AttrMap, Parents, VisitMap};
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
-pub fn bfs_scc<G>(graph: &G) -> Vec<PartialGraphAdaptor<G>>
+pub fn bfs_scc<G>(graph: &G) -> Vec<FilterEdgeView<G>>
 where
     G: Index + IndexAdjacent + Count + Viewable + Contains,
 {
@@ -24,7 +24,7 @@ where
     components
 }
 
-pub fn bfs<G>(graph: &G, from: NodeId<G::Id>) -> PartialGraphAdaptor<'_, G>
+pub fn bfs<G>(graph: &G, from: NodeId<G::Id>) -> FilterEdgeView<G>
 where
     G: IndexAdjacent + Count + Viewable + Contains,
 {
@@ -81,15 +81,15 @@ where
     })
 }
 
-pub fn bfs_sp<C, F, G>(
+pub fn bfs_sp<F, G>(
     graph: &G,
     source: NodeId<G::Id>,
     sink: NodeId<G::Id>,
     mut cost_fn: F,
 ) -> Option<Parents<G>>
 where
-    F: FnMut(&G::EdgeFlow) -> bool,
-    G: IndexAdjacent + Flow<C> + Visitable + Viewable,
+    F: FnMut(&G::EdgeWeight) -> bool,
+    G: IterAdjacent + Visitable + Viewable,
 {
     let mut queue = VecDeque::new();
     let mut visited = graph.visit_map();
@@ -103,10 +103,9 @@ where
             return Some(parents);
         }
 
-        for to in graph.adjacent_node_ids(from) {
-            let flow = graph.flow(EdgeId::new_unchecked(from, to)).unwrap();
-
-            if !visited.is_visited(to) && cost_fn(flow) {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+            let to = edge_id.to();
+            if !visited.is_visited(to) && cost_fn(weight) {
                 parents.insert(from, to);
                 queue.push_back(to);
                 visited.visit(to);
@@ -116,33 +115,33 @@ where
     None
 }
 
-pub(crate) fn bfs_marker<'a, G, M>(
-    graph: &'a G,
+pub(crate) fn bfs_marker<G, M>(
+    graph: &G,
     from: NodeId<G::Id>,
     markers: &mut G::NodeMap<M>,
     mark: M,
-) -> PartialGraphAdaptor<'a, G>
+) -> FilterEdgeView<G>
 where
     G: IndexAdjacent + Count + Viewable + Contains,
     M: Default + PartialEq + Copy + Debug,
 {
-    let mut tree = PartialGraphAdaptor::new(graph);
+    let mut filter = FilterEdgeView::new(graph.edge_map());
     let mut queue = VecDeque::new();
-    tree.keep_node_id(from);
     queue.push_front(from);
     markers.insert(from, mark);
 
     while let Some(from) = queue.pop_front() {
-        for to in graph.adjacent_node_ids(from) {
+        for edge_id in graph.adjacent_edge_ids(from) {
+            let to = edge_id.to();
             if markers.get(to) == &M::default() {
                 queue.push_back(to);
                 markers.insert(to, mark);
-                tree.keep_edge(from, to);
+                filter.keep(edge_id);
             }
         }
     }
 
-    tree
+    filter
 }
 
 #[cfg(test)]
@@ -155,7 +154,7 @@ mod test {
 
     #[bench]
     fn bfs_scc_graph1_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
+        let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -165,7 +164,7 @@ mod test {
 
     #[bench]
     fn bfs_scc_graph2_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
+        let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -175,7 +174,7 @@ mod test {
 
     #[bench]
     fn bfs_scc_graph3_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
+        let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -186,7 +185,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn bfs_scc_graph_gross_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = weightless_undigraph("../data/Graph_gross.txt").unwrap();
+        let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph_gross.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -197,8 +196,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn bfs_scc_graph_ganz_gross_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> =
-            weightless_undigraph("../data/Graph_ganzgross.txt").unwrap();
+        let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph_ganzgross.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -209,7 +207,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn bfs_scc_graph_ganz_ganz_gross_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> =
+        let graph: AdjGraph<_, _> =
             weightless_undigraph("../data/Graph_ganzganzgross.txt").unwrap();
 
         b.iter(|| {
@@ -219,8 +217,8 @@ mod test {
     }
 
     #[bench]
-    fn bfs_scc_graph1_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
+    fn bfs_scc_graph1_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -229,8 +227,8 @@ mod test {
     }
 
     #[bench]
-    fn bfs_scc_graph2_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
+    fn bfs_scc_graph2_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
@@ -239,8 +237,8 @@ mod test {
     }
 
     #[bench]
-    fn bfs_scc_graph3_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
+    fn bfs_scc_graph3_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
 
         b.iter(|| {
             let counter = bfs_scc(&graph).len();

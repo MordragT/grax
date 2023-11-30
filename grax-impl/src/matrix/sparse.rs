@@ -1,3 +1,7 @@
+// each row correpsonds to the neighbours of the index into the row
+
+use super::Matrix;
+
 /// A N*M sized sparse Matrix
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SparseMatrix<T> {
@@ -9,24 +13,6 @@ pub struct SparseMatrix<T> {
 const MODIFIER: usize = 4;
 
 impl<T> SparseMatrix<T> {
-    pub fn new() -> Self {
-        Self {
-            values: Vec::new(),
-            row_indices: Vec::new(),
-            col_indices: Vec::new(),
-        }
-    }
-
-    pub fn with_capacity(row_count: usize, col_count: usize) -> Self {
-        Self {
-            values: Vec::with_capacity(MODIFIER * (row_count + col_count)),
-            row_indices: Vec::with_capacity(MODIFIER * row_count),
-            col_indices: Vec::with_capacity(MODIFIER * col_count),
-            // row_count,
-            // col_count,
-        }
-    }
-
     // /// Returns the number of rows in the matrix
     // pub fn row_count(&self) -> usize {
     //     self.row_count
@@ -37,37 +23,87 @@ impl<T> SparseMatrix<T> {
     //     self.col_count
     // }
 
-    pub fn capacity(&self) -> usize {
-        self.values.capacity()
+    /// Returns the elements of a specific column
+    pub fn col(&self, col: usize) -> impl Iterator<Item = (usize, &T)> {
+        (0..self.col_indices.len()).filter_map(move |i| {
+            if self.col_indices[i] == col {
+                Some((self.row_indices[i], &self.values[i]))
+            } else {
+                None
+            }
+        })
     }
 
-    /// Returns true if the matrix is empty (has no elements), false otherwise
-    pub fn is_empty(&self) -> bool {
-        self.values.is_empty()
+    pub fn transpose(self) -> Self {
+        Self {
+            values: self.values,
+            row_indices: self.col_indices,
+            col_indices: self.row_indices,
+        }
     }
+}
 
-    /// Returns the number of non-zero elements in the matrix
-    pub fn nnz(&self) -> usize {
-        self.values.len()
-    }
+impl<T> IntoIterator for SparseMatrix<T> {
+    type Item = (usize, usize, T);
+    type IntoIter = impl Iterator<Item = Self::Item>;
 
-    /// Clears the matrix, removing all elements
-    pub fn clear(&mut self) {
-        self.values.clear();
-        self.row_indices.clear();
-        self.col_indices.clear();
-    }
-
-    pub fn into_iter(self) -> impl Iterator<Item = (usize, usize, T)> {
+    fn into_iter(self) -> Self::IntoIter {
         self.row_indices
             .into_iter()
             .zip(self.col_indices)
             .zip(self.values)
             .map(|((row, col), value)| (row, col, value))
     }
+}
 
-    /// Returns an iterator over the non-zero elements in the matrix
-    pub fn iter(&self) -> impl Iterator<Item = (usize, usize, &T)> {
+impl<T> Matrix<T> for SparseMatrix<T> {
+    type Iter<'a> = impl Iterator<Item = (usize, usize, &'a T)> + 'a
+    where T: 'a , Self: 'a;
+
+    type IterMut<'a> = impl Iterator<Item = (usize, usize, &'a mut T)> + 'a
+    where T: 'a , Self: 'a;
+
+    type Row<'a> = impl Iterator<Item = (usize,  &'a T)> + 'a
+    where T: 'a , Self: 'a;
+
+    type RowMut<'a> = impl Iterator<Item = (usize,  &'a mut T)> + 'a
+    where T: 'a , Self: 'a;
+
+    fn new() -> Self {
+        Self {
+            values: Vec::new(),
+            row_indices: Vec::new(),
+            col_indices: Vec::new(),
+        }
+    }
+
+    fn with_capacity(row_count: usize, col_count: usize) -> Self {
+        Self {
+            values: Vec::with_capacity(MODIFIER * (row_count + col_count)),
+            row_indices: Vec::with_capacity(MODIFIER * row_count),
+            col_indices: Vec::with_capacity(MODIFIER * col_count),
+        }
+    }
+
+    fn capacity(&self) -> usize {
+        self.values.capacity()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    fn nnz(&self) -> usize {
+        self.values.len()
+    }
+
+    fn clear(&mut self) {
+        self.values.clear();
+        self.row_indices.clear();
+        self.col_indices.clear();
+    }
+
+    fn iter(&self) -> Self::Iter<'_> {
         self.row_indices
             .iter()
             .zip(&self.col_indices)
@@ -75,8 +111,7 @@ impl<T> SparseMatrix<T> {
             .map(|((&row, &col), value)| (row, col, value))
     }
 
-    /// Returns an mutable iterator over the non-zero elements in the matrix
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, usize, &mut T)> {
+    fn iter_mut(&mut self) -> Self::IterMut<'_> {
         self.row_indices
             .iter()
             .zip(&self.col_indices)
@@ -84,16 +119,13 @@ impl<T> SparseMatrix<T> {
             .map(|((&row, &col), value)| (row, col, value))
     }
 
-    pub fn insert(&mut self, row: usize, col: usize, value: T) {
-        // assert!(row <= self.row_count);
-        // assert!(col <= self.col_count);
-
+    fn insert(&mut self, row: usize, col: usize, value: T) {
         self.values.push(value);
         self.row_indices.push(row);
         self.col_indices.push(col);
     }
 
-    pub fn get(&self, row: usize, col: usize) -> Option<&T> {
+    fn get(&self, row: usize, col: usize) -> Option<&T> {
         for i in 0..self.row_indices.len() {
             if self.row_indices[i] == row && self.col_indices[i] == col {
                 return Some(&self.values[i]);
@@ -102,7 +134,7 @@ impl<T> SparseMatrix<T> {
         None
     }
 
-    pub fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
+    fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut T> {
         for i in 0..self.row_indices.len() {
             if self.row_indices[i] == row && self.col_indices[i] == col {
                 return Some(&mut self.values[i]);
@@ -111,8 +143,7 @@ impl<T> SparseMatrix<T> {
         None
     }
 
-    /// Returns the elements of a specific row
-    pub fn row(&self, row: usize) -> impl Iterator<Item = (usize, &T)> {
+    fn row(&self, row: usize) -> Self::Row<'_> {
         (0..self.row_indices.len()).filter_map(move |i| {
             if self.row_indices[i] == row {
                 Some((self.col_indices[i], &self.values[i]))
@@ -122,8 +153,7 @@ impl<T> SparseMatrix<T> {
         })
     }
 
-    /// Returns the elements of a specific row
-    pub fn row_mut(&mut self, row: usize) -> impl Iterator<Item = (usize, &mut T)> {
+    fn row_mut(&mut self, row: usize) -> Self::RowMut<'_> {
         let (ids, col_ids): (Vec<_>, Vec<_>) = (0..self.row_indices.len())
             .filter_map(|i| {
                 if &self.row_indices[i] == &row {
@@ -149,38 +179,6 @@ impl<T> SparseMatrix<T> {
             );
 
         col_ids.into_iter().zip(values)
-    }
-
-    /// Returns the elements of a specific column
-    pub fn col(&self, col: usize) -> impl Iterator<Item = (usize, &T)> {
-        (0..self.col_indices.len()).filter_map(move |i| {
-            if self.col_indices[i] == col {
-                Some((self.row_indices[i], &self.values[i]))
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl<T> SparseMatrix<T> {
-    /// Transposes the matrix, swapping the rows and columns
-    // pub fn transpose(&self) -> Self {
-    //     let mut transposed = Self::with_capacity(self.col_count, self.row_count);
-    //     for i in 0..self.values.len() {
-    //         let row = self.col_indices[i];
-    //         let col = self.row_indices[i];
-    //         let value = self.values[i].clone();
-    //         transposed.insert(row, col, value);
-    //     }
-    //     transposed
-    // }
-    pub fn transpose(self) -> Self {
-        Self {
-            values: self.values,
-            row_indices: self.col_indices,
-            col_indices: self.row_indices,
-        }
     }
 }
 

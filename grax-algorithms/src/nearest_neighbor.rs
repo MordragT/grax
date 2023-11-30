@@ -4,6 +4,8 @@ use grax_core::prelude::*;
 use grax_core::traits::*;
 use grax_core::view::AttrMap;
 use grax_core::view::Route;
+use grax_core::weight::Maximum;
+use grax_core::weight::Sortable;
 
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
@@ -11,7 +13,7 @@ use std::ops::{Add, AddAssign};
 pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Count + Index + IndexAdjacent + Cost<C> + Viewable,
+    G: Count + Index + IterAdjacent + IndexAdjacent + Cost<C> + Viewable,
 {
     match graph.node_ids().next() {
         Some(start) => nearest_neighbor(graph, start),
@@ -22,7 +24,7 @@ where
 pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Id>) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Count + IndexAdjacent + Cost<C> + Viewable,
+    G: Count + IterAdjacent + IndexAdjacent + Cost<C> + Viewable,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
     enum Status {
@@ -46,8 +48,8 @@ where
         let mut min_node = None;
         let mut min_cost = C::MAX;
 
-        for edge_id in graph.adjacent_edge_ids(*node) {
-            let cost = *graph.cost(edge_id).unwrap().cost();
+        for EdgeRef { edge_id, weight }in graph.iter_adjacent_edges(*node) {
+            let cost = *weight.cost();
             let to = edge_id.to();
             if *states.get(to) == Status::Unvisited && to != prev {
                 if min_cost > cost {
@@ -117,7 +119,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_10_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/K_10.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -127,7 +129,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_10e_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/K_10e.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -137,7 +139,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_12_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/K_12.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -147,7 +149,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_12e_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/K_12e.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -156,8 +158,8 @@ mod test {
     }
 
     #[bench]
-    fn nearest_neighbor_k_10_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/K_10.txt").unwrap();
+    fn nearest_neighbor_k_10_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -166,8 +168,8 @@ mod test {
     }
 
     #[bench]
-    fn nearest_neighbor_k_10e_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/K_10e.txt").unwrap();
+    fn nearest_neighbor_k_10e_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -176,8 +178,8 @@ mod test {
     }
 
     #[bench]
-    fn nearest_neighbor_k_12_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/K_12.txt").unwrap();
+    fn nearest_neighbor_k_12_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -186,8 +188,8 @@ mod test {
     }
 
     #[bench]
-    fn nearest_neighbor_k_12e_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/K_12e.txt").unwrap();
+    fn nearest_neighbor_k_12e_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;

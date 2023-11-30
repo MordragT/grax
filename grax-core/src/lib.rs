@@ -9,7 +9,7 @@
 // #![feature(let_chains)]
 // #![feature(if_let_guard)]
 
-use self::{node::Node, traits::*};
+use self::traits::*;
 use std::fmt::Debug;
 
 pub mod adaptor;
@@ -19,17 +19,19 @@ pub mod node;
 pub mod traits;
 pub mod variant;
 pub mod view;
+pub mod weight;
 
 pub mod prelude {
     pub use crate::{
         edge::{Edge, EdgeRef, EdgeRefMut},
         index::*,
+        node::{Node, NodeRef, NodeRefMut},
         Graph, WeightlessGraph,
     };
 }
 
-pub trait Graph<N: Node, W>:
-    Base<Node = N, Weight = W>
+pub trait Graph<N, W>:
+    Base<NodeWeight = N, EdgeWeight = W>
     + Capacity
     + Clear
     + Contains
@@ -56,8 +58,8 @@ pub trait Graph<N: Node, W>:
 {
 }
 
-pub trait WeightlessGraph<N: Node>:
-    Base<Node = N, Weight = ()>
+pub trait WeightlessGraph<N>:
+    Base<NodeWeight = N, EdgeWeight = ()>
     + Capacity
     + Clear
     + Contains

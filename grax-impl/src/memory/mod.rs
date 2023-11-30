@@ -1,7 +1,7 @@
-pub use adjacency_list::*;
-pub use adjacency_matrix::*;
+pub use adj_graph::*;
+pub use mat_graph::*;
 
-mod adjacency_list;
-mod adjacency_matrix;
+mod adj_graph;
+mod mat_graph;
 
 pub mod attr;

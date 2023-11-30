@@ -3,13 +3,14 @@ use std::ops::AddAssign;
 use grax_core::edge::*;
 use grax_core::traits::*;
 use grax_core::view::Route;
+use grax_core::weight::Maximum;
 
 pub fn brute_force<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
     W: EdgeCost<Cost = C>,
-    G: Get + Index + Contains + Base<Node = N, Weight = W>,
+    G: Get + Index + Contains + Base<NodeWeight = N, EdgeWeight = W>,
 {
     let mut best_path = Vec::new();
     let mut best_weight = C::MAX;
@@ -28,7 +29,7 @@ where
         if let Some(edges) = edges {
             let total_weight = edges
                 .into_iter()
-                .map(|edge| *graph.weight(edge).unwrap().cost())
+                .map(|edge| *graph.edge(edge).unwrap().weight.cost())
                 .fold(C::default(), |mut accu, w| {
                     accu += w;
                     accu

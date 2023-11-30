@@ -1,9 +1,5 @@
-pub use constraints::*;
-
 use super::index::{EdgeId, Identifier, NodeId};
 use std::fmt::Debug;
-
-mod constraints;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Edge<Id: Identifier, Weight> {

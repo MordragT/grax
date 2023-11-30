@@ -2,6 +2,7 @@ use grax_core::edge::*;
 use grax_core::prelude::*;
 use grax_core::traits::*;
 use grax_core::view::Distances;
+use grax_core::weight::Sortable;
 
 use priq::PriorityQueue;
 use std::fmt::Debug;
@@ -10,7 +11,7 @@ use std::ops::Add;
 pub fn dijkstra_between<C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: IndexAdjacent + Viewable + Cost<C>,
+    G: IterAdjacent + Viewable + Cost<C>,
 {
     dijkstra(graph, from, to).and_then(|distances| distances.distance(to).cloned())
 }
@@ -18,7 +19,7 @@ where
 pub fn dijkstra<C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<Distances<C, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: IndexAdjacent + Viewable + Cost<C>,
+    G: IterAdjacent + Viewable + Cost<C>,
 {
     let mut priority_queue = PriorityQueue::new();
     let mut distances = graph.distances();
@@ -35,9 +36,9 @@ where
             continue;
         }
 
-        for edge_id in graph.adjacent_edge_ids(node) {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
             let to = edge_id.to();
-            let next_dist = dist + *graph.cost(edge_id).unwrap().cost();
+            let next_dist = dist + *weight.cost();
 
             let visited_or_geq = match distances.distance(to) {
                 Some(d) => next_dist >= *d,
@@ -65,7 +66,7 @@ mod test {
 
     #[bench]
     fn dijkstra_g_1_2_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph: AdjGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -75,7 +76,7 @@ mod test {
 
     #[bench]
     fn dijkstra_g_1_2_undi_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -85,7 +86,7 @@ mod test {
 
     #[bench]
     fn dijkstra_wege_1_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -95,7 +96,7 @@ mod test {
 
     #[bench]
     fn dijkstra_wege_2_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -106,7 +107,7 @@ mod test {
     #[bench]
     #[should_panic]
     fn dijkstra_wege_3_di_adj_list(b: &mut Bencher) {
-        let graph: AdjacencyList<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+        let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -116,8 +117,8 @@ mod test {
     }
 
     #[bench]
-    fn dijkstra_g_1_2_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+    fn dijkstra_g_1_2_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -126,8 +127,8 @@ mod test {
     }
 
     #[bench]
-    fn dijkstra_g_1_2_undi_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+    fn dijkstra_g_1_2_undi_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -136,8 +137,8 @@ mod test {
     }
 
     #[bench]
-    fn dijkstra_wege_1_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+    fn dijkstra_wege_1_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -146,8 +147,8 @@ mod test {
     }
 
     #[bench]
-    fn dijkstra_wege_2_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+    fn dijkstra_wege_2_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -157,8 +158,8 @@ mod test {
 
     #[bench]
     #[should_panic]
-    fn dijkstra_wege_3_di_adj_mat(b: &mut Bencher) {
-        let graph: AdjacencyMatrix<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+    fn dijkstra_wege_3_di_sparse_mat(b: &mut Bencher) {
+        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
