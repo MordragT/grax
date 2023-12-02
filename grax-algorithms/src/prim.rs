@@ -193,4 +193,132 @@ mod test {
             assert_eq!(count, 27550.51488);
         })
     }
+
+    // dense
+
+    #[bench]
+    fn prim_graph_1_2_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 287.32286);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_1_20_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 36.86275);
+        })
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_1_200_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_10_20_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_10_200_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_100_200_dense_mat(b: &mut Bencher) {
+        let graph: DenseMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
+
+    // csr
+
+    #[bench]
+    fn prim_graph_1_2_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 287.32286);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_1_20_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 36.86275);
+        })
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn prim_graph_1_200_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_10_20_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_10_200_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[bench]
+    fn prim_graph_100_200_csr_mat(b: &mut Bencher) {
+        let graph: CsrMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = prim(&graph) as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
 }

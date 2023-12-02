@@ -1,3 +1,4 @@
+pub mod csr;
 pub mod dense;
 pub mod ellpack;
 pub mod sparse;

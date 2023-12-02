@@ -9,7 +9,8 @@ use grax_core::traits::*;
 use grax_core::weight::Num;
 
 use crate::edge_list::EdgeList;
-use crate::matrix::{dense::DenseMatrix, ellpack::EllpackMatrix, sparse::SparseMatrix, Matrix};
+use crate::matrix::csr::CsrMatrix;
+use crate::matrix::{dense::DenseMatrix, sparse::SparseMatrix, Matrix};
 
 use super::attr::{AttrHashMap, AttrVec};
 
@@ -20,7 +21,7 @@ pub type SparseMatGraph<N, W, const DI: bool = false> = MatGraph<SparseMatrix<W>
 
 pub type DenseMatGraph<N, W, const DI: bool = false> = MatGraph<DenseMatrix<W>, N, W, DI>;
 
-pub type EllMatGraph<N, W, const DI: bool = false> = MatGraph<EllpackMatrix<W>, N, W, DI>;
+pub type CsrMatGraph<N, W, const DI: bool = false> = MatGraph<CsrMatrix<W>, N, W, DI>;
 
 #[derive(Debug, Clone)]
 pub struct MatGraph<M, N, W, const DI: bool = false> {
@@ -519,7 +520,7 @@ impl<M: Matrix<()> + Clone, N: Num, const DI: bool> WeightlessGraph<N> for MatGr
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::{DenseMatGraph, EllMatGraph, SparseMatGraph};
+    use super::{CsrMatGraph, DenseMatGraph, SparseMatGraph};
     use crate::test::*;
 
     // Dense
@@ -599,37 +600,37 @@ mod test {
     // Ellpack
 
     #[test]
-    pub fn ell_mat_create_with_nodes() {
-        graph_create_with_nodes::<EllMatGraph<_, _>>()
+    pub fn csr_mat_create_with_nodes() {
+        graph_create_with_nodes::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_create_with_capacity() {
-        graph_create_with_capacity::<EllMatGraph<_, _>>()
+    pub fn csr_mat_create_with_capacity() {
+        graph_create_with_capacity::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_insert_and_contains() {
-        graph_insert_and_contains::<EllMatGraph<_, _>>()
+    pub fn csr_mat_insert_and_contains() {
+        graph_insert_and_contains::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_clear() {
-        graph_clear::<EllMatGraph<_, _>>()
+    pub fn csr_mat_clear() {
+        graph_clear::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_get() {
-        graph_get::<EllMatGraph<_, _>>()
+    pub fn csr_mat_get() {
+        graph_get::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_index() {
-        graph_index::<EllMatGraph<_, _>>()
+    pub fn csr_mat_index() {
+        graph_index::<CsrMatGraph<_, _>>()
     }
 
     #[test]
-    pub fn ell_mat_index_adjacent() {
-        graph_index_adjacent::<EllMatGraph<_, _>>()
+    pub fn csr_mat_index_adjacent() {
+        graph_index_adjacent::<CsrMatGraph<_, _>>()
     }
 }
