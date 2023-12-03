@@ -248,7 +248,7 @@ mod test {
 
     #[bench]
     fn dfs_scc_graph1_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
+        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
 
         b.iter(|| {
             let counter = dfs_scc(&graph).len();
@@ -258,7 +258,7 @@ mod test {
 
     #[bench]
     fn dfs_scc_graph2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
+        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
 
         b.iter(|| {
             let counter = dfs_scc(&graph).len();
@@ -268,7 +268,7 @@ mod test {
 
     #[bench]
     fn dfs_scc_graph3_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
+        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
 
         b.iter(|| {
             let counter = dfs_scc(&graph).len();

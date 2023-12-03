@@ -1,5 +1,191 @@
+use super::{AdjGraph, CsrGraph, DenseGraph, HashGraph, SparseGraph};
 use grax_core::Graph;
 use more_asserts::*;
+
+// adj
+
+#[test]
+pub fn adj_graph_create_with_nodes() {
+    graph_create_with_nodes::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_create_with_capacity() {
+    graph_create_with_capacity::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_insert_and_contains() {
+    graph_insert_and_contains::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_clear() {
+    graph_clear::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_get() {
+    graph_get::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_index() {
+    graph_index::<AdjGraph<_, _>>()
+}
+
+#[test]
+pub fn adj_graph_index_adjacent() {
+    graph_index_adjacent::<AdjGraph<_, _>>()
+}
+
+// hash
+
+#[test]
+pub fn hash_graph_create_with_nodes() {
+    graph_create_with_nodes::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_create_with_capacity() {
+    graph_create_with_capacity::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_insert_and_contains() {
+    graph_insert_and_contains::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_clear() {
+    graph_clear::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_get() {
+    graph_get::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_index() {
+    graph_index::<HashGraph<_, _>>()
+}
+
+#[test]
+pub fn hash_graph_index_adjacent() {
+    graph_index_adjacent::<HashGraph<_, _>>()
+}
+
+// dense
+
+#[test]
+pub fn dense_graph_create_with_nodes() {
+    graph_create_with_nodes::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_create_with_capacity() {
+    graph_create_with_capacity::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_insert_and_contains() {
+    graph_insert_and_contains::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_clear() {
+    graph_clear::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_get() {
+    graph_get::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_index() {
+    graph_index::<DenseGraph<_, _>>()
+}
+
+#[test]
+pub fn dense_graph_index_adjacent() {
+    graph_index_adjacent::<DenseGraph<_, _>>()
+}
+
+// Sparse
+
+#[test]
+pub fn sparse_graph_create_with_nodes() {
+    graph_create_with_nodes::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_create_with_capacity() {
+    graph_create_with_capacity::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_insert_and_contains() {
+    graph_insert_and_contains::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_clear() {
+    graph_clear::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_get() {
+    graph_get::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_index() {
+    graph_index::<SparseGraph<_, _>>()
+}
+
+#[test]
+pub fn sparse_graph_index_adjacent() {
+    graph_index_adjacent::<SparseGraph<_, _>>()
+}
+
+// csr
+
+#[test]
+pub fn csr_graph_create_with_nodes() {
+    graph_create_with_nodes::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_create_with_capacity() {
+    graph_create_with_capacity::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_insert_and_contains() {
+    graph_insert_and_contains::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_clear() {
+    graph_clear::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_get() {
+    graph_get::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_index() {
+    graph_index::<CsrGraph<_, _>>()
+}
+
+#[test]
+pub fn csr_graph_index_adjacent() {
+    graph_index_adjacent::<CsrGraph<_, _>>()
+}
 
 pub fn graph_create_with_nodes<G: Graph<usize, f32>>() {
     let nodes = [1, 4, 8, 3, 5];

@@ -1,10 +1,9 @@
 use std::str::FromStr;
 use std::{fs, path::Path};
 
-use grax_core::adaptor::flow::FlowBundle;
+use grax_core::adaptor::flow::{BalancedNode, FlowBundle};
 use grax_core::prelude::*;
 use grax_impl::error::GraphResult;
-use grax_impl::flow::BalancedNode;
 use grax_impl::EdgeList;
 
 // #[derive(Debug)]

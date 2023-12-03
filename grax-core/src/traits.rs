@@ -241,22 +241,9 @@ pub trait Iter: Base {
         Self: 'a;
 
     /// This returns an iterator over all nodes in the graph.
-    /// Due to constraints in the type system of rust this cannot be automatically implemented.
-    /// But you can use the following to implement it for your Graph, provided you implement
-    /// [Index](self::Index) and [Get](self::Get)
-    /// ```rust
-    /// self.node_ids().map(|node_id| self.node(node_id).unwrap())
-    /// ```
     fn iter_nodes<'a>(&'a self) -> Self::Nodes<'a>;
 
     /// This returns an iterator over all edges in the graph.
-    /// Due to constraints in the type system of rust this cannot be automatically implemented.
-    /// But you can use the following to implement it for your Graph, provided you implement
-    /// [Index](self::Index) and [Get](self::Get)
-    /// ```rust
-    /// self.edge_ids()
-    /// .map(|edge_id| EdgeRef::new(edge_id, self.weight(edge_id).unwrap()))
-    /// ```
     fn iter_edges<'a>(&'a self) -> Self::Edges<'a>;
 }
 
@@ -297,23 +284,9 @@ pub trait IterAdjacent: Base {
         Self: 'a;
 
     /// This returns an iterator over all nodes adjacent to the specified node in the graph.
-    /// Due to constraints in the type system of rust this cannot be automatically implemented.
-    /// But you can use the following to implement it for your Graph, provided you implement
-    /// [Index](self::IndexAdjacent) and [Get](self::Get)
-    /// ```rust
-    /// self.adjacent_node_ids(node_id)
-    /// .map(|node_id| self.node(node_id).unwrap())
-    /// ```
     fn iter_adjacent_nodes<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::Nodes<'a>;
 
     /// This returns an iterator over all edges adjacent to the specified node in the graph.
-    /// Due to constraints in the type system of rust this cannot be automatically implemented.
-    /// But you can use the following to implement it for your Graph, provided you implement
-    /// [Index](self::IndexAdjacent) and [Get](self::Get)
-    /// ```rust
-    /// self.adjacent_edge_ids(node_id)
-    /// .map(|edge_id| EdgeRef::new(edge_id, self.weight(edge_id).unwrap()))
-    /// ```
     fn iter_adjacent_edges<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::Edges<'a>;
 }
 

@@ -1,6 +1,6 @@
-use grax_core::adaptor::flow::FlowBundle;
+use grax_core::adaptor::flow::{BalancedNode, FlowBundle};
 
-use crate::{error::*, flow::BalancedNode};
+use crate::error::*;
 use std::{fmt::Debug, str::FromStr};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -157,7 +157,7 @@ impl<const DI: bool> FromStr for EdgeList<usize, f32, DI> {
 
 #[cfg(test)]
 mod test {
-    use crate::memory::AdjGraph;
+    use crate::AdjGraph;
 
     use super::EdgeList;
     use std::{fs, str::FromStr};
@@ -175,6 +175,7 @@ mod test {
         let edge_list = EdgeList::from_str(&edge_list).unwrap();
         let _adj_list = AdjGraph::<usize, f64>::try_from(edge_list).unwrap();
     }
+
     #[test]
     fn directed() {
         let edge_list = fs::read_to_string("../data/G_1_200.txt").unwrap();

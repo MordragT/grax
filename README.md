@@ -2,11 +2,9 @@
 
 TODO
 
-implement adapt function on concrete graphs do not create trait for it as not possible.
-The adapt function should take self<N, W> and return Self<N2, W2>. The type parameters
-are infered by the Adaptor trait which specifies the Output Nodes and Wheihts.
-Additionally an view trait which does not change the fundamental graph but only offers
-the possibility to filter, complement etc. the graph.
+split tests into unit tests using mocking insde grax algorithms
+integration tests for algorithms in grax_impl
+benches of integration tests for algorithms in grax_impl
 
 ## Benchmarks
 

@@ -133,7 +133,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -143,7 +143,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -154,7 +154,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_1_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -164,7 +164,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -175,7 +175,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_10_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -186,7 +186,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_100_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -198,7 +198,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_2_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -208,7 +208,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -219,7 +219,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_1_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -229,7 +229,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -240,7 +240,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_10_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -251,7 +251,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_100_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: DenseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -263,7 +263,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_2_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -273,7 +273,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_20_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -284,7 +284,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_1_200_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -294,7 +294,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_20_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -304,7 +304,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_200_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -314,7 +314,7 @@ mod test {
 
     #[bench]
     fn prim_graph_100_200_csr_mat(b: &mut Bencher) {
-        let graph: CsrMatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: CsrGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;

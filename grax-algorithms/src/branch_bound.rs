@@ -232,7 +232,7 @@ mod test {
 
     #[bench]
     fn branch_bound_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound(&graph).unwrap().1 as f32;
@@ -242,7 +242,7 @@ mod test {
 
     #[bench]
     fn branch_bound_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound(&graph).unwrap().1 as f32;
@@ -252,7 +252,7 @@ mod test {
 
     #[bench]
     fn branch_bound_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound(&graph).unwrap().1 as f32;
@@ -262,7 +262,7 @@ mod test {
 
     #[bench]
     fn branch_bound_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound(&graph).unwrap().1 as f32;
@@ -272,7 +272,7 @@ mod test {
 
     #[bench]
     fn branch_bound_rec_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound_rec(&graph).unwrap().1 as f32;
@@ -282,7 +282,7 @@ mod test {
 
     #[bench]
     fn branch_bound_rec_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound_rec(&graph).unwrap().1 as f32;
@@ -293,7 +293,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn branch_bound_rec_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound_rec(&graph).unwrap().1 as f32;
@@ -304,7 +304,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn branch_bound_rec_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound_rec(&graph).unwrap().1 as f32;

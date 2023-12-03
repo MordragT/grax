@@ -118,7 +118,7 @@ mod test {
 
     #[bench]
     fn dijkstra_g_1_2_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph: SparseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -128,7 +128,7 @@ mod test {
 
     #[bench]
     fn dijkstra_g_1_2_undi_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
@@ -138,7 +138,7 @@ mod test {
 
     #[bench]
     fn dijkstra_wege_1_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+        let graph: SparseGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -148,7 +148,7 @@ mod test {
 
     #[bench]
     fn dijkstra_wege_2_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+        let graph: SparseGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
@@ -159,7 +159,7 @@ mod test {
     #[bench]
     #[should_panic]
     fn dijkstra_wege_3_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+        let graph: SparseGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();

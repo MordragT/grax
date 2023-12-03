@@ -159,7 +159,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -169,7 +169,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -179,7 +179,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
@@ -189,7 +189,7 @@ mod test {
 
     #[bench]
     fn nearest_neighbor_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseMatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
+        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;
