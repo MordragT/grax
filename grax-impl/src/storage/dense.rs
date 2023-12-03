@@ -2,33 +2,33 @@ use grax_core::{
     edge::{Edge, EdgeRef, EdgeRefMut},
     index::{EdgeId, NodeId},
 };
+use stable_vec::StableVec;
 
 use super::EdgeStorage;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DenseMatrix<W> {
-    mat: Vec<Vec<Option<Edge<usize, W>>>>,
+    mat: Vec<StableVec<Edge<usize, W>>>,
 }
 
 impl<W> DenseMatrix<W> {
     pub fn col(&self, col: usize) -> impl Iterator<Item = EdgeRef<'_, usize, W>> {
         self.mat.iter().flat_map(move |edges| {
-            edges.iter().filter_map(move |edge| {
-                if let Some(edge) = edge && edge.to() == NodeId::new_unchecked(col) {
-                    Some(edge.into())
-                } else {
-                    None
-                }
-            })
+            edges.iter().filter_map(
+                move |(to, edge)| {
+                    if to == col {
+                        Some(edge.into())
+                    } else {
+                        None
+                    }
+                },
+            )
         })
     }
 
     /// Returns the number of non-zero elements in the matrix
     pub fn nnz(&self) -> usize {
-        self.mat
-            .iter()
-            .filter(|rows| !rows.iter().all(|item| item.is_none()))
-            .count()
+        self.mat.iter().map(|row| row.num_elements()).sum()
     }
 }
 
@@ -39,7 +39,7 @@ impl<W> IntoIterator for DenseMatrix<W> {
     fn into_iter(self) -> Self::IntoIter {
         self.mat
             .into_iter()
-            .flat_map(|neigh| neigh.into_iter().filter_map(|edge| edge))
+            .flat_map(|neigh| neigh.into_iter().map(|(_, edge)| edge))
     }
 }
 
@@ -75,7 +75,7 @@ impl<W: Clone> EdgeStorage<W> for DenseMatrix<W> {
 
     fn with_capacity(edge_count: usize) -> Self {
         let count = edge_count / 2;
-        let mat = vec![vec![None; count]; count];
+        let mat = vec![StableVec::with_capacity(count); count];
 
         Self { mat }
     }
@@ -89,14 +89,12 @@ impl<W: Clone> EdgeStorage<W> for DenseMatrix<W> {
     }
 
     fn is_empty(&self) -> bool {
-        self.mat
-            .iter()
-            .all(|rows| rows.iter().all(|item| item.is_none()))
+        self.mat.iter().all(|row| row.is_empty())
     }
 
     fn clear(&mut self) {
         for row in &mut self.mat {
-            row.fill(None)
+            row.clear()
         }
     }
 
@@ -105,33 +103,33 @@ impl<W: Clone> EdgeStorage<W> for DenseMatrix<W> {
     }
 
     fn iter_unstable(&self) -> Self::Iter<'_> {
-        self.mat.iter().flat_map(|edges| {
-            edges
-                .iter()
-                .filter_map(|edge| edge.as_ref().map(Into::into))
-        })
+        self.mat
+            .iter()
+            .flat_map(|edges| edges.iter().map(|(_, edge)| edge.into()))
     }
 
     fn iter_mut_unstable(&mut self) -> Self::IterMut<'_> {
-        self.mat.iter_mut().flat_map(|edges| {
-            edges
-                .iter_mut()
-                .filter_map(|edge| edge.as_mut().map(Into::into))
-        })
+        self.mat
+            .iter_mut()
+            .flat_map(|edges| edges.iter_mut().map(|(_, edge)| edge.into()))
     }
 
     fn indices(&self) -> Self::Indices<'_> {
-        self.iter_unstable().map(|edge| edge.edge_id)
+        self.mat.iter().enumerate().flat_map(|(from, edges)| {
+            edges.indices().map(move |to| {
+                EdgeId::new_unchecked(NodeId::new_unchecked(from), NodeId::new_unchecked(to))
+            })
+        })
     }
 
     fn allocate(&mut self, additional: usize) {
         let size = self.mat.len() + additional;
 
         for row in &mut self.mat {
-            row.resize(size, None)
+            row.reserve_for(size);
         }
 
-        self.mat.resize(size, vec![None; size]);
+        self.mat.resize(size, StableVec::with_capacity(size));
     }
 
     fn insert(&mut self, from: usize, to: usize, weight: W) -> EdgeId<usize> {
@@ -139,7 +137,7 @@ impl<W: Clone> EdgeStorage<W> for DenseMatrix<W> {
 
         let edge_id = EdgeId::new_unchecked(NodeId::new_unchecked(from), NodeId::new_unchecked(to));
         let edge = Edge::new(edge_id, weight);
-        self.mat[from][to] = Some(edge);
+        self.mat[from].insert(to, edge);
         edge_id
     }
 
@@ -151,36 +149,28 @@ impl<W: Clone> EdgeStorage<W> for DenseMatrix<W> {
 
     fn remove(&mut self, from: usize, to: usize) -> Option<Edge<usize, W>> {
         if let Some(neigh) = self.mat.get_mut(from) {
-            if let Some(edge) = neigh.get_mut(to) {
-                std::mem::replace(edge, None)
-            } else {
-                None
-            }
+            neigh.remove(to)
         } else {
             None
         }
     }
 
-    fn get(&self, row: usize, col: usize) -> Option<EdgeRef<'_, usize, W>> {
+    fn get(&self, from: usize, to: usize) -> Option<EdgeRef<'_, usize, W>> {
         // TODO allow out of bounds
-        self.mat[row][col].as_ref().map(Into::into)
+        self.mat[from].get(to).map(Into::into)
     }
 
-    fn get_mut(&mut self, row: usize, col: usize) -> Option<EdgeRefMut<'_, usize, W>> {
+    fn get_mut(&mut self, from: usize, to: usize) -> Option<EdgeRefMut<'_, usize, W>> {
         // TODO allow out of bounds
-        self.mat[row][col].as_mut().map(Into::into)
+        self.mat[from].get_mut(to).map(Into::into)
     }
 
-    fn iter_adjacent_unstable(&self, index: usize) -> Self::Adjacent<'_> {
-        self.mat[index]
-            .iter()
-            .filter_map(|edge| edge.as_ref().map(Into::into))
+    fn iter_adjacent_unstable(&self, node_id: usize) -> Self::Adjacent<'_> {
+        self.mat[node_id].iter().map(|(_, edge)| edge.into())
     }
 
-    fn iter_adjacent_mut_unstable(&mut self, index: usize) -> Self::AdjacentMut<'_> {
-        self.mat[index]
-            .iter_mut()
-            .filter_map(|edge| edge.as_mut().map(Into::into))
+    fn iter_adjacent_mut_unstable(&mut self, node_id: usize) -> Self::AdjacentMut<'_> {
+        self.mat[node_id].iter_mut().map(|(_, edge)| edge.into())
     }
 }
 

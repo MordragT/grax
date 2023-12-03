@@ -18,7 +18,6 @@ where
     G: Iter + Index + Cost<C> + Viewable + Create,
 {
     let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
-
     priority_queue.sort_unstable_by(|this, other| this.weight.cost().sort(&other.weight.cost()));
 
     let mut union_find = graph.union_find();
@@ -298,6 +297,69 @@ mod test {
     #[bench]
     fn kruskal_graph_100_200_csr_mat(b: &mut Bencher) {
         let graph: CsrGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 27550.51488);
+        })
+    }
+
+    // hash
+
+    #[bench]
+    fn kruskal_graph_1_2_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 287.32286);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_1_20_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 36.86275);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_1_200_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 12.68182);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_20_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 2785.62417);
+        })
+    }
+
+    #[bench]
+    fn kruskal_graph_10_200_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+
+        b.iter(|| {
+            let count = kruskal(&graph).cost as f32;
+            assert_eq!(count, 372.14417);
+        })
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn kruskal_graph_100_200_hash_graph(b: &mut Bencher) {
+        let graph: HashGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;

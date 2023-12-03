@@ -146,6 +146,48 @@ mod test {
         })
     }
 
+    // csr
+
+    #[bench]
+    fn double_tree_k_10_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
+
+        b.iter(|| {
+            let total = double_tree(&graph).unwrap().1;
+            assert_le!(total, 38.41 * 1.5);
+        })
+    }
+
+    #[bench]
+    fn double_tree_k_10e_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
+
+        b.iter(|| {
+            let total = double_tree(&graph).unwrap().1;
+            assert_le!(total, 27.26 * 2.0);
+        })
+    }
+
+    #[bench]
+    fn double_tree_k_12_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
+
+        b.iter(|| {
+            let total = double_tree(&graph).unwrap().1;
+            assert_le!(total, 45.19 * 1.5);
+        })
+    }
+
+    #[bench]
+    fn double_tree_k_12e_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
+
+        b.iter(|| {
+            let total = double_tree(&graph).unwrap().1;
+            assert_le!(total, 36.13 * 2.0);
+        })
+    }
+
     // dense
 
     #[bench]

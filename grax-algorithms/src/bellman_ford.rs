@@ -225,6 +225,8 @@ mod test {
         })
     }
 
+    // sparse
+
     #[bench]
     fn bellman_ford_g_1_2_di_sparse_mat(b: &mut Bencher) {
         let graph: SparseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
@@ -273,6 +275,63 @@ mod test {
     fn bellman_ford_wege_3_di_sparse_mat(b: &mut Bencher) {
         let graph: SparseGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
         let graph: SparseGraph<_, _, true> = flow_adaptor(graph);
+
+        b.iter(|| {
+            let result = bellman_ford(&graph, id(2));
+            assert!(result.is_none())
+        })
+    }
+
+    // csr
+
+    #[bench]
+    fn bellman_ford_g_1_2_di_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
+
+        b.iter(|| {
+            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            assert_eq!(total as f32, 5.56283)
+        })
+    }
+
+    #[bench]
+    fn bellman_ford_g_1_2_undi_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: CsrGraph<_, _> = flow_adaptor(graph);
+
+        b.iter(|| {
+            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            assert_eq!(total as f32, 2.36802)
+        })
+    }
+
+    #[bench]
+    fn bellman_ford_wege_1_di_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
+        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
+
+        b.iter(|| {
+            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            assert_eq!(total as f32, 6.0)
+        })
+    }
+
+    #[bench]
+    fn bellman_ford_wege_2_di_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
+        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
+
+        b.iter(|| {
+            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            assert_eq!(total as f32, 2.0)
+        })
+    }
+
+    #[bench]
+    fn bellman_ford_wege_3_di_csr_graph(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
+        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
             let result = bellman_ford(&graph, id(2));
