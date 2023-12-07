@@ -74,7 +74,7 @@ impl<V: Debug> NodeIter for StableNodeVec<V> {
     }
 }
 
-impl<V: Debug> FixedNodeMap<usize, V> for StableNodeVec<V> {}
+impl<V: Debug + Clone> FixedNodeMap<usize, V> for StableNodeVec<V> {}
 
 // NodeIterMut + GetNodeMut + InsertNode + RemoveNode
 
@@ -112,7 +112,7 @@ impl<V: Debug> RemoveNode for StableNodeVec<V> {
     }
 }
 
-impl<V: Debug> NodeMap<usize, V> for StableNodeVec<V> {}
+impl<V: Debug + Clone> NodeMap<usize, V> for StableNodeVec<V> {}
 
 impl<V: Debug> IntoIterator for StableNodeVec<V> {
     type IntoIter = impl Iterator<Item = Self::Item>;
@@ -125,7 +125,7 @@ impl<V: Debug> IntoIterator for StableNodeVec<V> {
     }
 }
 
-impl<V: Debug> NodeStorage<usize, V> for StableNodeVec<V> {
+impl<V: Debug + Clone> NodeStorage<usize, V> for StableNodeVec<V> {
     type IndexedNodesMut<'a> = impl Iterator<Item = NodeMut<'a, usize, V>> where Self: 'a, V: 'a;
 
     fn new() -> Self {

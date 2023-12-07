@@ -114,7 +114,7 @@ pub(crate) fn _branch_bound_rec<C, G>(
     graph: &G,
     node: NodeId<G::Key>,
     path: &mut Vec<NodeId<G::Key>>,
-    visited: &mut G::VisitNodeMap,
+    visited: &mut G::FixedNodeMap<bool>,
     cost: C,
     baseline: &mut C,
 ) where

@@ -1,16 +1,13 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use bitvec::bitvec;
-use bitvec::vec::BitVec;
 use grax_core::{collections::*, edge::*, graph::*, node::*, prelude::*};
 
-use crate::edges::boolean::EdgeBoolVec;
 use crate::edges::fixed::FixedEdgeVec;
 use crate::edges::EdgeStorage;
 use crate::edges::{adj::AdjacencyList, csr::CsrMatrix, hash::HashStorage, mat::AdjacencyMatrix};
+use crate::nodes::NodeStorage;
 use crate::nodes::{FixedNodeVec, StableNodeVec, UnstableNodeVec};
-use crate::nodes::{NodeBoolVec, NodeStorage};
 
 pub type MatGraph<N, W, const DI: bool = false> =
     Graph<UnstableNodeVec<N>, AdjacencyMatrix<W>, N, W, DI>;
@@ -424,14 +421,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeAttribute for Graph<NS, ES, N, W, DI>
 {
-    type VisitNodeMap = NodeBoolVec;
     type FixedNodeMap<V: Debug + Clone> = FixedNodeVec<V>;
     type NodeMap<V: Debug + Clone> = StableNodeVec<V>;
-
-    fn visit_node_map(&self) -> Self::VisitNodeMap {
-        let buffer = vec![0_usize; self.node_count() / std::mem::size_of::<usize>() + 1];
-        NodeBoolVec::new(BitVec::from_vec(buffer))
-    }
 
     fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V> {
         FixedNodeVec::new(vec![fill; self.node_count()])
@@ -445,14 +436,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeAttribute for Graph<NS, ES, N, W, DI>
 {
-    type VisitEdgeMap = EdgeBoolVec;
     type FixedEdgeMap<V: Debug + Clone> = FixedEdgeVec<V>;
     type EdgeMap<V: Debug + Clone> = HashStorage<V>;
-
-    fn visit_edge_map(&self) -> Self::VisitEdgeMap {
-        let buffer = vec![0_usize; self.edge_count() / std::mem::size_of::<usize>() + 1];
-        EdgeBoolVec::new(BitVec::from_vec(buffer), self.node_count())
-    }
 
     fn fixed_edge_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedEdgeMap<V> {
         FixedEdgeVec::new(vec![fill; self.edge_count()], self.node_count())

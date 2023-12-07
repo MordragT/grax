@@ -6,7 +6,6 @@ use grax_core::{
 };
 
 pub mod adj;
-pub mod boolean;
 pub mod csr;
 pub mod fixed;
 pub mod mat;

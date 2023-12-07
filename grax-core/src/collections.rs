@@ -241,6 +241,7 @@ pub trait FixedNodeMap<K: Identifier, V>:
     + NodeIter
     + NodeIterMut
     + Debug
+    + Clone
 {
     fn get(&self, node_id: NodeId<K>) -> &V {
         self.node(node_id).map(|node| node.weight).unwrap()
@@ -251,11 +252,59 @@ pub trait FixedNodeMap<K: Identifier, V>:
     }
 }
 
-pub trait VisitNodeMap<K: Identifier>: Keyed<Key = K> + NodeCount + Debug + Clone {
+pub trait VisitNodeMap<K: Identifier>: Keyed<Key = K> {
+    type IterVisited<'a>: Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+    type IterUnvisited<'a>: Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+
     fn visit(&mut self, node_id: NodeId<Self::Key>);
     fn unvisit(&mut self, node_id: NodeId<Self::Key>);
     fn is_visited(&self, node_id: NodeId<Self::Key>) -> bool;
     fn all_visited(&self) -> bool;
+
+    fn iter_visited(&self) -> Self::IterVisited<'_>;
+    fn iter_unvisited(&self) -> Self::IterUnvisited<'_>;
+}
+
+impl<K: Identifier, T: FixedNodeMap<K, bool>> VisitNodeMap<K> for T {
+    type IterUnvisited<'a> = impl Iterator<Item = NodeId<K>> + 'a where T: 'a;
+    type IterVisited<'a> = impl Iterator<Item = NodeId<K>> + 'a where T: 'a;
+
+    fn visit(&mut self, node_id: NodeId<K>) {
+        self.update_node(node_id, true);
+    }
+    fn unvisit(&mut self, node_id: NodeId<K>) {
+        self.update_node(node_id, false);
+    }
+    fn is_visited(&self, node_id: NodeId<K>) -> bool {
+        *self.get(node_id)
+    }
+    fn all_visited(&self) -> bool {
+        self.iter_nodes().all(|node| *node.weight)
+    }
+
+    fn iter_unvisited(&self) -> Self::IterUnvisited<'_> {
+        self.iter_nodes().filter_map(|node| {
+            if !*node.weight {
+                Some(node.node_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn iter_visited(&self) -> Self::IterVisited<'_> {
+        self.iter_nodes().filter_map(|node| {
+            if *node.weight {
+                Some(node.node_id)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 pub trait NodeMap<K: Identifier, V>: FixedNodeMap<K, V> + InsertNode + RemoveNode {
@@ -270,6 +319,7 @@ pub trait FixedEdgeMap<K: Identifier, V>:
     + GetEdgeMut
     + EdgeIter
     + EdgeIterMut
+    + Clone
     + Debug
 {
     fn get(&self, edge_id: EdgeId<K>) -> &V {
@@ -281,7 +331,7 @@ pub trait FixedEdgeMap<K: Identifier, V>:
     }
 }
 
-pub trait VisitEdgeMap<K: Identifier>: Keyed<Key = K> + EdgeCount + Debug + Clone {
+pub trait VisitEdgeMap<K: Identifier>: Keyed<Key = K> {
     type IterVisited<'a>: Iterator<Item = EdgeId<Self::Key>> + 'a
     where
         Self: 'a;
@@ -295,6 +345,44 @@ pub trait VisitEdgeMap<K: Identifier>: Keyed<Key = K> + EdgeCount + Debug + Clon
     fn all_visited(&self) -> bool;
     fn iter_visited(&self) -> Self::IterVisited<'_>;
     fn iter_unvisited(&self) -> Self::IterUnvisited<'_>;
+}
+
+impl<K: Identifier, T: FixedEdgeMap<K, bool>> VisitEdgeMap<K> for T {
+    type IterUnvisited<'a> = impl Iterator<Item = EdgeId<K>> + 'a where T: 'a;
+    type IterVisited<'a> = impl Iterator<Item = EdgeId<K>> + 'a where T: 'a;
+
+    fn visit(&mut self, edge_id: EdgeId<K>) {
+        self.update_edge(edge_id, true);
+    }
+    fn unvisit(&mut self, edge_id: EdgeId<K>) {
+        self.update_edge(edge_id, false);
+    }
+    fn is_visited(&self, edge_id: EdgeId<K>) -> bool {
+        *self.get(edge_id)
+    }
+    fn all_visited(&self) -> bool {
+        self.iter_edges().all(|edge| *edge.weight)
+    }
+
+    fn iter_unvisited(&self) -> Self::IterUnvisited<'_> {
+        self.iter_edges().filter_map(|edge| {
+            if !*edge.weight {
+                Some(edge.edge_id)
+            } else {
+                None
+            }
+        })
+    }
+
+    fn iter_visited(&self) -> Self::IterVisited<'_> {
+        self.iter_edges().filter_map(|edge| {
+            if *edge.weight {
+                Some(edge.edge_id)
+            } else {
+                None
+            }
+        })
+    }
 }
 
 pub trait EdgeMap<K: Identifier, V>: FixedEdgeMap<K, V> + InsertEdge + RemoveEdge {

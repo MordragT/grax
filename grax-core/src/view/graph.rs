@@ -133,7 +133,6 @@ where
 {
     type FixedNodeMap<T: Debug + Clone> = G::FixedNodeMap<T>;
     type NodeMap<T: Debug + Clone> = G::NodeMap<T>;
-    type VisitNodeMap = G::VisitNodeMap;
 
     fn fixed_node_map<T: Debug + Clone>(&self, fill: T) -> Self::FixedNodeMap<T> {
         self.graph.fixed_node_map(fill)
@@ -141,10 +140,6 @@ where
 
     fn node_map<T: Debug + Clone>(&self) -> Self::NodeMap<T> {
         self.graph.node_map()
-    }
-
-    fn visit_node_map(&self) -> Self::VisitNodeMap {
-        self.graph.visit_node_map()
     }
 }
 
@@ -155,7 +150,6 @@ where
 {
     type FixedEdgeMap<T: Debug + Clone> = G::FixedEdgeMap<T>;
     type EdgeMap<T: Debug + Clone> = G::EdgeMap<T>;
-    type VisitEdgeMap = G::VisitEdgeMap;
 
     fn fixed_edge_map<T: Debug + Clone>(&self, fill: T) -> Self::FixedEdgeMap<T> {
         self.graph.fixed_edge_map(fill)
@@ -163,9 +157,5 @@ where
 
     fn edge_map<T: Debug + Clone>(&self) -> Self::EdgeMap<T> {
         self.graph.edge_map()
-    }
-
-    fn visit_edge_map(&self) -> Self::VisitEdgeMap {
-        self.graph.visit_edge_map()
     }
 }

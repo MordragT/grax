@@ -362,6 +362,45 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for CsrMatrix<W> {
             row_offsets: vec![RowOffset { start: 0, end: 0 }],
         }
     }
+
+    fn with_edges(
+        _: usize,
+        _: usize,
+        edges: impl IntoIterator<Item = (NodeId<usize>, NodeId<usize>, W)>,
+    ) -> Self {
+        let mut edges = edges
+            .into_iter()
+            .map(|(from, to, weight)| Edge::new(EdgeId::new_unchecked(from, to), weight))
+            .collect::<Vec<_>>();
+        edges.sort_unstable_by(|a, b| a.from().cmp(&b.from()).then(a.to().cmp(&b.to())));
+
+        let mut row_offsets = Vec::new();
+
+        if let Some(last) = edges.last() {
+            let row_count = *last.from() + 1;
+            let mut start = 0;
+
+            for row in 0..row_count {
+                if let Some(pos) = edges[start..].iter().position(|edge| *edge.from() != row) {
+                    row_offsets.push(RowOffset {
+                        start,
+                        end: start + pos,
+                    });
+                    start += pos;
+                } else {
+                    assert_eq!(row, row_count - 1);
+                    row_offsets.push(RowOffset {
+                        start,
+                        end: edges.len(),
+                    });
+                    break;
+                }
+            }
+        }
+
+        Self { row_offsets, edges }
+    }
+
     fn clear(&mut self) {
         self.edges.clear();
         self.row_offsets.fill(RowOffset { start: 0, end: 0 });

@@ -81,4 +81,4 @@ impl<V: Debug> NodeIterMut for FixedNodeVec<V> {
     }
 }
 
-impl<V: Debug> FixedNodeMap<usize, V> for FixedNodeVec<V> {}
+impl<V: Debug + Clone> FixedNodeMap<usize, V> for FixedNodeVec<V> {}

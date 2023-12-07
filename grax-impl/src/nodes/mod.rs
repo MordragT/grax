@@ -1,4 +1,3 @@
-pub use boolean::*;
 pub use fixed::*;
 use grax_core::{
     collections::NodeMap,
@@ -11,7 +10,6 @@ pub use slab::*;
 pub use stable::*;
 pub use unstable::*;
 
-mod boolean;
 mod fixed;
 mod optional;
 mod ordered;

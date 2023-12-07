@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct FilterEdgeView<G: EdgeAttribute> {
-    edges: G::VisitEdgeMap,
+    edges: G::FixedEdgeMap<bool>,
 }
 
 impl<G: EdgeAttribute> FilterEdgeView<G> {

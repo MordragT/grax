@@ -96,4 +96,4 @@ impl<V: Debug> EdgeIterMut for FixedEdgeVec<V> {
     }
 }
 
-impl<V: Debug> FixedEdgeMap<usize, V> for FixedEdgeVec<V> {}
+impl<V: Debug + Clone> FixedEdgeMap<usize, V> for FixedEdgeVec<V> {}
