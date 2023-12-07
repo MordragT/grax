@@ -3,62 +3,47 @@ use std::{fs, path::Path};
 
 use grax_core::adaptor::flow::{BalancedNode, FlowBundle};
 use grax_core::prelude::*;
-use grax_impl::error::GraphResult;
-use grax_impl::EdgeList;
-
-// #[derive(Debug)]
-// pub struct PhantomGraph;
-
-// impl Base for PhantomGraph {
-//     type Id = usize;
-//     type Node = usize;
-//     type Weight = f32;
-// }
+use grax_impl::error::{GraphError, GraphResult};
+use grax_impl::Graph;
 
 pub fn id(raw: usize) -> NodeId<usize> {
     NodeId::new_unchecked(raw)
 }
 
-pub fn weightless_undigraph<G, P>(path: P) -> GraphResult<G>
+pub fn weightless_undigraph<NS, ES, P>(path: P) -> GraphResult<Graph<NS, ES, usize, (), false>>
 where
     P: AsRef<Path>,
-    G: From<EdgeList<usize, (), false>>,
+    Graph<NS, ES, usize, (), false>: FromStr<Err = GraphError>,
 {
     let content = fs::read_to_string(path)?;
-    let edge_list = EdgeList::from_str(&content)?;
-    let graph = G::from(edge_list);
-    Ok(graph)
+    Graph::from_str(&content)
 }
 
-pub fn undigraph<G, P>(path: P) -> GraphResult<G>
+pub fn undigraph<NS, ES, P>(path: P) -> GraphResult<Graph<NS, ES, usize, f64, false>>
 where
     P: AsRef<Path>,
-    G: From<EdgeList<usize, f64, false>>,
+    Graph<NS, ES, usize, f64, false>: FromStr<Err = GraphError>,
 {
     let content = fs::read_to_string(path)?;
-    let edge_list = EdgeList::from_str(&content)?;
-    let graph = G::from(edge_list);
-    Ok(graph)
+    Graph::from_str(&content)
 }
 
-pub fn digraph<G, P>(path: P) -> GraphResult<G>
+pub fn digraph<NS, ES, P>(path: P) -> GraphResult<Graph<NS, ES, usize, f64, true>>
 where
     P: AsRef<Path>,
-    G: From<EdgeList<usize, f64, true>>,
+    Graph<NS, ES, usize, f64, true>: FromStr<Err = GraphError>,
 {
     let content = fs::read_to_string(path)?;
-    let edge_list = EdgeList::from_str(&content)?;
-    let graph = G::from(edge_list);
-    Ok(graph)
+    Graph::from_str(&content)
 }
 
-pub fn bgraph<G, P>(path: P) -> GraphResult<G>
+pub fn bgraph<NS, ES, P>(
+    path: P,
+) -> GraphResult<Graph<NS, ES, BalancedNode<usize, f64>, FlowBundle<f64, f64>, true>>
 where
     P: AsRef<Path>,
-    G: From<EdgeList<BalancedNode<usize, f64>, FlowBundle<f64, f64>, true>>,
+    Graph<NS, ES, BalancedNode<usize, f64>, FlowBundle<f64, f64>, true>: FromStr<Err = GraphError>,
 {
     let content = fs::read_to_string(path)?;
-    let edge_list = EdgeList::from_str(&content)?;
-    let graph = G::from(edge_list);
-    Ok(graph)
+    Graph::from_str(&content)
 }

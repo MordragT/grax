@@ -8,8 +8,8 @@ use std::{
 
 pub struct Mcf<G: Base> {
     pub residual_graph: G,
-    pub source: NodeId<G::Id>,
-    pub sink: NodeId<G::Id>,
+    pub source: NodeId<G::Key>,
+    pub sink: NodeId<G::Key>,
 }
 
 impl<G: Base> Mcf<G> {

@@ -1,17 +1,17 @@
+use super::Route;
 use crate::{
+    collections::{GetNode, GetNodeMut, NodeCount, NodeIter, VisitNodeMap},
+    graph::NodeAttribute,
     prelude::{EdgeId, NodeId},
-    traits::{Base, Viewable, Visitable},
 };
 
-use super::{AttrMap, Route, VisitMap};
-
 // only use this if parents is known to have cycle and "node" is in it
-pub fn parents_cycle<G: Visitable + Viewable>(
+pub fn parents_cycle<G: NodeAttribute>(
     graph: &G,
     parents: &Parents<G>,
-    start: NodeId<G::Id>,
+    start: NodeId<G::Key>,
 ) -> Route<G> {
-    let mut visited = graph.visit_map();
+    let mut visited = graph.visit_node_map();
     let mut path = Vec::new();
     let mut node = start;
 
@@ -49,50 +49,35 @@ pub fn parents_cycle<G: Visitable + Viewable>(
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Parents<G: Base + Viewable>(G::NodeMap<Option<NodeId<G::Id>>>);
+pub struct Parents<G: NodeAttribute>(G::FixedNodeMap<Option<NodeId<G::Key>>>);
 
-impl<G: Base + Viewable> Parents<G> {
-    pub(crate) fn new(parents: G::NodeMap<Option<NodeId<G::Id>>>) -> Self {
+impl<G: NodeAttribute> Parents<G> {
+    pub fn new(graph: &G) -> Self {
+        let parents = graph.fixed_node_map(None);
         Self(parents)
     }
 
-    // pub fn with_count(count: usize) -> Self {
-    //     Self(vec![None; count])
-    // }
-
-    // pub fn with_parents(parents: Vec<Option<NodeId<G::Id>>>) -> Self {
-    //     Self(parents)
-    // }
-
     pub fn count(&self) -> usize {
-        self.0.count()
+        self.0.node_count()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.iter().all(|(_, p)| p.is_none())
+        self.0.nodes_empty()
     }
 
-    pub fn insert(&mut self, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<NodeId<G::Id>> {
-        std::mem::replace(self.0.get_mut(to), Some(from))
+    pub fn insert(&mut self, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<NodeId<G::Key>> {
+        self.0.update_node(to, Some(from)).flatten()
     }
 
-    pub fn parent(&self, child: NodeId<G::Id>) -> Option<NodeId<G::Id>> {
-        if let Some(parent) = self.0.get(child) {
-            Some(*parent)
-        } else {
-            None
-        }
+    pub fn parent(&self, child: NodeId<G::Key>) -> Option<NodeId<G::Key>> {
+        self.0.node(child).and_then(|parent| *parent.weight)
     }
 
-    // pub unsafe fn parent_unchecked(&self, child: NodeId<G::Id>) -> NodeId<G::Id> {
-    //     // self.0.get_unchecked(child.raw()).unwrap_unchecked()
-    //     self.0[child.raw()].unwrap()
-    // }
-
-    pub fn edge_ids(&self) -> impl Iterator<Item = EdgeId<G::Id>> + '_ {
-        self.0.iter().filter_map(|(to, parent)| {
-            if let Some(from) = parent {
-                Some(EdgeId::new_unchecked(*from, to))
+    pub fn edge_ids(&self) -> impl Iterator<Item = EdgeId<G::Key>> + '_ {
+        self.0.iter_nodes().filter_map(|node| {
+            if let Some(parent) = node.weight {
+                let child = node.node_id;
+                Some(EdgeId::new_unchecked(*parent, child))
             } else {
                 None
             }

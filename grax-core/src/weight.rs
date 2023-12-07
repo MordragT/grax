@@ -60,58 +60,34 @@ impl Maximum for usize {
     const MAX: Self = usize::MAX;
 }
 
-pub trait Ratio:
-    Sortable
-    + Maximum
-    + Default
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + AddAssign
-    + SubAssign
-    + Neg
-    + Copy
-    + Debug
+pub trait Numeric:
+    PartialEq + Add<Self, Output = Self> + Sub<Self, Output = Self> + AddAssign + SubAssign + Copy
 {
 }
 
 impl<
-        T: Sortable
-            + Maximum
-            + Default
-            + Add<T, Output = T>
-            + Sub<T, Output = T>
+        T: PartialEq
+            + Add<Self, Output = Self>
+            + Sub<Self, Output = Self>
             + AddAssign
             + SubAssign
-            + Neg
-            + Copy
-            + Debug,
-    > Ratio for T
+            + Copy,
+    > Numeric for T
 {
 }
 
-pub trait Num:
-    Sortable
-    + Maximum
-    + Default
-    + Add<Self, Output = Self>
-    + Sub<Self, Output = Self>
-    + AddAssign
-    + SubAssign
-    + Copy
-    + Debug
-{
-}
+pub trait Nominal: Debug + Clone {}
 
-impl<
-        T: Sortable
-            + Maximum
-            + Default
-            + Add<T, Output = T>
-            + Sub<T, Output = T>
-            + AddAssign
-            + SubAssign
-            + Copy
-            + Debug,
-    > Num for T
-{
-}
+impl<T: Debug + Clone> Nominal for T {}
+
+pub trait Ordinal: Nominal + Sortable {}
+
+impl<T: Nominal + Sortable> Ordinal for T {}
+
+pub trait Interval: Ordinal + Numeric + Neg {}
+
+impl<T: Ordinal + Numeric + Neg> Interval for T {}
+
+pub trait Ratio: Ordinal + Numeric + Default {}
+
+impl<T: Ordinal + Numeric + Default> Ratio for T {}

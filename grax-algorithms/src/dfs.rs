@@ -1,16 +1,23 @@
+use grax_core::collections::FixedNodeMap;
+use grax_core::collections::GetNodeMut;
+use grax_core::collections::NodeIter;
+use grax_core::collections::VisitNodeMap;
+use grax_core::graph::EdgeAttribute;
+use grax_core::graph::EdgeIterAdjacent;
+use grax_core::graph::NodeAttribute;
+use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
-use grax_core::traits::*;
 use grax_core::view::FilterEdgeView;
-use grax_core::view::{AttrMap, Parents, VisitMap};
+use grax_core::view::Parents;
 use std::fmt::Debug;
 
-pub fn dfs_cycle<'a, G>(graph: &'a G, from: NodeId<G::Id>) -> Option<FilterEdgeView<G>>
+pub fn dfs_cycle<'a, G>(graph: &'a G, from: NodeId<G::Key>) -> Option<FilterEdgeView<G>>
 where
-    G: IndexAdjacent + Count + Visitable + Viewable,
+    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
 {
-    let mut filter = FilterEdgeView::new(graph.edge_map());
+    let mut filter = FilterEdgeView::new(graph);
     let mut stack = Vec::new();
-    let mut visited = graph.visit_map();
+    let mut visited = graph.visit_node_map();
     let mut path = Vec::new();
     stack.push(from);
     visited.visit(from);
@@ -37,10 +44,10 @@ where
 
 pub fn dfs_scc<G>(graph: &G) -> Vec<FilterEdgeView<G>>
 where
-    G: Index + IndexAdjacent + Count + Viewable + Contains,
+    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent + NodeIter,
 {
     let mut counter = 0;
-    let mut markers = graph.node_map();
+    let mut markers = graph.fixed_node_map(counter);
     let mut components = Vec::new();
 
     for from in graph.node_ids() {
@@ -54,29 +61,29 @@ where
     components
 }
 
-pub fn dfs<G>(graph: &G, from: NodeId<G::Id>) -> FilterEdgeView<G>
+pub fn dfs<G>(graph: &G, from: NodeId<G::Key>) -> FilterEdgeView<G>
 where
-    G: IndexAdjacent + Count + Viewable + Contains,
+    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
 {
-    let mut markers = graph.node_map();
+    let mut markers = graph.fixed_node_map(false);
     dfs_marker(graph, from, &mut markers, true)
 }
 
-pub fn dfs_iter<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = NodeId<G::Id>> + '_
+pub fn dfs_iter<G>(graph: &G, from: NodeId<G::Key>) -> impl Iterator<Item = NodeId<G::Key>> + '_
 where
-    G: IndexAdjacent + Count + Visitable,
+    G: NodeAttribute + NodeIterAdjacent,
 {
-    let mut visited = graph.visit_map();
-    let mut queue = Vec::new();
+    let mut visited = graph.visit_node_map();
+    let mut stack = Vec::new();
 
-    queue.push(from);
+    stack.push(from);
     visited.visit(from);
 
     std::iter::from_fn(move || {
-        if let Some(from) = queue.pop() {
+        if let Some(from) = stack.pop() {
             for to in graph.adjacent_node_ids(from) {
                 if !visited.is_visited(to) {
-                    queue.push(to);
+                    stack.push(to);
                     visited.visit(to);
                 }
             }
@@ -87,23 +94,27 @@ where
     })
 }
 
-pub fn dfs_iter_edges<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = EdgeId<G::Id>> + '_
+pub fn dfs_iter_edges<G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+) -> impl Iterator<Item = EdgeId<G::Key>> + '_
 where
-    G: IndexAdjacent + Count + Visitable,
+    G: NodeAttribute + EdgeIterAdjacent,
 {
-    let mut visited = graph.visit_map();
-    let mut queue = Vec::new();
+    let mut visited = graph.visit_node_map();
+    let mut stack = Vec::new();
 
-    queue.push(from);
+    stack.push(from);
     visited.visit(from);
 
     std::iter::from_fn(move || {
-        if let Some(from) = queue.pop() {
-            for to in graph.adjacent_node_ids(from) {
+        if let Some(from) = stack.pop() {
+            for edge_id in graph.adjacent_edge_ids(from) {
+                let to = edge_id.to();
                 if !visited.is_visited(to) {
-                    queue.push(to);
+                    stack.push(to);
                     visited.visit(to);
-                    return Some(EdgeId::new_unchecked(from, to));
+                    return Some(edge_id);
                 }
             }
         }
@@ -113,22 +124,22 @@ where
 
 pub fn dfs_sp<C, F, G>(
     graph: &G,
-    source: NodeId<G::Id>,
-    sink: NodeId<G::Id>,
+    source: NodeId<G::Key>,
+    sink: NodeId<G::Key>,
     mut cost_fn: F,
 ) -> Option<Parents<G>>
 where
     F: FnMut(&G::EdgeWeight) -> bool,
-    G: IterAdjacent + Visitable + Viewable,
+    G: NodeAttribute + EdgeIterAdjacent,
 {
-    let mut queue = Vec::new();
-    let mut visited = graph.visit_map();
-    let mut parents = graph.parents();
+    let mut stack = Vec::new();
+    let mut visited = graph.visit_node_map();
+    let mut parents = Parents::new(graph);
 
-    queue.push(source);
+    stack.push(source);
     visited.visit(source);
 
-    while let Some(from) = queue.pop() {
+    while let Some(from) = stack.pop() {
         if from == sink {
             return Some(parents);
         }
@@ -137,7 +148,7 @@ where
             let to = edge_id.to();
             if !visited.is_visited(to) && cost_fn(weight) {
                 parents.insert(from, to);
-                queue.push(to);
+                stack.push(to);
                 visited.visit(to);
             }
         }
@@ -147,25 +158,25 @@ where
 
 pub(crate) fn dfs_marker<'a, G, M>(
     graph: &'a G,
-    from: NodeId<G::Id>,
-    markers: &mut G::NodeMap<M>,
+    from: NodeId<G::Key>,
+    markers: &mut G::FixedNodeMap<M>,
     mark: M,
 ) -> FilterEdgeView<G>
 where
-    G: IndexAdjacent + Count + Viewable + Contains,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent,
     M: Default + PartialEq + Copy + Debug,
 {
-    let mut filter = FilterEdgeView::new(graph.edge_map());
-    let mut queue = Vec::new();
-    queue.push(from);
-    markers.insert(from, mark);
+    let mut filter = FilterEdgeView::new(graph);
+    let mut stack = Vec::new();
+    stack.push(from);
+    markers.update_node(from, mark);
 
-    while let Some(from) = queue.pop() {
+    while let Some(from) = stack.pop() {
         for edge_id in graph.adjacent_edge_ids(from) {
             let to = edge_id.to();
             if markers.get(to) == &M::default() {
-                queue.push(to);
-                markers.insert(to, mark);
+                stack.push(to);
+                markers.update_node(to, mark);
                 filter.keep(edge_id);
             }
         }
@@ -243,36 +254,6 @@ mod test {
         b.iter(|| {
             let counter = dfs_scc(&graph).len();
             assert_eq!(counter, 306);
-        });
-    }
-
-    #[bench]
-    fn dfs_scc_graph1_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
-
-        b.iter(|| {
-            let counter = dfs_scc(&graph).len();
-            assert_eq!(counter, 2);
-        });
-    }
-
-    #[bench]
-    fn dfs_scc_graph2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
-
-        b.iter(|| {
-            let counter = dfs_scc(&graph).len();
-            assert_eq!(counter, 4);
-        });
-    }
-
-    #[bench]
-    fn dfs_scc_graph3_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
-
-        b.iter(|| {
-            let counter = dfs_scc(&graph).len();
-            assert_eq!(counter, 4);
         });
     }
 }

@@ -1,9 +1,14 @@
 use super::{dijkstra_between, nearest_neighbor};
+use grax_core::collections::NodeCount;
+use grax_core::collections::NodeIter;
+use grax_core::collections::VisitNodeMap;
 use grax_core::edge::*;
+use grax_core::graph::Cost;
+use grax_core::graph::EdgeIterAdjacent;
+use grax_core::graph::NodeAttribute;
+use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
-use grax_core::traits::*;
 use grax_core::view::Route;
-use grax_core::view::VisitMap;
 use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
 
@@ -13,7 +18,7 @@ use std::ops::{Add, AddAssign};
 pub fn branch_bound<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Index + IndexAdjacent + IterAdjacent + Count + Visitable + Cost<C> + Viewable,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
 {
     match graph.node_ids().next() {
         Some(start) => Some(_branch_bound(graph, start)),
@@ -24,7 +29,7 @@ where
 pub fn branch_bound_rec<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
-    G: Index + IndexAdjacent + IterAdjacent + Count + Visitable + Cost<C> + Viewable,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
 {
     match graph.node_ids().next() {
         Some(start) => {
@@ -32,7 +37,7 @@ where
                 .map(|tour| tour.1)
                 .unwrap_or(Maximum::MAX);
             let mut path = vec![start];
-            let mut visited = graph.visit_map();
+            let mut visited = graph.visit_node_map();
             let cost = C::default();
 
             _branch_bound_rec(
@@ -51,10 +56,10 @@ where
     }
 }
 
-pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Id>) -> (Route<G>, C)
+pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Key>) -> (Route<G>, C)
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Count + IterAdjacent + IndexAdjacent + Visitable + Cost<C> + Viewable,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
@@ -62,7 +67,7 @@ where
         .unwrap_or(Maximum::MAX);
     let mut route = Vec::new();
 
-    let mut visited = graph.visit_map();
+    let mut visited = graph.visit_node_map();
     visited.visit(start);
 
     stack.push((C::default(), vec![start], visited));
@@ -83,7 +88,7 @@ where
                 let mut path = path.clone();
                 path.push(to);
 
-                if visited.all() {
+                if visited.all_visited() {
                     if let Some(cost_to_start) =
                         dijkstra_between(graph, path[path.len() - 1], start)
                     {
@@ -105,18 +110,18 @@ where
 }
 
 pub(crate) fn _branch_bound_rec<C, G>(
-    start: NodeId<G::Id>,
+    start: NodeId<G::Key>,
     graph: &G,
-    node: NodeId<G::Id>,
-    path: &mut Vec<NodeId<G::Id>>,
-    visited: &mut G::VisitMap,
+    node: NodeId<G::Key>,
+    path: &mut Vec<NodeId<G::Key>>,
+    visited: &mut G::VisitNodeMap,
     cost: C,
     baseline: &mut C,
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Debug,
-    G: IterAdjacent + Count + Visitable + Cost<C> + Viewable,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
 {
-    if visited.all() && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
+    if visited.all_visited() && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;
         if total_cost < *baseline {
             *baseline = total_cost;
@@ -223,88 +228,6 @@ mod test {
     #[bench]
     fn branch_bound_rec_k_12e_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
-            assert_eq!(total, 36.13);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
-            assert_eq!(total, 38.41);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
-            assert_eq!(total, 27.26);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
-            assert_eq!(total, 45.19);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
-            assert_eq!(total, 36.13);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_rec_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
-            assert_eq!(total, 38.41);
-        })
-    }
-
-    #[bench]
-    fn branch_bound_rec_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
-            assert_eq!(total, 27.26);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn branch_bound_rec_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
-
-        b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
-            assert_eq!(total, 45.19);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn branch_bound_rec_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = branch_bound_rec(&graph).unwrap().1 as f32;

@@ -81,12 +81,12 @@ impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for EdgeRef<'a, Id, Weig
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct EdgeRefMut<'a, Id: Identifier, Weight> {
+pub struct EdgeMut<'a, Id: Identifier, Weight> {
     pub edge_id: EdgeId<Id>,
     pub weight: &'a mut Weight,
 }
 
-impl<'a, Id: Identifier, Weight> EdgeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight> EdgeMut<'a, Id, Weight> {
     pub fn new(edge_id: EdgeId<Id>, weight: &'a mut Weight) -> Self {
         Self { edge_id, weight }
     }
@@ -99,25 +99,25 @@ impl<'a, Id: Identifier, Weight> EdgeRefMut<'a, Id, Weight> {
     }
 }
 
-impl<'a, Id: Identifier, Weight: Clone> EdgeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: Clone> EdgeMut<'a, Id, Weight> {
     pub fn to_owned(&self) -> Edge<Id, Weight> {
         Edge::new(self.edge_id.clone(), self.weight.clone())
     }
 }
 
-impl<'a, Id: Identifier, Weight: Ord> Ord for EdgeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: Ord> Ord for EdgeMut<'a, Id, Weight> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.weight.cmp(&other.weight)
     }
 }
 
-impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for EdgeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for EdgeMut<'a, Id, Weight> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.weight.partial_cmp(&other.weight)
     }
 }
 
-impl<'a, Id: Identifier, Weight> From<&'a mut Edge<Id, Weight>> for EdgeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight> From<&'a mut Edge<Id, Weight>> for EdgeMut<'a, Id, Weight> {
     fn from(edge: &'a mut Edge<Id, Weight>) -> Self {
         Self {
             edge_id: edge.edge_id,
@@ -166,27 +166,3 @@ impl EdgeCost for f64 {
         self
     }
 }
-
-// impl EdgeFlow for f32 {
-//     type Flow = f32;
-
-//     fn flow(&self) -> &Self::Flow {
-//         &0.0
-//     }
-
-//     fn flow_mut(&mut self) -> &mut Self::Flow {
-//         panic!("Cannot mutate flow of cost only weight")
-//     }
-// }
-
-// impl EdgeFlow for f64 {
-//     type Flow = f64;
-
-//     fn flow(&self) -> &Self::Flow {
-//         &0.0
-//     }
-
-//     fn flow_mut(&mut self) -> &mut Self::Flow {
-//         panic!("Cannot mutate flow of cost only weight")
-//     }
-// }

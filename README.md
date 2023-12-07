@@ -6,6 +6,9 @@ split tests into unit tests using mocking insde grax algorithms
 integration tests for algorithms in grax_impl
 benches of integration tests for algorithms in grax_impl
 
+improve attr trait
+- protentially bitmaps/vec for edges with fixed size: node_count * from + to would provide a fixed map for fixed size graphs
+
 ## Benchmarks
 
 - initial

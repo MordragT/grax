@@ -1,6 +1,6 @@
 use crate::prelude::{Identifier, NodeId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Node<Id: Identifier, Weight> {
     pub node_id: NodeId<Id>,
     pub weight: Weight,
@@ -24,7 +24,7 @@ impl<Id: Identifier, Weight: PartialOrd> PartialOrd for Node<Id, Weight> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct NodeRef<'a, Id: Identifier, Weight> {
     pub node_id: NodeId<Id>,
     pub weight: &'a Weight,
@@ -63,37 +63,37 @@ impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for NodeRef<'a, Id, Weig
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct NodeRefMut<'a, Id: Identifier, Weight> {
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct NodeMut<'a, Id: Identifier, Weight> {
     pub node_id: NodeId<Id>,
     pub weight: &'a mut Weight,
 }
 
-impl<'a, Id: Identifier, Weight> NodeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight> NodeMut<'a, Id, Weight> {
     pub fn new(node_id: NodeId<Id>, weight: &'a mut Weight) -> Self {
         Self { node_id, weight }
     }
 }
 
-impl<'a, Id: Identifier, Weight: Clone> NodeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: Clone> NodeMut<'a, Id, Weight> {
     pub fn to_owned(&self) -> Node<Id, Weight> {
         Node::new(self.node_id.clone(), self.weight.clone())
     }
 }
 
-impl<'a, Id: Identifier, Weight: Ord> Ord for NodeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: Ord> Ord for NodeMut<'a, Id, Weight> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.weight.cmp(&other.weight)
     }
 }
 
-impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for NodeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight: PartialOrd> PartialOrd for NodeMut<'a, Id, Weight> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.weight.partial_cmp(&other.weight)
     }
 }
 
-impl<'a, Id: Identifier, Weight> From<&'a mut Node<Id, Weight>> for NodeRefMut<'a, Id, Weight> {
+impl<'a, Id: Identifier, Weight> From<&'a mut Node<Id, Weight>> for NodeMut<'a, Id, Weight> {
     fn from(node: &'a mut Node<Id, Weight>) -> Self {
         Self {
             node_id: node.node_id,

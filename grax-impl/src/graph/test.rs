@@ -1,206 +1,24 @@
-use super::{AdjGraph, CsrGraph, DenseGraph, HashGraph, SparseGraph};
-use grax_core::Graph;
+use std::collections::HashSet;
+
+use grax_core::prelude::MutGraph;
 use more_asserts::*;
 
-// adj
-
-#[test]
-pub fn adj_graph_create_with_nodes() {
-    graph_create_with_nodes::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_create_with_capacity() {
-    graph_create_with_capacity::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_insert_and_contains() {
-    graph_insert_and_contains::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_clear() {
-    graph_clear::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_get() {
-    graph_get::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_index() {
-    graph_index::<AdjGraph<_, _>>()
-}
-
-#[test]
-pub fn adj_graph_index_adjacent() {
-    graph_index_adjacent::<AdjGraph<_, _>>()
-}
-
-// hash
-
-#[test]
-pub fn hash_graph_create_with_nodes() {
-    graph_create_with_nodes::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_create_with_capacity() {
-    graph_create_with_capacity::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_insert_and_contains() {
-    graph_insert_and_contains::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_clear() {
-    graph_clear::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_get() {
-    graph_get::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_index() {
-    graph_index::<HashGraph<_, _>>()
-}
-
-#[test]
-pub fn hash_graph_index_adjacent() {
-    graph_index_adjacent::<HashGraph<_, _>>()
-}
-
-// dense
-
-#[test]
-pub fn dense_graph_create_with_nodes() {
-    graph_create_with_nodes::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_create_with_capacity() {
-    graph_create_with_capacity::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_insert_and_contains() {
-    graph_insert_and_contains::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_clear() {
-    graph_clear::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_get() {
-    graph_get::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_index() {
-    graph_index::<DenseGraph<_, _>>()
-}
-
-#[test]
-pub fn dense_graph_index_adjacent() {
-    graph_index_adjacent::<DenseGraph<_, _>>()
-}
-
-// Sparse
-
-#[test]
-pub fn sparse_graph_create_with_nodes() {
-    graph_create_with_nodes::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_create_with_capacity() {
-    graph_create_with_capacity::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_insert_and_contains() {
-    graph_insert_and_contains::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_clear() {
-    graph_clear::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_get() {
-    graph_get::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_index() {
-    graph_index::<SparseGraph<_, _>>()
-}
-
-#[test]
-pub fn sparse_graph_index_adjacent() {
-    graph_index_adjacent::<SparseGraph<_, _>>()
-}
-
-// csr
-
-#[test]
-pub fn csr_graph_create_with_nodes() {
-    graph_create_with_nodes::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_create_with_capacity() {
-    graph_create_with_capacity::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_insert_and_contains() {
-    graph_insert_and_contains::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_clear() {
-    graph_clear::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_get() {
-    graph_get::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_index() {
-    graph_index::<CsrGraph<_, _>>()
-}
-
-#[test]
-pub fn csr_graph_index_adjacent() {
-    graph_index_adjacent::<CsrGraph<_, _>>()
-}
-
-pub fn graph_create_with_nodes<G: Graph<usize, f32>>() {
+pub fn graph_create_with_nodes<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let nodes = [1, 4, 8, 3, 5];
-    let graph = G::with_nodes(nodes.into_iter());
+    let graph = G::with_nodes(5, nodes.into_iter());
     assert_eq!(graph.node_count(), 5);
     assert_eq!(graph.edge_count(), 0);
 }
 
-pub fn graph_create_with_capacity<G: Graph<usize, f32>>() {
+pub fn graph_create_with_capacity<
+    G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>,
+>() {
     let graph = G::with_capacity(10, 20);
     assert_ge!(graph.nodes_capacity(), 10);
     assert_ge!(graph.edges_capacity(), 20);
 }
 
-pub fn graph_insert_and_contains<G: Graph<usize, f32>>() {
+pub fn graph_insert_and_contains<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let mut graph = G::with_capacity(3, 2);
     let one = graph.insert_node(1);
     let two = graph.insert_node(2);
@@ -209,15 +27,15 @@ pub fn graph_insert_and_contains<G: Graph<usize, f32>>() {
     graph.insert_edge(one, two, 2.0);
     graph.insert_edge(two, three, 3.0);
 
-    assert!(graph.contains_node(&1).is_some());
-    assert!(graph.contains_node(&4).is_none());
+    assert!(graph.find_node_id(1).is_some());
+    assert!(graph.find_node_id(4).is_none());
     assert!(graph.contains_node_id(two));
-    assert!(graph.contains_edge(one, two).is_some());
-    assert!(graph.contains_edge(one, three).is_none());
-    assert!(graph.contains_edge(two, three).is_some());
+    assert!(graph.find_edge_id(one, two).is_some());
+    assert!(graph.find_edge_id(one, three).is_none());
+    assert!(graph.find_edge_id(two, three).is_some());
 }
 
-pub fn graph_clear<G: Graph<usize, f32>>() {
+pub fn graph_clear<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let mut graph = G::with_capacity(3, 2);
     let one = graph.insert_node(1);
     let two = graph.insert_node(2);
@@ -229,17 +47,17 @@ pub fn graph_clear<G: Graph<usize, f32>>() {
     graph.clear_edges();
 
     assert!(graph.contains_edge_id(one_two) == false);
-    assert!(graph.contains_edge(one, two).is_none());
+    assert!(graph.find_edge_id(one, two).is_none());
     assert!(graph.contains_node_id(one));
-    assert!(graph.contains_node(&1).is_some());
+    assert!(graph.find_node_id(1).is_some());
 
     graph.clear();
 
     assert!(graph.contains_node_id(one) == false);
-    assert!(graph.contains_node(&1).is_none());
+    assert!(graph.find_node_id(1).is_none());
 }
 
-pub fn graph_get<G: Graph<usize, f32>>() {
+pub fn graph_get<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let mut graph = G::with_capacity(3, 2);
     let one = graph.insert_node(1);
     let two = graph.insert_node(2);
@@ -254,10 +72,10 @@ pub fn graph_get<G: Graph<usize, f32>>() {
     // assert_eq!(graph.edge(one_two), Some(&2.0));
     // assert_eq!(graph.edge(two_three), Some(&3.0));
 
-    assert!(graph.contains_edge(one, three).is_none());
+    assert!(graph.find_edge_id(one, three).is_none());
 }
 
-pub fn graph_index<G: Graph<usize, f32>>() {
+pub fn graph_index<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let mut graph = G::with_capacity(3, 2);
     let one = graph.insert_node(1);
     let two = graph.insert_node(2);
@@ -284,7 +102,7 @@ pub fn graph_index<G: Graph<usize, f32>>() {
     assert!(edges.contains(&1.0) == false);
 }
 
-pub fn graph_index_adjacent<G: Graph<usize, f32>>() {
+pub fn graph_index_adjacent<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let mut graph = G::with_capacity(3, 2);
     let one = graph.insert_node(1);
     let two = graph.insert_node(2);
@@ -295,4 +113,25 @@ pub fn graph_index_adjacent<G: Graph<usize, f32>>() {
 
     let one_adj_ids = graph.adjacent_node_ids(one).collect::<Vec<_>>();
     assert_eq!(one_adj_ids, vec![two, three]);
+}
+
+pub fn graph_iter_adjacent<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
+    let mut graph = G::with_capacity(3, 2);
+    let one = graph.insert_node(1);
+    let two = graph.insert_node(2);
+    let three = graph.insert_node(3);
+
+    graph.insert_edge(one, two, 2.0);
+    graph.insert_edge(one, three, 3.0);
+
+    let adjacent_by_ref = graph
+        .iter_adjacent_nodes(one)
+        .map(|node| node.to_owned())
+        .collect::<HashSet<_>>();
+    let adjacent_by_mut = graph
+        .iter_adjacent_nodes_mut(one)
+        .map(|node| node.to_owned())
+        .collect::<HashSet<_>>();
+
+    assert_eq!(adjacent_by_ref.difference(&adjacent_by_mut).count(), 0);
 }

@@ -1,13 +1,14 @@
+use grax_core::collections::{EdgeIter, NodeIter};
 use grax_core::edge::*;
+use grax_core::graph::{Cost, EdgeAttribute, NodeAttribute};
 use grax_core::index::NodeId;
-use grax_core::traits::*;
-use grax_core::view::FilterEdgeView;
+use grax_core::view::{FilterEdgeView, UnionFind};
 use grax_core::weight::Sortable;
 
 use std::ops::AddAssign;
 
-pub struct KruskalResult<G: Viewable, C> {
-    pub root: NodeId<G::Id>,
+pub struct KruskalResult<G: EdgeAttribute, C> {
+    pub root: NodeId<G::Key>,
     pub view: FilterEdgeView<G>,
     pub cost: C,
 }
@@ -15,13 +16,14 @@ pub struct KruskalResult<G: Viewable, C> {
 pub fn kruskal<C, G>(graph: &G) -> KruskalResult<G, C>
 where
     C: Sortable + Default + AddAssign + Copy,
-    G: Iter + Index + Cost<C> + Viewable + Create,
+    G: NodeIter + EdgeIter + Cost<C> + EdgeAttribute + NodeAttribute,
 {
     let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
     priority_queue.sort_unstable_by(|this, other| this.weight.cost().sort(&other.weight.cost()));
 
-    let mut union_find = graph.union_find();
-    let mut view = FilterEdgeView::new(graph.edge_map());
+    let mut union_find = UnionFind::new(graph);
+
+    let mut view = FilterEdgeView::new(graph);
     let mut root = graph.node_ids().next().unwrap();
     let mut total_cost = C::default();
 
@@ -114,74 +116,11 @@ mod test {
         })
     }
 
-    // sparse
-
-    #[bench]
-    fn kruskal_graph_1_2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 287.32286);
-        })
-    }
-
-    #[bench]
-    fn kruskal_graph_1_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 36.86275);
-        })
-    }
-
-    #[bench]
-    fn kruskal_graph_1_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 12.68182);
-        })
-    }
-
-    #[bench]
-    fn kruskal_graph_10_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 2785.62417);
-        })
-    }
-
-    #[bench]
-    fn kruskal_graph_10_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 372.14417);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn kruskal_graph_100_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
-            assert_eq!(count, 27550.51488);
-        })
-    }
-
     // dense
 
     #[bench]
     fn kruskal_graph_1_2_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;
@@ -191,7 +130,7 @@ mod test {
 
     #[bench]
     fn kruskal_graph_1_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;
@@ -201,7 +140,7 @@ mod test {
 
     #[bench]
     fn kruskal_graph_1_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;
@@ -211,7 +150,7 @@ mod test {
 
     #[bench]
     fn kruskal_graph_10_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;
@@ -222,7 +161,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_10_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;
@@ -233,7 +172,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn kruskal_graph_100_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = kruskal(&graph).cost as f32;

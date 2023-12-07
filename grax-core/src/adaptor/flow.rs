@@ -1,12 +1,14 @@
 use std::fmt::Debug;
 
 use crate::{
+    collections::EdgeCollection,
     edge::{Edge, EdgeCost, EdgeFlow},
+    graph::AdaptEdge,
     node::NodeBalance,
-    traits::{AdaptEdge, Base},
     weight::Maximum,
 };
 
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub struct BalancedNode<N, B> {
     node: N,
     balance: B,
@@ -82,8 +84,8 @@ impl<W: Clone + Debug, C: Clone + Debug> EdgeFlow for FlowBundle<W, C> {
 pub fn flow_adaptor<G1, G2, W1>(graph: G1) -> G2
 where
     W1: Clone + Maximum + Default,
-    G1: Base<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, W1>>,
-    G2: Base<EdgeWeight = FlowBundle<W1, W1>>,
+    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, W1>>,
+    G2: EdgeCollection<EdgeWeight = FlowBundle<W1, W1>>,
 {
     graph.map_edge(|edge| {
         let Edge { edge_id, weight } = edge;

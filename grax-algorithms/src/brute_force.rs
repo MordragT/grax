@@ -1,7 +1,8 @@
 use std::ops::AddAssign;
 
+use grax_core::collections::{GetEdge, NodeIter};
 use grax_core::edge::*;
-use grax_core::traits::*;
+use grax_core::graph::Cost;
 use grax_core::view::Route;
 use grax_core::weight::Maximum;
 
@@ -9,8 +10,7 @@ pub fn brute_force<N, W, C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     N: PartialEq,
     C: Default + Maximum + PartialOrd + AddAssign + Copy,
-    W: EdgeCost<Cost = C>,
-    G: Get + Index + Contains + Base<NodeWeight = N, EdgeWeight = W>,
+    G: NodeIter + GetEdge + Cost<C>,
 {
     let mut best_path = Vec::new();
     let mut best_weight = C::MAX;
@@ -23,7 +23,7 @@ where
 
         let edges = perm
             .array_windows::<2>()
-            .map(|w| graph.contains_edge(w[0], w[1]))
+            .map(|w| graph.find_edge_id(w[0], w[1]))
             .collect::<Option<Vec<_>>>();
 
         if let Some(edges) = edges {

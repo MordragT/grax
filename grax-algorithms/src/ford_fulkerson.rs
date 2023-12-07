@@ -1,7 +1,9 @@
+use grax_core::collections::GetEdgeMut;
 use grax_core::edge::*;
+use grax_core::graph::Flow;
 use grax_core::prelude::*;
-use grax_core::traits::*;
 use grax_core::view::Parents;
+use grax_core::{collections::GetEdge, graph::NodeAttribute};
 
 use std::{
     fmt::Debug,
@@ -10,14 +12,14 @@ use std::{
 
 pub(crate) fn _ford_fulkerson<C, G, F>(
     graph: &mut G,
-    source: NodeId<G::Id>,
-    sink: NodeId<G::Id>,
+    source: NodeId<G::Key>,
+    sink: NodeId<G::Key>,
     mut sp: F,
 ) -> C
 where
-    F: FnMut(&G, NodeId<G::Id>, NodeId<G::Id>) -> Option<Parents<G>>,
+    F: FnMut(&G, NodeId<G::Key>, NodeId<G::Key>) -> Option<Parents<G>>,
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug,
-    G: Count + IndexAdjacent + Get + GetMut + Base + Debug + Flow<C> + Viewable,
+    G: GetEdge + GetEdgeMut + Debug + Flow<C> + NodeAttribute,
 {
     let mut total_flow = C::default();
 

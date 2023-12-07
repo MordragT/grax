@@ -41,30 +41,7 @@ mod parents;
 mod route;
 mod union_find;
 
-pub trait VisitMap<Id>: Clone + Debug {
-    fn visit(&mut self, id: Id);
-    fn unvisit(&mut self, id: Id);
-    fn is_visited(&self, id: Id) -> bool;
-    fn all(&self) -> bool;
-}
-
-pub trait AttrMap<Id, Attr>: Clone + Debug {
-    type Iter<'a>: Iterator<Item = (Id, &'a Attr)>
-    where
-        Id: 'a,
-        Attr: 'a,
-        Self: 'a;
-
-    fn replace(&mut self, id: Id, attr: Attr) -> Attr;
-    fn insert(&mut self, id: Id, attr: Attr);
-    fn get(&self, id: Id) -> &Attr;
-    fn get_mut(&mut self, id: Id) -> &mut Attr;
-    fn iter<'a>(&'a self) -> Self::Iter<'a>;
-    fn clear(&mut self);
-    fn count(&self) -> usize;
-}
-
-pub trait View {}
+pub trait View: Debug {}
 
 pub trait ViewAdaptor<G> {
     fn adapt(&self, graph: &mut G);

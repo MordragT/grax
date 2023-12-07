@@ -9,17 +9,17 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ConnectedGraph<G: Base> {
     graph: G,
-    root: NodeId<G::Id>,
+    root: NodeId<G::Key>,
 }
 
 impl<G: Base> ConnectedGraph<G> {
-    pub fn from_unchecked(graph: G, root: NodeId<G::Id>) -> Self {
+    pub fn from_unchecked(graph: G, root: NodeId<G::Key>) -> Self {
         Self { graph, root }
     }
 }
 
 impl<G: Base> Root for ConnectedGraph<G> {
-    fn root(&self) -> NodeId<G::Id> {
+    fn root(&self) -> NodeId<G::Key> {
         self.root
     }
 }
@@ -42,10 +42,10 @@ impl<G: Create + Insert> ConnectedGraph<G> {
 impl<G: Insert> ConnectedGraph<G> {
     pub fn insert(
         &mut self,
-        parent: NodeId<G::Id>,
+        parent: NodeId<G::Key>,
         child: G::NodeWeight,
         weight: G::EdgeWeight,
-    ) -> NodeId<G::Id> {
+    ) -> NodeId<G::Key> {
         let child_id = self.graph.insert_node(child);
         self.graph.insert_edge(parent, child_id, weight);
         child_id
@@ -53,7 +53,7 @@ impl<G: Insert> ConnectedGraph<G> {
 }
 
 impl<G: Base> Base for ConnectedGraph<G> {
-    type Id = G::Id;
+    type Id = G::Key;
     type NodeWeight = G::NodeWeight;
     type EdgeWeight = G::EdgeWeight;
 }
@@ -71,13 +71,13 @@ impl<G: Capacity + Base> Capacity for ConnectedGraph<G> {
 impl<G: Contains> Contains for ConnectedGraph<G> {
     fn contains_edge(
         &self,
-        from: NodeId<Self::Id>,
-        to: NodeId<Self::Id>,
-    ) -> Option<crate::prelude::EdgeId<Self::Id>> {
+        from: NodeId<Self::Key>,
+        to: NodeId<Self::Key>,
+    ) -> Option<crate::prelude::EdgeId<Self::Key>> {
         self.graph.contains_edge(from, to)
     }
 
-    fn contains_node(&self, node: &Self::NodeWeight) -> Option<NodeId<Self::Id>> {
+    fn contains_node(&self, node: &Self::NodeWeight) -> Option<NodeId<Self::Key>> {
         self.graph.contains_node(node)
     }
 }
@@ -95,15 +95,15 @@ impl<G: Count + Base> Count for ConnectedGraph<G> {
 impl<G: Get> Get for ConnectedGraph<G> {
     fn node(
         &self,
-        node_id: NodeId<Self::Id>,
-    ) -> Option<crate::node::NodeRef<Self::Id, Self::NodeWeight>> {
+        node_id: NodeId<Self::Key>,
+    ) -> Option<crate::node::NodeRef<Self::Key, Self::NodeWeight>> {
         self.graph.node(node_id)
     }
 
     fn edge(
         &self,
-        edge_id: crate::prelude::EdgeId<Self::Id>,
-    ) -> Option<crate::edge::EdgeRef<Self::Id, Self::EdgeWeight>> {
+        edge_id: crate::prelude::EdgeId<Self::Key>,
+    ) -> Option<crate::edge::EdgeRef<Self::Key, Self::EdgeWeight>> {
         self.graph.edge(edge_id)
     }
 }
@@ -111,15 +111,15 @@ impl<G: Get> Get for ConnectedGraph<G> {
 impl<G: GetMut> GetMut for ConnectedGraph<G> {
     fn node_mut(
         &mut self,
-        node_id: NodeId<Self::Id>,
-    ) -> Option<crate::node::NodeRefMut<Self::Id, Self::NodeWeight>> {
+        node_id: NodeId<Self::Key>,
+    ) -> Option<crate::node::NodeRefMut<Self::Key, Self::NodeWeight>> {
         self.graph.node_mut(node_id)
     }
 
     fn edge_mut(
         &mut self,
-        edge_id: crate::prelude::EdgeId<Self::Id>,
-    ) -> Option<crate::edge::EdgeRefMut<Self::Id, Self::EdgeWeight>> {
+        edge_id: crate::prelude::EdgeId<Self::Key>,
+    ) -> Option<crate::edge::EdgeRefMut<Self::Key, Self::EdgeWeight>> {
         self.graph.edge_mut(edge_id)
     }
 }
@@ -167,11 +167,11 @@ impl<G: IndexAdjacent> IndexAdjacent for ConnectedGraph<G> {
     type EdgeIds<'a> = G::EdgeIds<'a> where G: 'a;
     type NodeIds<'a> = G::NodeIds<'a> where G: 'a;
 
-    fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::EdgeIds<'a> {
+    fn adjacent_edge_ids<'a>(&'a self, node_id: NodeId<Self::Key>) -> Self::EdgeIds<'a> {
         self.graph.adjacent_edge_ids(node_id)
     }
 
-    fn adjacent_node_ids<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::NodeIds<'a> {
+    fn adjacent_node_ids<'a>(&'a self, node_id: NodeId<Self::Key>) -> Self::NodeIds<'a> {
         self.graph.adjacent_node_ids(node_id)
     }
 }
@@ -180,11 +180,11 @@ impl<G: IterAdjacent> IterAdjacent for ConnectedGraph<G> {
     type Edges<'a> = G::Edges<'a> where G: 'a;
     type Nodes<'a> = G::Nodes<'a> where G: 'a;
 
-    fn iter_adjacent_edges<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::Edges<'a> {
+    fn iter_adjacent_edges<'a>(&'a self, node_id: NodeId<Self::Key>) -> Self::Edges<'a> {
         self.graph.iter_adjacent_edges(node_id)
     }
 
-    fn iter_adjacent_nodes<'a>(&'a self, node_id: NodeId<Self::Id>) -> Self::Nodes<'a> {
+    fn iter_adjacent_nodes<'a>(&'a self, node_id: NodeId<Self::Key>) -> Self::Nodes<'a> {
         self.graph.iter_adjacent_nodes(node_id)
     }
 }
@@ -193,11 +193,11 @@ impl<G: IterAdjacentMut> IterAdjacentMut for ConnectedGraph<G> {
     type EdgesMut<'a> = G::EdgesMut<'a> where G: 'a;
     type NodesMut<'a> = G::NodesMut<'a> where G: 'a;
 
-    fn iter_adjacent_edges_mut<'a>(&'a mut self, node_id: NodeId<Self::Id>) -> Self::EdgesMut<'a> {
+    fn iter_adjacent_edges_mut<'a>(&'a mut self, node_id: NodeId<Self::Key>) -> Self::EdgesMut<'a> {
         self.graph.iter_adjacent_edges_mut(node_id)
     }
 
-    fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: NodeId<Self::Id>) -> Self::NodesMut<'a> {
+    fn iter_adjacent_nodes_mut<'a>(&'a mut self, node_id: NodeId<Self::Key>) -> Self::NodesMut<'a> {
         self.graph.iter_adjacent_nodes_mut(node_id)
     }
 }
@@ -213,10 +213,15 @@ impl<G: Reserve + Base> Reserve for ConnectedGraph<G> {
 }
 
 impl<G: Visitable> Visitable for ConnectedGraph<G> {
-    type VisitMap = G::VisitMap;
+    type VisitNodeMap = G::VisitNodeMap;
+    type VisitEdgeMap = G::VisitEdgeMap;
 
-    fn visit_map(&self) -> Self::VisitMap {
-        self.graph.visit_map()
+    fn visit_node_map(&self) -> Self::VisitNodeMap {
+        self.graph.visit_node_map()
+    }
+
+    fn visit_edge_map(&self) -> Self::VisitEdgeMap {
+        self.graph.visit_edge_map()
     }
 }
 

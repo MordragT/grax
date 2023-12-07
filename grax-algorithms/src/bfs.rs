@@ -1,16 +1,23 @@
+use grax_core::collections::FixedNodeMap;
+use grax_core::collections::GetNodeMut;
+use grax_core::collections::NodeIter;
+use grax_core::collections::VisitNodeMap;
+use grax_core::graph::EdgeAttribute;
+use grax_core::graph::EdgeIterAdjacent;
+use grax_core::graph::NodeAttribute;
+use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
-use grax_core::traits::*;
 use grax_core::view::FilterEdgeView;
-use grax_core::view::{AttrMap, Parents, VisitMap};
+use grax_core::view::Parents;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
 pub fn bfs_scc<G>(graph: &G) -> Vec<FilterEdgeView<G>>
 where
-    G: Index + IndexAdjacent + Count + Viewable + Contains,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
 {
     let mut counter = 0;
-    let mut markers = graph.node_map();
+    let mut markers = graph.fixed_node_map(counter);
     let mut components = Vec::new();
 
     for from in graph.node_ids() {
@@ -24,19 +31,19 @@ where
     components
 }
 
-pub fn bfs<G>(graph: &G, from: NodeId<G::Id>) -> FilterEdgeView<G>
+pub fn bfs<G>(graph: &G, from: NodeId<G::Key>) -> FilterEdgeView<G>
 where
-    G: IndexAdjacent + Count + Viewable + Contains,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent,
 {
-    let mut markers = graph.node_map();
+    let mut markers = graph.fixed_node_map(false);
     bfs_marker(graph, from, &mut markers, true)
 }
 
-pub fn bfs_iter<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = NodeId<G::Id>> + '_
+pub fn bfs_iter<G>(graph: &G, from: NodeId<G::Key>) -> impl Iterator<Item = NodeId<G::Key>> + '_
 where
-    G: IndexAdjacent + Count + Visitable,
+    G: NodeAttribute + NodeIterAdjacent,
 {
-    let mut visited = graph.visit_map();
+    let mut visited = graph.visit_node_map();
     let mut queue = VecDeque::new();
 
     queue.push_back(from);
@@ -57,11 +64,14 @@ where
     })
 }
 
-pub fn bfs_iter_edges<G>(graph: &G, from: NodeId<G::Id>) -> impl Iterator<Item = EdgeId<G::Id>> + '_
+pub fn bfs_iter_edges<G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+) -> impl Iterator<Item = EdgeId<G::Key>> + '_
 where
-    G: IndexAdjacent + Count + Visitable,
+    G: NodeAttribute + EdgeIterAdjacent,
 {
-    let mut visited = graph.visit_map();
+    let mut visited = graph.visit_node_map();
     let mut queue = VecDeque::new();
 
     queue.push_back(from);
@@ -69,11 +79,12 @@ where
 
     std::iter::from_fn(move || {
         if let Some(from) = queue.pop_front() {
-            for to in graph.adjacent_node_ids(from) {
+            for edge_id in graph.adjacent_edge_ids(from) {
+                let to = edge_id.to();
                 if !visited.is_visited(to) {
                     queue.push_back(to);
                     visited.visit(to);
-                    return Some(EdgeId::new_unchecked(from, to));
+                    return Some(edge_id);
                 }
             }
         }
@@ -83,17 +94,17 @@ where
 
 pub fn bfs_sp<F, G>(
     graph: &G,
-    source: NodeId<G::Id>,
-    sink: NodeId<G::Id>,
+    source: NodeId<G::Key>,
+    sink: NodeId<G::Key>,
     mut cost_fn: F,
 ) -> Option<Parents<G>>
 where
     F: FnMut(&G::EdgeWeight) -> bool,
-    G: IterAdjacent + Visitable + Viewable,
+    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
 {
     let mut queue = VecDeque::new();
-    let mut visited = graph.visit_map();
-    let mut parents = graph.parents();
+    let mut visited = graph.visit_node_map();
+    let mut parents = Parents::new(graph);
 
     queue.push_front(source);
     visited.visit(source);
@@ -117,25 +128,25 @@ where
 
 pub(crate) fn bfs_marker<G, M>(
     graph: &G,
-    from: NodeId<G::Id>,
-    markers: &mut G::NodeMap<M>,
+    from: NodeId<G::Key>,
+    markers: &mut G::FixedNodeMap<M>,
     mark: M,
 ) -> FilterEdgeView<G>
 where
-    G: IndexAdjacent + Count + Viewable + Contains,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent,
     M: Default + PartialEq + Copy + Debug,
 {
-    let mut filter = FilterEdgeView::new(graph.edge_map());
+    let mut filter = FilterEdgeView::new(graph);
     let mut queue = VecDeque::new();
     queue.push_front(from);
-    markers.insert(from, mark);
+    markers.update_node(from, mark);
 
     while let Some(from) = queue.pop_front() {
         for edge_id in graph.adjacent_edge_ids(from) {
             let to = edge_id.to();
             if markers.get(to) == &M::default() {
                 queue.push_back(to);
-                markers.insert(to, mark);
+                markers.update_node(to, mark);
                 filter.keep(edge_id);
             }
         }
@@ -213,36 +224,6 @@ mod test {
         b.iter(|| {
             let counter = bfs_scc(&graph).len();
             assert_eq!(counter, 306);
-        });
-    }
-
-    #[bench]
-    fn bfs_scc_graph1_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
-
-        b.iter(|| {
-            let counter = bfs_scc(&graph).len();
-            assert_eq!(counter, 2);
-        });
-    }
-
-    #[bench]
-    fn bfs_scc_graph2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
-
-        b.iter(|| {
-            let counter = bfs_scc(&graph).len();
-            assert_eq!(counter, 4);
-        });
-    }
-
-    #[bench]
-    fn bfs_scc_graph3_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
-
-        b.iter(|| {
-            let counter = bfs_scc(&graph).len();
-            assert_eq!(counter, 4);
         });
     }
 }

@@ -1,14 +1,14 @@
-use crate::traits::{Contains, Viewable};
-
-use super::{AttrMap, View, ViewGraph};
+use std::fmt::Debug;
 
 pub use edge::FilterEdgeView;
-pub use node::FilterNodeView;
+// pub use node::FilterNodeView;
+
+use crate::graph::{EdgeAttribute, NodeAttribute};
 
 mod edge;
-mod node;
+// mod node;
 
-struct FilterView<G: Viewable> {
-    nodes: G::NodeMap<bool>,
-    edges: G::EdgeMap<bool>,
+struct FilterView<T: Debug + Clone, G: EdgeAttribute + NodeAttribute> {
+    nodes: G::FixedNodeMap<T>,
+    edges: G::FixedEdgeMap<T>,
 }

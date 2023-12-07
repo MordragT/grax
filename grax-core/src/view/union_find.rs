@@ -1,8 +1,12 @@
-use std::ops::{AddAssign, Deref, DerefMut};
+use std::ops::{Add, AddAssign, Deref, DerefMut};
 
-use crate::{prelude::NodeId, traits::Viewable};
+use crate::{
+    collections::{FixedNodeMap, GetNodeMut},
+    graph::NodeAttribute,
+    prelude::NodeId,
+};
 
-use super::{AttrMap, Parents};
+use super::Parents;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rank(u32);
@@ -19,13 +23,20 @@ impl AddAssign<Rank> for Rank {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct UnionFind<G: Viewable> {
-    parents: Parents<G>,
-    rank: G::NodeMap<Rank>,
+impl Add<Rank> for Rank {
+    type Output = Rank;
+    fn add(self, rhs: Rank) -> Self::Output {
+        Rank(self.0 + rhs.0)
+    }
 }
 
-impl<G: Viewable> Deref for UnionFind<G> {
+#[derive(Debug)]
+pub struct UnionFind<G: NodeAttribute> {
+    parents: Parents<G>,
+    rank: G::FixedNodeMap<Rank>,
+}
+
+impl<G: NodeAttribute> Deref for UnionFind<G> {
     type Target = Parents<G>;
 
     fn deref(&self) -> &Self::Target {
@@ -33,22 +44,25 @@ impl<G: Viewable> Deref for UnionFind<G> {
     }
 }
 
-impl<G: Viewable> DerefMut for UnionFind<G> {
+impl<G: NodeAttribute> DerefMut for UnionFind<G> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.parents
     }
 }
 
-impl<G: Viewable> UnionFind<G> {
-    pub(crate) fn new(parents: Parents<G>, rank: G::NodeMap<Rank>) -> Self {
+impl<G: NodeAttribute> UnionFind<G> {
+    pub fn new(graph: &G) -> Self {
+        let parents = Parents::new(graph);
+        let rank = graph.fixed_node_map(Rank::default());
+
         Self { parents, rank }
     }
 
-    pub fn rank(&self, node_id: NodeId<G::Id>) -> u32 {
+    pub fn rank(&self, node_id: NodeId<G::Key>) -> u32 {
         self.rank.get(node_id).0
     }
 
-    pub fn find(&mut self, needle: NodeId<G::Id>) -> NodeId<G::Id> {
+    pub fn find(&mut self, needle: NodeId<G::Key>) -> NodeId<G::Key> {
         let mut path = Vec::new();
         let mut node = needle;
 
@@ -68,7 +82,7 @@ impl<G: Viewable> UnionFind<G> {
         node
     }
 
-    pub fn union(&mut self, x: NodeId<G::Id>, y: NodeId<G::Id>) -> NodeId<G::Id> {
+    pub fn union(&mut self, x: NodeId<G::Key>, y: NodeId<G::Key>) -> NodeId<G::Key> {
         let mut root_x = self.find(x);
         let mut root_y = self.find(y);
         if root_x == root_y {
@@ -77,13 +91,14 @@ impl<G: Viewable> UnionFind<G> {
 
         // keep depth of trees small by appending small tree to big tree
         // ensures find operation is not doing effectively a linked list search
-        if self.rank.get(root_x) < self.rank.get(root_y) {
+        if self.rank(root_x) < self.rank(root_y) {
             std::mem::swap(&mut root_x, &mut root_y);
         }
         self.insert(root_x, root_y);
 
-        let rank_y = *self.rank.get(root_y);
-        *self.rank.get_mut(root_x) += rank_y;
+        let rank_y = Rank(self.rank(root_y));
+        self.rank
+            .update_node(root_x, Rank(self.rank(root_x)) + rank_y);
         root_x
     }
 }

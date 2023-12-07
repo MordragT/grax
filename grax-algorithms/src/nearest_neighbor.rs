@@ -1,8 +1,14 @@
 use super::dijkstra_between;
+use grax_core::collections::FixedNodeMap;
+use grax_core::collections::GetNodeMut;
+use grax_core::collections::NodeCount;
+use grax_core::collections::NodeIter;
 use grax_core::edge::*;
+use grax_core::graph::Cost;
+use grax_core::graph::EdgeIterAdjacent;
+use grax_core::graph::NodeAttribute;
+use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
-use grax_core::traits::*;
-use grax_core::view::AttrMap;
 use grax_core::view::Route;
 use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
@@ -13,7 +19,7 @@ use std::ops::{Add, AddAssign};
 pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Count + Index + IterAdjacent + IndexAdjacent + Cost<C> + Viewable,
+    G: NodeIter + NodeCount + EdgeIterAdjacent + NodeIterAdjacent + Cost<C> + NodeAttribute,
 {
     match graph.node_ids().next() {
         Some(start) => nearest_neighbor(graph, start),
@@ -21,10 +27,10 @@ where
     }
 }
 
-pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Id>) -> Option<(Route<G>, C)>
+pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: Count + IterAdjacent + IndexAdjacent + Cost<C> + Viewable,
+    G: NodeCount + EdgeIterAdjacent + NodeIterAdjacent + Cost<C> + NodeAttribute,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
     enum Status {
@@ -34,13 +40,13 @@ where
         Diverged,
     }
 
-    let mut states = graph.node_map();
+    let mut states = graph.fixed_node_map(Status::default());
 
     // let mut states = vec![Status::default(); graph.node_count()];
     let mut path = vec![(start, C::default())];
     let mut prev = start;
 
-    *states.get_mut(start) = Status::Visited;
+    states.update_node(start, Status::Visited);
     // states[start.raw()] = Status::Visited;
 
     while let Some((node, _)) = path.last() && path.len() < graph.node_count() {
@@ -51,7 +57,7 @@ where
         for EdgeRef { edge_id, weight }in graph.iter_adjacent_edges(*node) {
             let cost = *weight.cost();
             let to = edge_id.to();
-            if *states.get(to) == Status::Unvisited && to != prev {
+            if *states.get(to)== Status::Unvisited && to != prev {
                 if min_cost > cost {
                     min_node = Some(to);
                     min_cost = cost;
@@ -90,9 +96,9 @@ where
         }
     }
 
-    assert!(states
-        .iter()
-        .all(|(_, visit)| *visit == Status::Visited || *visit == Status::Diverged));
+    assert!(states.iter_nodes().all(
+        |NodeRef { node_id, weight }| *weight == Status::Visited || *weight == Status::Diverged
+    ));
 
     match dijkstra_between(graph, prev, start) {
         Some(weight) => path.push((start, weight)),
@@ -150,46 +156,6 @@ mod test {
     #[bench]
     fn nearest_neighbor_k_12e_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
-
-        b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
-            assert_le!(total, 36.13 * 1.2);
-        })
-    }
-
-    #[bench]
-    fn nearest_neighbor_k_10_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
-
-        b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
-            assert_le!(total, 38.41 * 1.2);
-        })
-    }
-
-    #[bench]
-    fn nearest_neighbor_k_10e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
-
-        b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
-            assert_le!(total, 27.26 * 1.2);
-        })
-    }
-
-    #[bench]
-    fn nearest_neighbor_k_12_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
-
-        b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
-            assert_le!(total, 45.19 * 1.2);
-        })
-    }
-
-    #[bench]
-    fn nearest_neighbor_k_12e_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
             let total = nearest_neighbor_from_first(&graph).unwrap().1;

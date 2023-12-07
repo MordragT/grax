@@ -5,7 +5,13 @@ use std::{
 };
 
 use grax_core::{
-    adaptor::flow::FlowBundle, edge::*, prelude::*, traits::*, view::Parents, weight::Maximum,
+    adaptor::flow::FlowBundle,
+    collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
+    edge::*,
+    graph::{AdaptEdge, Cost, EdgeAttribute, EdgeIterAdjacent, Flow, NodeAttribute},
+    prelude::*,
+    view::Parents,
+    weight::Maximum,
 };
 
 use super::{_ford_fulkerson, bfs_sp};
@@ -14,8 +20,8 @@ pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
 where
     C: Default + Copy + Neg<Output = C>,
     W1: Clone + Maximum + Default,
-    G1: Base<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, C>> + Index + Cost<C>,
-    G2: Base<EdgeWeight = FlowBundle<W1, C>>,
+    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, C>> + EdgeIter + Cost<C>,
+    G2: EdgeCollection<EdgeWeight = FlowBundle<W1, C>>,
 {
     let edge_ids = graph.edge_ids().collect::<HashSet<_>>();
 
@@ -50,28 +56,19 @@ where
     })
 }
 
-pub fn edmonds_karp<C, G>(graph: &mut G, source: NodeId<G::Id>, sink: NodeId<G::Id>) -> C
+pub fn edmonds_karp<C, G>(graph: &mut G, source: NodeId<G::Key>, sink: NodeId<G::Key>) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug,
-    G: Count
-        + IndexAdjacent
-        + IterAdjacent
-        + Get
-        + GetMut
-        + Viewable
-        + Debug
-        + Flow<C>
-        + Cost<C>
-        + Visitable,
+    G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent + Flow<C> + Cost<C>,
 {
     fn shortest_path<C, G>(
         graph: &G,
-        source: NodeId<G::Id>,
-        sink: NodeId<G::Id>,
+        source: NodeId<G::Key>,
+        sink: NodeId<G::Key>,
     ) -> Option<Parents<G>>
     where
         C: Default + Sub<C, Output = C> + PartialOrd + Copy + Debug,
-        G: IterAdjacent + IndexAdjacent + Count + Get + Viewable + Flow<C> + Cost<C> + Visitable,
+        G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent + Flow<C> + Cost<C>,
     {
         bfs_sp(graph, source, sink, |weight| {
             (*weight.capacity() - *weight.flow()) > C::default()
@@ -124,50 +121,14 @@ mod test {
             assert_eq!(total as f32, 5.0)
         })
     }
-
-    // sparse
-
-    #[bench]
-    fn edmonds_karp_g_1_2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let mut graph: SparseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
-            let total = edmonds_karp(&mut graph, id(0), id(7));
-            assert_eq!(total as f32, 0.75447)
-        })
-    }
-
-    #[bench]
-    fn edmonds_karp_fluss_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/Fluss.txt").unwrap();
-
-        b.iter(|| {
-            let mut graph: SparseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
-            let total = edmonds_karp(&mut graph, id(0), id(7));
-            assert_eq!(total as f32, 4.0)
-        })
-    }
-
-    #[bench]
-    fn edmonds_karp_fluss2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/Fluss2.txt").unwrap();
-
-        b.iter(|| {
-            let mut graph: SparseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
-            let total = edmonds_karp(&mut graph, id(0), id(7));
-            assert_eq!(total as f32, 5.0)
-        })
-    }
-
     // dense
 
     #[bench]
     fn edmonds_karp_g_1_2_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
+        let graph: MatGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let mut graph: DenseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
+            let mut graph: MatGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
             let total = edmonds_karp(&mut graph, id(0), id(7));
             assert_eq!(total as f32, 0.75447)
         })
@@ -175,10 +136,10 @@ mod test {
 
     #[bench]
     fn edmonds_karp_fluss_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _, true> = digraph("../data/Fluss.txt").unwrap();
+        let graph: MatGraph<_, _, true> = digraph("../data/Fluss.txt").unwrap();
 
         b.iter(|| {
-            let mut graph: DenseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
+            let mut graph: MatGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
             let total = edmonds_karp(&mut graph, id(0), id(7));
             assert_eq!(total as f32, 4.0)
         })
@@ -186,10 +147,10 @@ mod test {
 
     #[bench]
     fn edmonds_karp_fluss2_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _, true> = digraph("../data/Fluss2.txt").unwrap();
+        let graph: MatGraph<_, _, true> = digraph("../data/Fluss2.txt").unwrap();
 
         b.iter(|| {
-            let mut graph: DenseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
+            let mut graph: MatGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
             let total = edmonds_karp(&mut graph, id(0), id(7));
             assert_eq!(total as f32, 5.0)
         })
@@ -227,32 +188,6 @@ mod test {
             let mut graph: CsrGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
             let total = edmonds_karp(&mut graph, id(0), id(7));
             assert_eq!(total as f32, 5.0)
-        })
-    }
-
-    // sparse to dense
-
-    #[bench]
-    fn edmonds_karp_g_1_2_sparse_to_dense_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let mut graph: DenseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
-            let total = edmonds_karp(&mut graph, id(0), id(7));
-            assert_eq!(total as f32, 0.75447)
-        })
-    }
-
-    // dense to sparse
-
-    #[bench]
-    fn edmonds_karp_g_1_2_dense_to_sparse_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let mut graph: SparseGraph<_, _, true> = edmonds_karp_adaptor(graph.clone());
-            let total = edmonds_karp(&mut graph, id(0), id(7));
-            assert_eq!(total as f32, 0.75447)
         })
     }
 }

@@ -1,6 +1,6 @@
 use grax_core::edge::*;
+use grax_core::graph::{Cost, EdgeIterAdjacent, NodeAttribute};
 use grax_core::prelude::*;
-use grax_core::traits::*;
 use grax_core::view::Distances;
 use grax_core::weight::Sortable;
 
@@ -8,21 +8,25 @@ use priq::PriorityQueue;
 use std::fmt::Debug;
 use std::ops::Add;
 
-pub fn dijkstra_between<C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<C>
+pub fn dijkstra_between<C, G>(graph: &G, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: IterAdjacent + Viewable + Cost<C>,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
 {
     dijkstra(graph, from, to).and_then(|distances| distances.distance(to).cloned())
 }
 
-pub fn dijkstra<C, G>(graph: &G, from: NodeId<G::Id>, to: NodeId<G::Id>) -> Option<Distances<C, G>>
+pub fn dijkstra<C, G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+    to: NodeId<G::Key>,
+) -> Option<Distances<C, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: IterAdjacent + Viewable + Cost<C>,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
 {
     let mut priority_queue = PriorityQueue::new();
-    let mut distances = graph.distances();
+    let mut distances = Distances::new(graph);
 
     distances.update_cost(from, C::default());
     priority_queue.put(C::default(), from);
@@ -108,58 +112,6 @@ mod test {
     #[should_panic]
     fn dijkstra_wege_3_di_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
-
-        b.iter(|| {
-            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
-            // cycle
-            assert_eq!(total as f32, 2.0)
-        })
-    }
-
-    #[bench]
-    fn dijkstra_g_1_2_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
-            assert_eq!(total as f32, 5.56283)
-        })
-    }
-
-    #[bench]
-    fn dijkstra_g_1_2_undi_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let total = dijkstra_between(&graph, id(0), id(1)).unwrap();
-            assert_eq!(total as f32, 2.36802)
-        })
-    }
-
-    #[bench]
-    fn dijkstra_wege_1_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
-
-        b.iter(|| {
-            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
-            assert_eq!(total as f32, 6.0)
-        })
-    }
-
-    #[bench]
-    fn dijkstra_wege_2_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
-
-        b.iter(|| {
-            let total = dijkstra_between(&graph, id(2), id(0)).unwrap();
-            assert_eq!(total as f32, 2.0)
-        })
-    }
-
-    #[bench]
-    #[should_panic]
-    fn dijkstra_wege_3_di_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
             let total = dijkstra_between(&graph, id(2), id(0)).unwrap();

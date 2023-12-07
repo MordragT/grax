@@ -1,8 +1,13 @@
+use grax_core::collections::FixedNodeMap;
+use grax_core::collections::NodeCount;
+use grax_core::collections::NodeIter;
+use grax_core::collections::VisitNodeMap;
 use grax_core::edge::*;
+use grax_core::graph::Cost;
+use grax_core::graph::EdgeIterAdjacent;
+use grax_core::graph::NodeAttribute;
 use grax_core::prelude::*;
-use grax_core::traits::*;
-use grax_core::view::AttrMap;
-use grax_core::view::VisitMap;
+use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
 
 use priq::PriorityQueue;
@@ -11,8 +16,8 @@ use std::ops::AddAssign;
 
 pub fn prim<C, G>(graph: &G) -> C
 where
-    C: Default + Sortable + AddAssign + Copy + Debug,
-    G: Index + IterAdjacent + Cost<C> + Visitable + Count + Viewable,
+    C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + Cost<C>,
 {
     match graph.node_ids().next() {
         Some(start) => _prim(graph, start),
@@ -20,15 +25,15 @@ where
     }
 }
 
-pub(crate) fn _prim<C, G>(graph: &G, start: NodeId<G::Id>) -> C
+pub(crate) fn _prim<C, G>(graph: &G, start: NodeId<G::Key>) -> C
 where
-    C: Default + Sortable + AddAssign + Copy + Debug,
-    G: IterAdjacent + Cost<C> + Visitable + Count + Viewable,
+    C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + Cost<C>,
 {
-    let mut visit = graph.visit_map();
+    let mut visit = graph.visit_node_map();
     let mut priority_queue = PriorityQueue::with_capacity(graph.node_count());
     // einfach mit W::max init
-    let mut costs = graph.node_map();
+    let mut costs = graph.fixed_node_map(C::MAX);
     let mut total_cost = C::default();
 
     priority_queue.put(C::default(), start);
@@ -44,14 +49,9 @@ where
             let to = edge_id.to();
             if !visit.is_visited(to) {
                 let edge_cost = *weight.cost();
-
-                if let Some(cost) = &mut costs.get_mut(to) {
-                    if *cost > edge_cost {
-                        *cost = edge_cost;
-                        priority_queue.put(edge_cost, to);
-                    }
-                } else {
-                    *costs.get_mut(to) = Some(edge_cost);
+                let cost = costs.get_mut(to);
+                if *cost > edge_cost {
+                    *cost = edge_cost;
                     priority_queue.put(edge_cost, to);
                 }
             }
@@ -129,76 +129,11 @@ mod test {
         })
     }
 
-    // sparse
-
-    #[bench]
-    fn prim_graph_1_2_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 287.32286);
-        })
-    }
-
-    #[bench]
-    fn prim_graph_1_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 36.86275);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn prim_graph_1_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 12.68182);
-        })
-    }
-
-    #[bench]
-    fn prim_graph_10_20_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 2785.62417);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn prim_graph_10_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 372.14417);
-        })
-    }
-
-    #[cfg(feature = "extensive")]
-    #[bench]
-    fn prim_graph_100_200_sparse_mat(b: &mut Bencher) {
-        let graph: SparseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
-
-        b.iter(|| {
-            let count = prim(&graph) as f32;
-            assert_eq!(count, 27550.51488);
-        })
-    }
-
     // dense
 
     #[bench]
     fn prim_graph_1_2_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -208,7 +143,7 @@ mod test {
 
     #[bench]
     fn prim_graph_1_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -219,7 +154,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_1_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -229,7 +164,7 @@ mod test {
 
     #[bench]
     fn prim_graph_10_20_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -240,7 +175,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_10_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;
@@ -251,7 +186,7 @@ mod test {
     #[cfg(feature = "extensive")]
     #[bench]
     fn prim_graph_100_200_dense_mat(b: &mut Bencher) {
-        let graph: DenseGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
+        let graph: MatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
             let count = prim(&graph) as f32;

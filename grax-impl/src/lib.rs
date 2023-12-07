@@ -1,11 +1,11 @@
 #![feature(type_alias_impl_trait)]
 #![feature(test)]
 #![feature(let_chains)]
+#![feature(int_roundings)]
 
-mod edge_list;
+pub mod edges;
 pub mod error;
 mod graph;
-pub mod storage;
+pub mod nodes;
 
-pub use edge_list::EdgeList;
 pub use graph::*;

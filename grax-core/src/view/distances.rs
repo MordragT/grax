@@ -1,33 +1,35 @@
+use super::Parents;
+use crate::{
+    collections::{FixedNodeMap, GetNode, GetNodeMut},
+    graph::{Cost, NodeAttribute},
+    prelude::NodeId,
+};
 use std::fmt::Debug;
 
-use crate::{
-    prelude::NodeId,
-    traits::{Cost, Viewable},
-};
-
-use super::{AttrMap, Parents};
-
-#[derive(Debug, Clone)]
-pub struct Distances<C: Clone + Debug, G: Cost<C> + Viewable> {
-    pub distances: G::NodeMap<Option<C>>,
+#[derive(Debug)]
+pub struct Distances<C: Clone + Debug, G: Cost<C> + NodeAttribute> {
+    pub distances: G::FixedNodeMap<Option<C>>,
     pub parents: Parents<G>,
 }
 
-impl<C: Clone + Debug, G: Cost<C> + Viewable> Distances<C, G> {
-    pub(crate) fn new(distances: G::NodeMap<Option<C>>, parents: Parents<G>) -> Self {
+impl<C: Clone + Debug, G: Cost<C> + NodeAttribute> Distances<C, G> {
+    pub fn new(graph: &G) -> Self {
+        let distances = graph.fixed_node_map(None);
+        let parents = Parents::new(graph);
+
         Self { distances, parents }
     }
 
-    pub fn insert(&mut self, from: NodeId<G::Id>, to: NodeId<G::Id>, cost: C) {
+    pub fn insert(&mut self, from: NodeId<G::Key>, to: NodeId<G::Key>, cost: C) {
         self.parents.insert(from, to);
-        self.distances.insert(to, Some(cost));
+        self.distances.update_node(to, Some(cost));
     }
 
-    pub fn update_cost(&mut self, to: NodeId<G::Id>, cost: C) -> Option<C> {
-        self.distances.replace(to, Some(cost))
+    pub fn update_cost(&mut self, to: NodeId<G::Key>, cost: C) -> Option<C> {
+        self.distances.update_node(to, Some(cost)).flatten()
     }
 
-    pub fn distance(&self, node: NodeId<G::Id>) -> Option<&C> {
-        self.distances.get(node).as_ref()
+    pub fn distance(&self, node_id: NodeId<G::Key>) -> Option<&C> {
+        self.distances.get(node_id).as_ref()
     }
 }
