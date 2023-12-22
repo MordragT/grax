@@ -9,6 +9,7 @@ use grax_core::{
     graph::{EdgeIterAdjacent, EdgeIterAdjacentMut},
     index::{EdgeId, NodeId},
 };
+use rayon::slice::ParallelSliceMut;
 
 use super::EdgeStorage;
 
@@ -348,7 +349,7 @@ impl<W: Debug + Clone> FixedEdgeMap<usize, W> for CsrMatrix<W> {}
 
 impl<W: Debug + Clone> EdgeMap<usize, W> for CsrMatrix<W> {}
 
-impl<W: Debug + Clone> EdgeStorage<usize, W> for CsrMatrix<W> {
+impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
     fn new() -> Self {
         Self {
             edges: Vec::new(),
@@ -372,7 +373,7 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for CsrMatrix<W> {
             .into_iter()
             .map(|(from, to, weight)| Edge::new(EdgeId::new_unchecked(from, to), weight))
             .collect::<Vec<_>>();
-        edges.sort_unstable_by(|a, b| a.from().cmp(&b.from()).then(a.to().cmp(&b.to())));
+        edges.par_sort_unstable_by(|a, b| a.from().cmp(&b.from()).then(a.to().cmp(&b.to())));
 
         let mut row_offsets = Vec::new();
 

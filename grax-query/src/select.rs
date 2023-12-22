@@ -17,7 +17,7 @@ impl<Id: Identifier> Select<Id> {
         }
     }
 
-    pub fn edges<W>(self) -> SelectEdges<Id, W> {
+    pub fn edges<W: Send>(self) -> SelectEdges<Id, W> {
         SelectEdges {
             ids: self.ids,
             filters: Vec::new(),
@@ -40,12 +40,12 @@ impl<Id: Identifier, N> SelectNodes<Id, N> {
     }
 }
 
-pub struct SelectEdges<Id: Identifier, W> {
+pub struct SelectEdges<Id: Identifier, W: Send> {
     ids: Vec<NodeId<Id>>,
     filters: Vec<Box<dyn Fn(&EdgeRef<Id, W>) -> bool>>,
 }
 
-impl<Id: Identifier, W> SelectEdges<Id, W> {
+impl<Id: Identifier, W: Send> SelectEdges<Id, W> {
     pub fn filter<F>(mut self, f: F) -> Self
     where
         F: Fn(&EdgeRef<Id, W>) -> bool + 'static,

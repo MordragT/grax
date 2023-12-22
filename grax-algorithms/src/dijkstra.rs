@@ -1,17 +1,88 @@
+use grax_core::algorithms::ShortestPath;
+use grax_core::collections::NodeCount;
 use grax_core::edge::*;
 use grax_core::graph::{Cost, EdgeIterAdjacent, NodeAttribute};
 use grax_core::prelude::*;
 use grax_core::view::Distances;
 use grax_core::weight::Sortable;
 
-use priq::PriorityQueue;
+use orx_priority_queue::{DaryHeap, PriorityQueue};
+
 use std::fmt::Debug;
 use std::ops::Add;
+
+pub struct Dijkstra;
+
+impl<C, G> ShortestPath<C, G> for Dijkstra
+where
+    C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
+{
+    fn shortest_path(graph: &G, from: NodeId<G::Key>) -> Distances<C, G> {
+        let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
+        let mut distances = Distances::new(graph);
+
+        distances.update(from, C::default());
+        priority_queue.push(from, C::default());
+
+        while let Some((node, cost)) = priority_queue.pop() {
+            if let Some(d) = distances.distance(node) && cost > *d {
+                continue;
+            }
+
+            for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+                let to = edge_id.to();
+
+                let cost = cost + *weight.cost();
+
+                if distances.replace_min(from, to, cost) {
+                    priority_queue.push(to, cost);
+                }
+            }
+        }
+
+        distances
+    }
+
+    fn shortest_path_to(
+        graph: &G,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+    ) -> Option<Distances<C, G>> {
+        let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
+        let mut distances = Distances::new(graph);
+
+        distances.update(from, C::default());
+        priority_queue.push(from, C::default());
+
+        while let Some((node, cost)) = priority_queue.pop() {
+            if node == to {
+                return Some(distances);
+            }
+
+            if let Some(d) = distances.distance(node) && cost > *d {
+                continue;
+            }
+
+            for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+                let to = edge_id.to();
+
+                let cost = cost + *weight.cost();
+
+                if distances.replace_min(from, to, cost) {
+                    priority_queue.push(to, cost);
+                }
+            }
+        }
+
+        None
+    }
+}
 
 pub fn dijkstra_between<C, G>(graph: &G, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
 {
     dijkstra(graph, from, to).and_then(|distances| distances.distance(to).cloned())
 }
@@ -23,35 +94,30 @@ pub fn dijkstra<C, G>(
 ) -> Option<Distances<C, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
 {
-    let mut priority_queue = PriorityQueue::new();
+    let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
     let mut distances = Distances::new(graph);
 
-    distances.update_cost(from, C::default());
-    priority_queue.put(C::default(), from);
+    distances.update(from, C::default());
+    priority_queue.push(from, C::default());
 
-    while let Some((dist, node)) = priority_queue.pop() {
+    while let Some((node, cost)) = priority_queue.pop() {
         if node == to {
             return Some(distances);
         }
 
-        if let Some(d) = distances.distance(node) && dist > *d {
+        if let Some(d) = distances.distance(node) && cost > *d {
             continue;
         }
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
             let to = edge_id.to();
-            let next_dist = dist + *weight.cost();
 
-            let visited_or_geq = match distances.distance(to) {
-                Some(d) => next_dist >= *d,
-                None => false,
-            };
+            let cost = cost + *weight.cost();
 
-            if !visited_or_geq {
-                distances.insert(from, to, next_dist);
-                priority_queue.put(next_dist, to);
+            if distances.replace_min(from, to, cost) {
+                priority_queue.push(to, cost);
             }
         }
     }

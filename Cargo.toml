@@ -1,6 +1,14 @@
 [workspace]
 
-members = ["grax", "grax-algorithms", "grax-core", "grax-query", "grax-impl"]
+members = [
+    "grax",
+    "grax-algorithms",
+    "grax-core",
+    "grax-query",
+    "grax-impl",
+    "grax-collections",
+    "grax-dir",
+]
 
 # [profile.bench]
 # opt-level = 3

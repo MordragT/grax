@@ -10,6 +10,7 @@
 // #![feature(if_let_guard)]
 
 pub mod adaptor;
+pub mod algorithms;
 pub mod collections;
 pub mod edge;
 pub mod graph;

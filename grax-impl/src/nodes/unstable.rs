@@ -8,6 +8,7 @@ use grax_core::{
     index::NodeId,
     node::{Node, NodeMut, NodeRef},
 };
+use rayon::slice::ParallelSliceMut;
 
 use super::NodeStorage;
 
@@ -136,7 +137,8 @@ pub struct IndexedNodeIterMut<'a, N> {
 
 impl<'a, N> IndexedNodeIterMut<'a, N> {
     pub fn new(nodes: &'a mut [N], mut indices: Vec<NodeId<usize>>) -> Self {
-        indices.sort_unstable_by(|a, b| b.cmp(a));
+        // TODO measure if faster than sequentiell sorting
+        indices.par_sort_unstable_by(|a, b| b.cmp(a));
 
         Self {
             remaining: nodes,

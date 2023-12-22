@@ -119,7 +119,7 @@ pub(crate) fn _branch_bound_rec<C, G>(
     baseline: &mut C,
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C>,
+    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
 {
     if visited.all_visited() && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
         let total_cost = cost + cost_to_start;

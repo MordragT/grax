@@ -1,27 +1,36 @@
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-use crate::{dfs_iter_edges, kruskal, KruskalResult};
+use crate::{dfs_iter_edges, kruskal, prim};
 
-use grax_core::collections::{EdgeIter, GetEdge, NodeIter};
+use grax_core::algorithms::Mst;
+use grax_core::collections::{EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter};
 use grax_core::edge::*;
 use grax_core::graph::{Cost, EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use grax_core::view::{FilterEdgeView, ViewGraph};
-use grax_core::weight::Sortable;
+use grax_core::weight::{Maximum, Sortable};
 
 pub fn double_tree<C, G>(graph: &G) -> Option<(FilterEdgeView<G>, C)>
 where
-    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug,
-    G: NodeAttribute + EdgeAttribute + Cost<C> + NodeIter + EdgeIter + EdgeIterAdjacent + GetEdge,
+    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug + Maximum,
+    G: NodeAttribute
+        + EdgeAttribute
+        + Cost<C>
+        + NodeIter
+        + EdgeIter
+        + EdgeIterAdjacent
+        + GetEdge
+        + EdgeCollection<EdgeWeight: Send + Sync>
+        + NodeCount,
 {
-    let KruskalResult {
+    let Mst {
         root,
-        view,
-        cost: _,
-    } = kruskal(graph);
+        filter,
+        total_cost: _,
+    } = prim(graph)?;
 
     // TODO differentiate between owned graph and ref graph
-    let tree = ViewGraph::new(graph, view);
+    let tree = ViewGraph::new(graph, filter);
     let mut view = FilterEdgeView::new(graph);
 
     let mut cost = C::default();
@@ -35,7 +44,6 @@ where
 }
 
 #[cfg(test)]
-
 mod test {
     extern crate test;
     use super::double_tree;
@@ -51,6 +59,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 38.41 * 1.5);
+            assert_ge!(total, 38.41 * 0.5);
         })
     }
 
@@ -61,6 +70,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 27.26 * 2.0);
+            assert_ge!(total, 27.26 * 0.5);
         })
     }
 
@@ -71,6 +81,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 45.19 * 1.5);
+            assert_ge!(total, 45.19 * 0.5);
         })
     }
 
@@ -81,6 +92,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 36.13 * 2.0);
+            assert_ge!(total, 36.13 * 0.5);
         })
     }
 
@@ -93,6 +105,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 38.41 * 1.5);
+            assert_ge!(total, 38.41 * 0.5);
         })
     }
 
@@ -103,6 +116,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 27.26 * 2.0);
+            assert_ge!(total, 27.26 * 0.5);
         })
     }
 
@@ -113,6 +127,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 45.19 * 1.5);
+            assert_ge!(total, 45.19 * 0.5);
         })
     }
 
@@ -123,6 +138,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 36.13 * 2.0);
+            assert_ge!(total, 36.13 * 0.5);
         })
     }
 
@@ -135,6 +151,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 38.41 * 1.5);
+            assert_ge!(total, 38.41 * 0.5);
         })
     }
 
@@ -145,6 +162,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 27.26 * 2.0);
+            assert_ge!(total, 27.26 * 0.5);
         })
     }
 
@@ -155,6 +173,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 45.19 * 1.5);
+            assert_ge!(total, 45.19 * 0.5);
         })
     }
 
@@ -165,6 +184,7 @@ mod test {
         b.iter(|| {
             let total = double_tree(&graph).unwrap().1;
             assert_le!(total, 36.13 * 2.0);
+            assert_ge!(total, 36.13 * 0.5);
         })
     }
 }

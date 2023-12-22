@@ -5,9 +5,15 @@ use std::{
     ops::{Deref, Index, IndexMut},
 };
 
-pub trait Identifier: Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug {}
+pub trait Identifier:
+    Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug + Send + Sync
+{
+}
 
-impl<T: Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug> Identifier for T {}
+impl<T: Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug + Send + Sync> Identifier
+    for T
+{
+}
 
 // pub struct UncheckedNodeId<Id: Identifier> {
 //     id: Id,

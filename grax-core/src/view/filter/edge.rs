@@ -1,7 +1,7 @@
 use crate::{
     collections::{EdgeCount, EdgeIter, GetEdge, RemoveEdge, VisitEdgeMap},
     graph::{EdgeAttribute, EdgeIterAdjacent},
-    prelude::{EdgeId, EdgeRef, NodeId},
+    prelude::{Edge, EdgeId, EdgeRef, NodeId},
     view::{View, ViewAdaptor, ViewGraph},
 };
 
@@ -9,7 +9,7 @@ use crate::{
 
 // TODO do not assume that the edgemap already filtered out edge_ids etc.
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FilterEdgeView<G: EdgeAttribute> {
     edges: G::FixedEdgeMap<bool>,
 }

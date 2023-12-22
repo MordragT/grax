@@ -3,6 +3,7 @@
 #![feature(test)]
 #![feature(let_chains)]
 #![feature(array_windows)]
+#![feature(iter_array_chunks)]
 
 pub use bellman_ford::*;
 pub use bfs::*;
@@ -25,6 +26,7 @@ mod bellman_ford;
 mod bfs;
 mod branch_bound;
 mod brute_force;
+mod cdcl;
 // mod capacity_scaling;
 // mod cycle_canceling;
 mod dfs;

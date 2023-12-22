@@ -1,33 +1,56 @@
-use grax_core::collections::{EdgeIter, NodeIter};
+use grax_core::algorithms::{MinimumSpanningTree, Mst};
+use grax_core::collections::{EdgeCollection, EdgeIter, NodeIter};
 use grax_core::edge::*;
 use grax_core::graph::{Cost, EdgeAttribute, NodeAttribute};
-use grax_core::index::NodeId;
 use grax_core::view::{FilterEdgeView, UnionFind};
 use grax_core::weight::Sortable;
+use rayon::slice::ParallelSliceMut;
 
+use std::fmt::Debug;
 use std::ops::AddAssign;
 
-pub struct KruskalResult<G: EdgeAttribute, C> {
-    pub root: NodeId<G::Key>,
-    pub view: FilterEdgeView<G>,
-    pub cost: C,
+pub struct Kruskal;
+
+impl<C, G> MinimumSpanningTree<C, G> for Kruskal
+where
+    C: Sortable + Default + AddAssign + Copy + Debug,
+    G: NodeIter
+        + EdgeIter
+        + Cost<C>
+        + EdgeAttribute
+        + NodeAttribute
+        + EdgeCollection<EdgeWeight: Send + Sync>,
+{
+    fn minimum_spanning_tree(graph: &G) -> Option<Mst<C, G>> {
+        kruskal(graph)
+    }
 }
 
-pub fn kruskal<C, G>(graph: &G) -> KruskalResult<G, C>
+pub fn kruskal<C, G>(graph: &G) -> Option<Mst<C, G>>
 where
-    C: Sortable + Default + AddAssign + Copy,
-    G: NodeIter + EdgeIter + Cost<C> + EdgeAttribute + NodeAttribute,
+    C: Sortable + Default + AddAssign + Copy + Debug,
+    G: NodeIter
+        + EdgeIter
+        + Cost<C>
+        + EdgeAttribute
+        + NodeAttribute
+        + EdgeCollection<EdgeWeight: Send + Sync>,
 {
-    let mut priority_queue = graph.iter_edges().collect::<Vec<_>>();
-    priority_queue.sort_unstable_by(|this, other| this.weight.cost().sort(&other.weight.cost()));
+    let mut root = graph.node_ids().next()?;
+
+    // cloning edges seems to be faster than borrowed
+    let mut priority_queue = graph
+        .iter_edges()
+        .map(|edge| edge.to_owned())
+        .collect::<Vec<_>>();
+    priority_queue.par_sort_unstable_by(|a, b| a.weight.cost().sort(&b.weight.cost()));
 
     let mut union_find = UnionFind::new(graph);
 
-    let mut view = FilterEdgeView::new(graph);
-    let mut root = graph.node_ids().next().unwrap();
+    let mut filter = FilterEdgeView::new(graph);
     let mut total_cost = C::default();
 
-    for EdgeRef { edge_id, weight } in priority_queue {
+    for Edge { edge_id, weight } in priority_queue {
         let from = edge_id.from();
         let to = edge_id.to();
 
@@ -36,15 +59,15 @@ where
         }
 
         root = union_find.union(from, to);
-        view.keep(edge_id);
+        filter.keep(edge_id);
         total_cost += *weight.cost();
     }
 
-    KruskalResult {
+    Some(Mst {
         root,
-        view,
-        cost: total_cost,
-    }
+        filter,
+        total_cost,
+    })
 }
 
 #[cfg(test)]
@@ -60,7 +83,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -70,7 +93,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -80,7 +103,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -90,7 +113,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -100,7 +123,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -111,7 +134,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -123,7 +146,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -133,7 +156,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -143,7 +166,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -153,7 +176,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -164,7 +187,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -175,7 +198,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -187,7 +210,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -197,7 +220,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -207,7 +230,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -217,7 +240,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -227,7 +250,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -238,7 +261,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -250,7 +273,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -260,7 +283,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -270,7 +293,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -280,7 +303,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -290,7 +313,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -301,7 +324,7 @@ mod test {
         let graph: HashGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = kruskal(&graph).cost as f32;
+            let count = kruskal(&graph).unwrap().total_cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }

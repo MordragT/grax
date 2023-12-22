@@ -6,9 +6,21 @@ split tests into unit tests using mocking insde grax algorithms
 integration tests for algorithms in grax_impl
 benches of integration tests for algorithms in grax_impl
 
-improve attr trait
-- protentially bitmaps/vec for edges with fixed size: node_count * from + to would provide a fixed map for fixed size graphs
+- improve fixed size attribute maps by default vec which is essentially a stable (like vec option) vec returning the default value for non existent values
+- implement dot file format (graphviz)
+- make filter views uncoupled from VisitMaps and allow custom filter functions (use case dfs/bfs marker functions)
+- move union_find, route, parents, distances to grax-algorithms
+- implement connected graph via GraphFacade and custom NodeStorage
+- implemented way to get multiple nodes or edges from multiple indices, or way to run closures over multiple edges/nodes by index
+  - could also enable simd graph implementation where visitmap is essentially a mask of all edges and then iter_adjacent can directly filter with few instructions edges out
+- implement way to create approximate graphs (e.g. creating a new graph with 1/2 node size by keeping only nodes which have atleas threshold neighbors)
+- implemement cdcl:
+  - nodes have constraints assoicated(requirements) with them. Edges have concrete constraints they resolve associated with them
+  - 1. build initial dependency graph (implication graph)
+  - 2. traverse graph when problem occurs do cdcl magic and backtrack (add constraints based on the problem that occured to the initial graph and try again)
 
+- implement Dir Graph which uses a directory for its node and edge storage
+- make traits faillable
 ## Benchmarks
 
 - initial
@@ -87,6 +99,20 @@ test double_tree::test::double_tree_k_12e_adj_mat            ... bench:      14,
 
 ```
 
+## brute force
+
+initial
+
+```
+test brute_force::test::brute_force_k_10_adj_list            ... bench: 2,559,025,262 ns/iter (+/- 72,692,736)
+```
+
+parallel
+
+```
+test brute_force::test::brute_force_k_10_adj_list            ... bench: 1,481,942,610 ns/iter (+/- 12,224,827)
+```
+
 ## kruskal
 
 initial
@@ -114,4 +140,27 @@ test kruskal::test::kruskal_graph_1_20_adj_list              ... bench:   4,311,
 test kruskal::test::kruskal_graph_1_20_adj_mat               ... bench:   4,453,875 ns/iter (+/- 246,663)
 test kruskal::test::kruskal_graph_1_2_adj_list               ... bench:     411,561 ns/iter (+/- 2,304)
 test kruskal::test::kruskal_graph_1_2_adj_mat                ... bench:     434,446 ns/iter (+/- 8,175)
+```
+
+## prim
+
+- initial
+
+```
+test prim::test::prim_graph_100_200_adj_list                 ... bench:  38,040,007 ns/iter (+/- 1,285,612)
+test prim::test::prim_graph_100_200_csr_mat                  ... bench:  37,068,365 ns/iter (+/- 2,767,727)
+test prim::test::prim_graph_10_200_adj_list                  ... bench:   7,656,358 ns/iter (+/- 310,996)
+test prim::test::prim_graph_10_200_csr_mat                   ... bench:   7,398,929 ns/iter (+/- 100,205)
+test prim::test::prim_graph_10_20_adj_list                   ... bench:   2,231,449 ns/iter (+/- 130,493)
+test prim::test::prim_graph_10_20_csr_mat                    ... bench:   2,209,662 ns/iter (+/- 10,648)
+test prim::test::prim_graph_10_20_dense_mat                  ... bench:  50,265,241 ns/iter (+/- 4,137,262)
+test prim::test::prim_graph_1_200_adj_list                   ... bench:   2,136,748 ns/iter (+/- 161,249)
+test prim::test::prim_graph_1_20_adj_list                    ... bench:     566,977 ns/iter (+/- 44,118)
+test prim::test::prim_graph_1_20_csr_mat                     ... bench:     562,697 ns/iter (+/- 15,759)
+test prim::test::prim_graph_1_20_dense_mat                   ... bench:   1,725,670 ns/iter (+/- 110,742)
+test prim::test::prim_graph_1_2_adj_list                     ... bench:     155,358 ns/iter (+/- 6,145)
+test prim::test::prim_graph_1_2_csr_mat                      ... bench:     155,821 ns/iter (+/- 5,951)
+test prim::test::prim_graph_1_2_dense_mat                    ... bench:     662,069 ns/iter (+/- 20,949)
+
+
 ```

@@ -86,7 +86,7 @@ where
 {
     fn init(graph: &'a G, start: NodeId<G::Key>) -> Self {
         let mut distances = Distances::new(graph);
-        distances.update_cost(start, C::default());
+        distances.update(start, C::default());
 
         Self {
             distances,

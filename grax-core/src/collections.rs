@@ -42,16 +42,6 @@ pub trait EdgeCount {
     }
 }
 
-pub trait IndexNode:
-    NodeCollection + Keyed + Index<NodeId<Self::Key>, Output = Node<Self::Key, Self::NodeWeight>>
-{
-}
-
-pub trait IndexNodeMut:
-    NodeCollection + Keyed + IndexMut<NodeId<Self::Key>, Output = Node<Self::Key, Self::NodeWeight>>
-{
-}
-
 pub trait GetNode: NodeCollection + Keyed {
     fn node(&self, node_id: NodeId<Self::Key>) -> Option<NodeRef<Self::Key, Self::NodeWeight>>;
     // fn has_node_weight(&self, weight: &Self::NodeWeight) -> Option<NodeId<Self::Key>>;
