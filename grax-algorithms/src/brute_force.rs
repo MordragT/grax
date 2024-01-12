@@ -3,7 +3,6 @@ use std::ops::Add;
 
 use grax_core::collections::{GetEdge, NodeIter};
 use grax_core::edge::*;
-use grax_core::graph::Cost;
 use grax_core::view::Route;
 use grax_core::weight::{Maximum, Sortable};
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
@@ -11,7 +10,8 @@ use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 pub fn brute_force<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Maximum + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + Sortable,
-    G: NodeIter + GetEdge + Cost<C> + Send + Sync,
+    G: NodeIter + GetEdge + Send + Sync,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let start = graph.node_ids().collect::<Vec<_>>();
 

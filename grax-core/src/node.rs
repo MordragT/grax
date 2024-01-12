@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::prelude::{Identifier, NodeId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Node<Id: Identifier, Weight> {
     pub node_id: NodeId<Id>,
     pub weight: Weight,

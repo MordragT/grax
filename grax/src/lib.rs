@@ -1,7 +1,8 @@
-pub use grax_algorithms;
-pub use grax_core;
-pub use grax_impl;
-pub use grax_query;
+pub use grax_algorithms as algorithms;
+pub use grax_core as core;
+pub use grax_disk as disk;
+pub use grax_impl as implementation;
+pub use grax_query as query;
 
 pub mod prelude {
     pub use grax_core::prelude::*;

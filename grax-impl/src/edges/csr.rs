@@ -10,6 +10,7 @@ use grax_core::{
     index::{EdgeId, NodeId},
 };
 use rayon::slice::ParallelSliceMut;
+use serde::{Deserialize, Serialize};
 
 use super::EdgeStorage;
 
@@ -78,13 +79,13 @@ impl<'a, W: 'a> Iterator for CsrMatrixIterMut<'a, W> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct RowOffset {
     start: usize,
     end: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CsrMatrix<W> {
     row_offsets: Vec<RowOffset>,
     edges: Vec<Edge<usize, W>>,

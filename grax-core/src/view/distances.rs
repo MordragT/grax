@@ -1,7 +1,7 @@
 use super::Parents;
 use crate::{
     collections::{FixedNodeMap, GetNode, GetNodeMut},
-    graph::{Cost, NodeAttribute},
+    graph::NodeAttribute,
     prelude::NodeId,
     weight::Sortable,
 };

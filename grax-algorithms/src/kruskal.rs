@@ -1,7 +1,7 @@
 use grax_core::algorithms::{MinimumSpanningTree, Mst};
 use grax_core::collections::{EdgeCollection, EdgeIter, NodeIter};
 use grax_core::edge::*;
-use grax_core::graph::{Cost, EdgeAttribute, NodeAttribute};
+use grax_core::graph::{EdgeAttribute, NodeAttribute};
 use grax_core::view::{FilterEdgeView, UnionFind};
 use grax_core::weight::Sortable;
 use rayon::slice::ParallelSliceMut;
@@ -16,10 +16,10 @@ where
     C: Sortable + Default + AddAssign + Copy + Debug,
     G: NodeIter
         + EdgeIter
-        + Cost<C>
         + EdgeAttribute
         + NodeAttribute
         + EdgeCollection<EdgeWeight: Send + Sync>,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     fn minimum_spanning_tree(graph: &G) -> Option<Mst<C, G>> {
         kruskal(graph)
@@ -31,10 +31,10 @@ where
     C: Sortable + Default + AddAssign + Copy + Debug,
     G: NodeIter
         + EdgeIter
-        + Cost<C>
         + EdgeAttribute
         + NodeAttribute
         + EdgeCollection<EdgeWeight: Send + Sync>,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let mut root = graph.node_ids().next()?;
 

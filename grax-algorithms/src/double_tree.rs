@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-use crate::{dfs_iter_edges, kruskal, prim};
+use crate::{dfs_iter_edges, kruskal};
 
 use grax_core::algorithms::Mst;
 use grax_core::collections::{EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter};
 use grax_core::edge::*;
-use grax_core::graph::{Cost, EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
+use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use grax_core::view::{FilterEdgeView, ViewGraph};
 use grax_core::weight::{Maximum, Sortable};
 
@@ -15,19 +15,19 @@ where
     C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug + Maximum,
     G: NodeAttribute
         + EdgeAttribute
-        + Cost<C>
         + NodeIter
         + EdgeIter
         + EdgeIterAdjacent
         + GetEdge
         + EdgeCollection<EdgeWeight: Send + Sync>
         + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let Mst {
         root,
         filter,
         total_cost: _,
-    } = prim(graph)?;
+    } = kruskal(graph)?;
 
     // TODO differentiate between owned graph and ref graph
     let tree = ViewGraph::new(graph, filter);

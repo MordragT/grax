@@ -9,10 +9,11 @@ use grax_core::{
     node::{Node, NodeMut, NodeRef},
 };
 use rayon::slice::ParallelSliceMut;
+use serde::{Deserialize, Serialize};
 
 use super::NodeStorage;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UnstableNodeVec<V>(Vec<V>);
 
 impl<V: Debug> UnstableNodeVec<V> {

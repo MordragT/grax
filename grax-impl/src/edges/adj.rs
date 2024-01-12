@@ -9,10 +9,11 @@ use grax_core::{
     graph::{EdgeIterAdjacent, EdgeIterAdjacentMut},
     index::{EdgeId, NodeId},
 };
+use serde::{Deserialize, Serialize};
 
 use super::EdgeStorage;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct AdjacencyList<W> {
     edges: Vec<Vec<Edge<usize, W>>>,
 }

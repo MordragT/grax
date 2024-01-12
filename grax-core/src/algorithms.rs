@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
     collections::Keyed,
-    graph::{Cost, EdgeAttribute, NodeAttribute},
+    graph::{EdgeAttribute, NodeAttribute},
     prelude::NodeId,
     view::{Distances, FilterEdgeView},
 };

@@ -9,10 +9,11 @@ use grax_core::{
     graph::{EdgeIterAdjacent, EdgeIterAdjacentMut},
     index::{EdgeId, NodeId},
 };
+use serde::{Deserialize, Serialize};
 
 use super::EdgeStorage;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HashStorage<W>(HashMap<EdgeId<usize>, W>);
 
 impl<W: Debug> Keyed for HashStorage<W> {

@@ -7,8 +7,9 @@ use grax_core::{
     edge::{EdgeMut, EdgeRef},
     index::{EdgeId, NodeId},
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FixedEdgeVec<V> {
     vec: Vec<V>,
     node_count: usize,

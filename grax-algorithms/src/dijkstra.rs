@@ -1,7 +1,7 @@
 use grax_core::algorithms::ShortestPath;
 use grax_core::collections::NodeCount;
 use grax_core::edge::*;
-use grax_core::graph::{Cost, EdgeIterAdjacent, NodeAttribute};
+use grax_core::graph::{EdgeIterAdjacent, NodeAttribute};
 use grax_core::prelude::*;
 use grax_core::view::Distances;
 use grax_core::weight::Sortable;
@@ -16,7 +16,8 @@ pub struct Dijkstra;
 impl<C, G> ShortestPath<C, G> for Dijkstra
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     fn shortest_path(graph: &G, from: NodeId<G::Key>) -> Distances<C, G> {
         let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
@@ -26,7 +27,9 @@ where
         priority_queue.push(from, C::default());
 
         while let Some((node, cost)) = priority_queue.pop() {
-            if let Some(d) = distances.distance(node) && cost > *d {
+            if let Some(d) = distances.distance(node)
+                && cost > *d
+            {
                 continue;
             }
 
@@ -60,7 +63,9 @@ where
                 return Some(distances);
             }
 
-            if let Some(d) = distances.distance(node) && cost > *d {
+            if let Some(d) = distances.distance(node)
+                && cost > *d
+            {
                 continue;
             }
 
@@ -82,7 +87,8 @@ where
 pub fn dijkstra_between<C, G>(graph: &G, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<C>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     dijkstra(graph, from, to).and_then(|distances| distances.distance(to).cloned())
 }
@@ -94,7 +100,8 @@ pub fn dijkstra<C, G>(
 ) -> Option<Distances<C, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
     let mut distances = Distances::new(graph);
@@ -107,7 +114,9 @@ where
             return Some(distances);
         }
 
-        if let Some(d) = distances.distance(node) && cost > *d {
+        if let Some(d) = distances.distance(node)
+            && cost > *d
+        {
             continue;
         }
 

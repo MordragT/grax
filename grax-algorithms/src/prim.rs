@@ -5,7 +5,6 @@ use grax_core::collections::NodeCount;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
 use grax_core::edge::*;
-use grax_core::graph::Cost;
 use grax_core::graph::EdgeAttribute;
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
@@ -42,7 +41,8 @@ pub struct Prim;
 impl<C, G> MinimumSpanningTree<C, G> for Prim
 where
     C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
-    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + Cost<C> + EdgeAttribute,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + EdgeAttribute,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     fn minimum_spanning_tree(graph: &G) -> Option<Mst<C, G>> {
         prim(graph)
@@ -52,7 +52,8 @@ where
 pub fn prim<C, G>(graph: &G) -> Option<Mst<C, G>>
 where
     C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
-    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + Cost<C> + EdgeAttribute,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + NodeAttribute + EdgeAttribute,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let root = graph.node_ids().next()?;
 

@@ -1,9 +1,9 @@
 #![feature(associated_type_bounds)]
-#![feature(type_alias_impl_trait)]
 #![feature(test)]
 #![feature(let_chains)]
 #![feature(array_windows)]
 #![feature(iter_array_chunks)]
+#![feature(impl_trait_in_assoc_type)]
 
 pub use bellman_ford::*;
 pub use bfs::*;

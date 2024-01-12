@@ -6,8 +6,8 @@ members = [
     "grax-core",
     "grax-query",
     "grax-impl",
-    "grax-collections",
-    "grax-dir",
+    "grax-disk",
+    # "grax-collections",
 ]
 
 # [profile.bench]

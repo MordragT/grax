@@ -5,6 +5,8 @@ use std::{
     ops::{Deref, Index, IndexMut},
 };
 
+use serde::{Deserialize, Serialize};
+
 pub trait Identifier:
     Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug + Send + Sync
 {
@@ -41,7 +43,7 @@ impl<T: Hash + PartialEq + Eq + PartialOrd + Ord + Copy + Clone + Debug + Send +
 // not be so strict but restrict Ids by generic G graph parameter so that indices of differing graphs cannot be used interchangeable.
 // Also depending on the operation take ownership of indices or only borrow them and disallow copying or cloning of indices.
 
-#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct NodeId<Id: Identifier>(Id);
 
 impl<Id: Identifier> NodeId<Id> {
@@ -70,7 +72,7 @@ impl<Id: Identifier> Deref for NodeId<Id> {
     }
 }
 
-#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug)]
+#[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct EdgeId<Id: Identifier> {
     from: NodeId<Id>,
     to: NodeId<Id>,

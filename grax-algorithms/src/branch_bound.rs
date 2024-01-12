@@ -3,7 +3,6 @@ use grax_core::collections::NodeCount;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
 use grax_core::edge::*;
-use grax_core::graph::Cost;
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
 use grax_core::graph::NodeIterAdjacent;
@@ -18,7 +17,9 @@ use std::ops::{Add, AddAssign};
 pub fn branch_bound<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::FixedNodeMap<bool>: Clone,
 {
     match graph.node_ids().next() {
         Some(start) => Some(_branch_bound(graph, start)),
@@ -29,7 +30,8 @@ where
 pub fn branch_bound_rec<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     match graph.node_ids().next() {
         Some(start) => {
@@ -59,7 +61,9 @@ where
 pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Key>) -> (Route<G>, C)
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::FixedNodeMap<bool>: Clone,
 {
     let mut stack = Vec::new();
     let mut total_cost = nearest_neighbor(graph, start)
@@ -119,9 +123,12 @@ pub(crate) fn _branch_bound_rec<C, G>(
     baseline: &mut C,
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + Cost<C> + NodeCount,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    if visited.all_visited() && let Some(cost_to_start) = dijkstra_between(graph, node, start) {
+    if visited.all_visited()
+        && let Some(cost_to_start) = dijkstra_between(graph, node, start)
+    {
         let total_cost = cost + cost_to_start;
         if total_cost < *baseline {
             *baseline = total_cost;

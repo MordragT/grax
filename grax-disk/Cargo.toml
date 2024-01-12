@@ -1,10 +1,13 @@
 [package]
-name = "grax-dir"
+name = "grax-disk"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cap-std = "2.0.0"
 grax-core = { path = "../grax-core" }
+cap-std = "2.0.0"
+serde = "1.0.195"
+serde_json = "1.0.111"
+thiserror = "1"

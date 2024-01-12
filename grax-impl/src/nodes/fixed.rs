@@ -7,8 +7,9 @@ use grax_core::{
     index::NodeId,
     node::{NodeMut, NodeRef},
 };
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FixedNodeVec<V>(Vec<V>);
 
 impl<V: Debug> FixedNodeVec<V> {

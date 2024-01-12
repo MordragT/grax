@@ -13,7 +13,8 @@ use std::ops::{Add, Sub};
 pub fn bellman_ford_between<C, G>(graph: &G, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<C>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + Cost<C> + Flow<C> + NodeCount + NodeIter,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
     bellman_ford(graph, from).and_then(|d| d.distances.get(to).to_owned())
 }
@@ -21,7 +22,8 @@ where
 pub fn bellman_ford<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<Distances<C, G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + Cost<C> + Flow<C> + NodeCount + NodeIter,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
     let mut bf = BellmanFord::init(graph, start);
 
@@ -52,7 +54,8 @@ pub fn bellman_ford_cycle<N, W, C, G>(
 ) -> Either<Distances<C, G>, Route<G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + Cost<C> + Flow<C> + NodeCount + NodeIter,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
     let mut bf = BellmanFord::init(graph, start);
 
@@ -73,7 +76,10 @@ where
     }
 }
 
-struct BellmanFord<'a, C: Clone + Debug, G: Cost<C> + NodeAttribute> {
+struct BellmanFord<'a, C: Clone + Debug, G: EdgeCollection + NodeAttribute>
+where
+    G::EdgeWeight: EdgeCost<Cost = C>,
+{
     distances: Distances<C, G>,
     updated: bool,
     graph: &'a G,
@@ -82,7 +88,8 @@ struct BellmanFord<'a, C: Clone + Debug, G: Cost<C> + NodeAttribute> {
 impl<'a, C, G> BellmanFord<'a, C, G>
 where
     C: Default + Debug + Clone,
-    G: Cost<C> + NodeAttribute,
+    G: EdgeCollection + NodeAttribute,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     fn init(graph: &'a G, start: NodeId<G::Key>) -> Self {
         let mut distances = Distances::new(graph);
@@ -99,7 +106,8 @@ where
 impl<'a, C, G> BellmanFord<'a, C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    G: Cost<C> + Flow<C> + NodeAttribute + EdgeIterAdjacent + NodeIter,
+    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
     fn relax(&mut self) {
         for from in self.graph.node_ids() {

@@ -18,3 +18,6 @@ orx-priority-queue = "1.0.0"
 
 [dev-dependencies]
 grax-impl = { path = "../grax-impl" }
+
+[features]
+extensive = []

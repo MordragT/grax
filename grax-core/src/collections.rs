@@ -231,7 +231,6 @@ pub trait FixedNodeMap<K: Identifier, V>:
     + NodeIter
     + NodeIterMut
     + Debug
-    + Clone
 {
     fn get(&self, node_id: NodeId<K>) -> &V {
         self.node(node_id).map(|node| node.weight).unwrap()

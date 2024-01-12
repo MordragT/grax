@@ -8,7 +8,7 @@ use grax_core::{
     adaptor::flow::FlowBundle,
     collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
     edge::*,
-    graph::{AdaptEdge, Cost, EdgeAttribute, EdgeIterAdjacent, Flow, NodeAttribute},
+    graph::{AdaptEdge, EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     prelude::*,
     view::Parents,
     weight::Maximum,
@@ -20,7 +20,8 @@ pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
 where
     C: Default + Copy + Neg<Output = C>,
     W1: Clone + Maximum + Default,
-    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, C>> + EdgeIter + Cost<C>,
+    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, C>> + EdgeIter,
+    G1::EdgeWeight: EdgeCost<Cost = C>,
     G2: EdgeCollection<EdgeWeight = FlowBundle<W1, C>>,
 {
     let edge_ids = graph.edge_ids().collect::<HashSet<_>>();
@@ -59,7 +60,8 @@ where
 pub fn edmonds_karp<C, G>(graph: &mut G, source: NodeId<G::Key>, sink: NodeId<G::Key>) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug,
-    G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent + Flow<C> + Cost<C>,
+    G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
+    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
     fn shortest_path<C, G>(
         graph: &G,
@@ -68,7 +70,8 @@ where
     ) -> Option<Parents<G>>
     where
         C: Default + Sub<C, Output = C> + PartialOrd + Copy + Debug,
-        G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent + Flow<C> + Cost<C>,
+        G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
+        G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
     {
         bfs_sp(graph, source, sink, |weight| {
             (*weight.capacity() - *weight.flow()) > C::default()

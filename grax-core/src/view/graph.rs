@@ -132,13 +132,13 @@ where
     V: View,
 {
     type FixedNodeMap<T: Debug + Clone> = G::FixedNodeMap<T>;
-    type NodeMap<T: Debug + Clone> = G::NodeMap<T>;
+    type NodeMap<T: Debug> = G::NodeMap<T>;
 
     fn fixed_node_map<T: Debug + Clone>(&self, fill: T) -> Self::FixedNodeMap<T> {
         self.graph.fixed_node_map(fill)
     }
 
-    fn node_map<T: Debug + Clone>(&self) -> Self::NodeMap<T> {
+    fn node_map<T: Debug>(&self) -> Self::NodeMap<T> {
         self.graph.node_map()
     }
 }

@@ -4,7 +4,6 @@ use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeCount;
 use grax_core::collections::NodeIter;
 use grax_core::edge::*;
-use grax_core::graph::Cost;
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
 use grax_core::graph::NodeIterAdjacent;
@@ -19,7 +18,8 @@ use std::ops::{Add, AddAssign};
 pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIter + NodeCount + EdgeIterAdjacent + NodeIterAdjacent + Cost<C> + NodeAttribute,
+    G: NodeIter + NodeCount + EdgeIterAdjacent + NodeIterAdjacent + NodeAttribute,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     match graph.node_ids().next() {
         Some(start) => nearest_neighbor(graph, start),
@@ -30,7 +30,8 @@ where
 pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<(Route<G>, C)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeCount + EdgeIterAdjacent + NodeIterAdjacent + Cost<C> + NodeAttribute,
+    G: NodeCount + EdgeIterAdjacent + NodeIterAdjacent + NodeAttribute,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
     #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
     enum Status {
@@ -49,15 +50,16 @@ where
     states.update_node(start, Status::Visited);
     // states[start.raw()] = Status::Visited;
 
-    while let Some((node, _)) = path.last() && path.len() < graph.node_count() {
-
+    while let Some((node, _)) = path.last()
+        && path.len() < graph.node_count()
+    {
         let mut min_node = None;
         let mut min_cost = C::MAX;
 
-        for EdgeRef { edge_id, weight }in graph.iter_adjacent_edges(*node) {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
             let cost = *weight.cost();
             let to = edge_id.to();
-            if *states.get(to)== Status::Unvisited && to != prev {
+            if *states.get(to) == Status::Unvisited && to != prev {
                 if min_cost > cost {
                     min_node = Some(to);
                     min_cost = cost;
@@ -73,7 +75,9 @@ where
             }
             None => {
                 let open_end = path.iter().rposition(|(node, _)| {
-                    graph.adjacent_node_ids(*node).any(|neigh| *states.get(neigh) == Status::Unvisited)
+                    graph
+                        .adjacent_node_ids(*node)
+                        .any(|neigh| *states.get(neigh) == Status::Unvisited)
                 });
 
                 if let Some(index) = open_end {

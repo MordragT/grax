@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use grax_core::{collections::*, edge::*, graph::*, node::*, prelude::*};
+use serde::{Deserialize, Serialize};
 
 use crate::edges::fixed::FixedEdgeVec;
 use crate::edges::EdgeStorage;
@@ -32,7 +33,7 @@ pub type StableAdjGraph<N, W, const DI: bool = false> =
 pub type StableHashGraph<N, W, const DI: bool = false> =
     Graph<StableNodeVec<N>, HashStorage<W>, N, W, DI>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Graph<NS, ES, N: Debug, W: Debug, const DI: bool = false> {
     pub(crate) nodes: NS,
     pub(crate) edges: ES,
@@ -422,13 +423,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
     NodeAttribute for Graph<NS, ES, N, W, DI>
 {
     type FixedNodeMap<V: Debug + Clone> = FixedNodeVec<V>;
-    type NodeMap<V: Debug + Clone> = StableNodeVec<V>;
+    type NodeMap<V: Debug> = StableNodeVec<V>;
 
     fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V> {
         FixedNodeVec::new(vec![fill; self.node_count()])
     }
 
-    fn node_map<V: Debug + Clone>(&self) -> Self::NodeMap<V> {
+    fn node_map<V: Debug>(&self) -> Self::NodeMap<V> {
         StableNodeVec::with_capacity(self.node_count())
     }
 }
@@ -508,38 +509,38 @@ impl<
     }
 }
 
-impl<
-        C,
-        NS: NodeStorage<usize, N>,
-        ES: EdgeStorage<usize, W>,
-        N: Debug,
-        W: EdgeCost<Cost = C>,
-        const DI: bool,
-    > Cost<C> for Graph<NS, ES, N, W, DI>
-{
-}
+// impl<
+//         C,
+//         NS: NodeStorage<usize, N>,
+//         ES: EdgeStorage<usize, W>,
+//         N: Debug,
+//         W: EdgeCost<Cost = C>,
+//         const DI: bool,
+//     > Cost<C> for Graph<NS, ES, N, W, DI>
+// {
+// }
 
-impl<
-        F,
-        NS: NodeStorage<usize, N>,
-        ES: EdgeStorage<usize, W>,
-        N: Debug,
-        W: EdgeFlow<Flow = F>,
-        const DI: bool,
-    > Flow<F> for Graph<NS, ES, N, W, DI>
-{
-}
+// impl<
+//         F,
+//         NS: NodeStorage<usize, N>,
+//         ES: EdgeStorage<usize, W>,
+//         N: Debug,
+//         W: EdgeFlow<Flow = F>,
+//         const DI: bool,
+//     > Flow<F> for Graph<NS, ES, N, W, DI>
+// {
+// }
 
-impl<
-        B,
-        NS: NodeStorage<usize, N>,
-        ES: EdgeStorage<usize, W>,
-        N: NodeBalance<Balance = B> + Debug,
-        W: Debug,
-        const DI: bool,
-    > Balance<B> for Graph<NS, ES, N, W, DI>
-{
-}
+// impl<
+//         B,
+//         NS: NodeStorage<usize, N>,
+//         ES: EdgeStorage<usize, W>,
+//         N: NodeBalance<Balance = B> + Debug,
+//         W: Debug,
+//         const DI: bool,
+//     > Balance<B> for Graph<NS, ES, N, W, DI>
+// {
+// }
 
 impl<
         NS: NodeStorage<usize, N>,

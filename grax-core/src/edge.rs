@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use super::index::{EdgeId, Identifier, NodeId};
 use std::fmt::Debug;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Edge<Id: Identifier, Weight> {
     pub edge_id: EdgeId<Id>,
     pub weight: Weight,
