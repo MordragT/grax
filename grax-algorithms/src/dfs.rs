@@ -122,7 +122,7 @@ where
     })
 }
 
-pub fn dfs_sp<C, F, G>(
+pub fn dfs_sp<F, G>(
     graph: &G,
     source: NodeId<G::Key>,
     sink: NodeId<G::Key>,

@@ -303,6 +303,7 @@ name = "grax-disk"
 version = "0.1.0"
 dependencies = [
  "cap-std",
+ "grax-algorithms",
  "grax-core",
  "serde",
  "serde_json",

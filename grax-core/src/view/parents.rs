@@ -83,6 +83,48 @@ impl<G: NodeAttribute> Parents<G> {
             }
         })
     }
+
+    /// Panics if there is no connection between source and sink
+    pub fn iter_parents(
+        &self,
+        source: NodeId<G::Key>,
+        sink: NodeId<G::Key>,
+    ) -> impl Iterator<Item = NodeId<G::Key>> + '_
+    where
+        G::Key: 'static,
+    {
+        let mut to = sink;
+
+        std::iter::from_fn(move || {
+            while to != source {
+                let from = self.parent(to).unwrap();
+                to = from;
+                return Some(from);
+            }
+            None
+        })
+    }
+
+    /// Panics if there is no connection between source and sink
+    pub fn iter_parent_edges(
+        &self,
+        source: NodeId<G::Key>,
+        sink: NodeId<G::Key>,
+    ) -> impl Iterator<Item = EdgeId<G::Key>> + '_
+    where
+        G::Key: 'static,
+    {
+        let mut to = sink;
+
+        std::iter::from_fn(move || {
+            while to != source {
+                let from = self.parent(to).unwrap();
+                to = from;
+                return Some(EdgeId::new_unchecked(from, to));
+            }
+            None
+        })
+    }
 }
 
 #[cfg(test)]

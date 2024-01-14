@@ -5,29 +5,31 @@ use std::{
 };
 
 use cap_std::{ambient_authority, fs::Dir};
+use grax_algorithms::dfs_sp;
 use grax_core::{graph::MutGraph, index::NodeId};
 use serde::{Deserialize, Serialize};
 
 use crate::error::DiskGraphResult;
 
-pub trait NodeDestination {
+pub trait EdgeDestination {
     fn destination(&self) -> PathBuf;
 }
 
 #[derive(Debug)]
-pub struct NodeDiskGraph<G>
+pub struct EdgeDiskGraph<G>
 where
     G: MutGraph + Serialize + for<'de> Deserialize<'de>,
-    G::NodeWeight: NodeDestination,
+    G::EdgeWeight: EdgeDestination,
 {
     pub graph: G,
     dir: Dir,
 }
 
-impl<G> NodeDiskGraph<G>
+impl<G> EdgeDiskGraph<G>
 where
     G: MutGraph + Serialize + for<'de> Deserialize<'de>,
-    G::NodeWeight: NodeDestination,
+    G::EdgeWeight: EdgeDestination,
+    G::Key: 'static,
 {
     pub fn create<P: AsRef<Path>>(path: P) -> DiskGraphResult<Self> {
         fs::create_dir_all(&path)?;
@@ -49,9 +51,13 @@ where
         Ok(Self { dir, graph })
     }
 
-    pub fn read(&self, node_id: NodeId<G::Key>, buf: &mut Vec<u8>) -> std::io::Result<usize> {
-        if let Some(node) = self.graph.node(node_id) {
-            let dest = node.weight.destination();
+    pub fn read(
+        &self,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+        buf: &mut Vec<u8>,
+    ) -> std::io::Result<usize> {
+        if let Some(dest) = self.find_destination(from, to) {
             let mut file = self.dir.open(dest)?;
             file.read(buf)
         } else {
@@ -62,9 +68,13 @@ where
         }
     }
 
-    pub fn write(&self, node_id: NodeId<G::Key>, buf: &[u8]) -> std::io::Result<usize> {
-        if let Some(node) = self.graph.node(node_id) {
-            let dest = node.weight.destination();
+    pub fn write(
+        &self,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+        buf: &[u8],
+    ) -> std::io::Result<usize> {
+        if let Some(dest) = self.find_destination(from, to) {
             let parent = dest.parent().unwrap();
             self.dir.create_dir_all(parent)?;
             let mut file = self.dir.create(dest)?;
@@ -80,5 +90,20 @@ where
     pub fn commit(&self) -> std::io::Result<()> {
         let contents = serde_json::to_vec(&self.graph)?;
         self.dir.write("graph.json", &contents)
+    }
+
+    // TODO use EdgeWeight for paths associated to then compute destination paths by looking at the edges between two nodes
+    fn find_destination(&self, source: NodeId<G::Key>, sink: NodeId<G::Key>) -> Option<PathBuf> {
+        let parents = dfs_sp(&self.graph, source, sink, |_| true)?;
+        let mut path_vec = parents
+            .iter_parent_edges(source, sink)
+            .map(|edge_id| {
+                let edge = self.graph.edge(edge_id).unwrap();
+                edge.weight.destination()
+            })
+            .collect::<Vec<_>>();
+        path_vec.reverse();
+        let path = path_vec.into_iter().collect::<PathBuf>();
+        Some(path)
     }
 }
