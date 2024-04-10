@@ -1,6 +1,5 @@
 pub use grax_algorithms as algorithms;
 pub use grax_core as core;
-pub use grax_disk as disk;
 pub use grax_impl as implementation;
 pub use grax_query as query;
 

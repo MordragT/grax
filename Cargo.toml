@@ -1,13 +1,12 @@
 [workspace]
-
+resolver = "2"
 members = [
     "grax",
     "grax-algorithms",
     "grax-core",
     "grax-query",
     "grax-impl",
-    "grax-disk",
-    # "grax-collections",
+    "grax-flow",
 ]
 
 # [profile.bench]

@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 grax-core = { path = "../grax-core" }
-serde = "1.0.195"
+grax-flow = { path = "../grax-flow" }
+serde = { version = "1.0", features = ["derive"] }
 thiserror = "1"
 more-asserts = "0.3.1"
 stable-vec = "0.4.0"

@@ -1,7 +1,4 @@
-use std::{
-    fmt::Debug,
-    ops::{Index, IndexMut},
-};
+use std::fmt::Debug;
 
 use crate::{
     edge::{Edge, EdgeMut, EdgeRef},
@@ -174,6 +171,18 @@ pub trait RemoveEdge: EdgeCollection + Keyed {
         edge_id: EdgeId<Self::Key>,
     ) -> Option<Edge<Self::Key, Self::EdgeWeight>>;
 }
+
+// pub trait RetainNodes: NodeCollection + Keyed {
+//     fn retain_nodes<F>(&mut self, visit: F)
+//     where
+//         F: FnMut(NodeRef<'_, Self::Key, Self::NodeWeight>) -> bool;
+// }
+
+// pub trait RetainEdges: EdgeCollection + Keyed {
+//     fn retain_edges<F>(&mut self, visit: F)
+//     where
+//         F: FnMut(EdgeRef<'_, Self::Key, Self::EdgeWeight>) -> bool;
+// }
 
 pub trait NodeIter: NodeCollection + Keyed {
     type NodeIds<'a>: Iterator<Item = NodeId<Self::Key>> + 'a

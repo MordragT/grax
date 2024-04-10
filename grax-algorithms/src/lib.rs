@@ -5,40 +5,10 @@
 #![feature(iter_array_chunks)]
 #![feature(impl_trait_in_assoc_type)]
 
-pub use bellman_ford::*;
-pub use bfs::*;
-pub use branch_bound::*;
-pub use brute_force::*;
-// pub use capacity_scaling::*;
-// pub use cycle_canceling::*;
-pub use dfs::*;
-pub use dijkstra::*;
-pub use double_tree::*;
-pub use edmonds_karp::*;
-pub use ford_fulkerson::*;
-pub use kruskal::*;
-// pub use mcf::*;
-pub use nearest_neighbor::*;
-pub use prim::*;
-// pub use ssp::*;
+pub use algorithms::*;
 
-mod bellman_ford;
-mod bfs;
-mod branch_bound;
-mod brute_force;
-mod cdcl;
-// mod capacity_scaling;
-// mod cycle_canceling;
-mod dfs;
-mod dijkstra;
-mod double_tree;
-mod edmonds_karp;
-mod ford_fulkerson;
-mod kruskal;
-// mod mcf;
-mod nearest_neighbor;
-mod prim;
-// mod ssp;
-
+mod algorithms;
+pub mod category;
 #[cfg(test)]
 mod test;
+pub mod utility;

@@ -8,9 +8,8 @@ use grax_core::{
 pub mod adj;
 pub mod csr;
 pub mod fixed;
-pub mod mat;
-// pub mod ellpack;
 pub mod hash;
+pub mod mat;
 #[cfg(test)]
 pub mod test;
 

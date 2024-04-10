@@ -127,22 +127,12 @@ impl<'a, Id: Identifier, Weight> From<&'a mut Edge<Id, Weight>> for EdgeMut<'a, 
         }
     }
 }
+
 pub trait EdgeCost: Clone + Debug {
     type Cost;
 
     fn cost(&self) -> &Self::Cost;
     fn cost_mut(&mut self) -> &mut Self::Cost;
-}
-
-pub trait EdgeFlow: Clone + Debug {
-    type Flow;
-
-    fn capacity(&self) -> &Self::Flow;
-    fn capacity_mut(&mut self) -> &mut Self::Flow;
-    fn flow(&self) -> &Self::Flow;
-    fn flow_mut(&mut self) -> &mut Self::Flow;
-    fn is_reverse(&self) -> bool;
-    fn reverse(&mut self);
 }
 
 impl EdgeCost for f32 {

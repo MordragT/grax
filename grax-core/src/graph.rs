@@ -3,10 +3,10 @@
 use std::fmt::Debug;
 
 use crate::{
-    collections::{EdgeMap, FixedEdgeMap, FixedNodeMap, NodeMap, VisitEdgeMap, VisitNodeMap},
-    edge::{Edge, EdgeCost, EdgeFlow, EdgeMut, EdgeRef},
+    collections::{EdgeMap, FixedEdgeMap, FixedNodeMap, NodeMap},
+    edge::{Edge, EdgeMut, EdgeRef},
     index::{EdgeId, NodeId},
-    node::{Node, NodeBalance, NodeMut, NodeRef},
+    node::{Node, NodeMut, NodeRef},
 };
 
 use super::collections::{
@@ -100,24 +100,6 @@ where
         F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Vec<Edge<Self::Key, W>>;
 }
 
-// pub trait Cost<C>: EdgeCollection
-// where
-//     Self::EdgeWeight: EdgeCost<Cost = C>,
-// {
-// }
-
-// pub trait Flow<F>: EdgeCollection
-// where
-//     Self::EdgeWeight: EdgeFlow<Flow = F>,
-// {
-// }
-
-// pub trait Balance<B>: NodeCollection
-// where
-//     Self::NodeWeight: NodeBalance<Balance = B>,
-// {
-// }
-
 pub trait NodeIterAdjacent: NodeCollection + Keyed {
     type NodeIds<'a>: Iterator<Item = NodeId<Self::Key>> + 'a
     where
@@ -188,37 +170,3 @@ pub trait EdgeAttribute: Keyed {
         self.fixed_edge_map(false)
     }
 }
-
-// pub trait Attribute: Base {
-//     type NodeMap<Attr>: NodeAttrMap<Self::Key, Attr>;
-//     type EdgeMap<Attr>: EdgeAttrMap<Self::Key, Attr>;
-
-//     fn node_map<Attr>(&self) -> Self::NodeMap<Attr>;
-//     fn edge_map<Attr>(&self) -> Self::EdgeMap<Attr>;
-
-//     // TODO not necessary any more ? since insert safe
-//     // fn update_node_map<Attr: Clone + Debug + Default>(&self, map: &mut Self::NodeMap<Attr>);
-//     // fn update_edge_map<Attr: Clone + Debug + Default>(&self, map: &mut Self::EdgeMap<Attr>);
-
-//     fn parents(&self) -> Parents<Self> {
-//         Parents::new(self.node_map())
-//     }
-
-//     fn distances<C>(&self) -> Distances<C, Self>
-//     where
-//         C: Clone + Debug,
-//         Self: Cost<C>,
-//     {
-//         let distances = self.node_map();
-//         let parents = self.parents();
-
-//         Distances::new(distances, parents)
-//     }
-
-//     fn union_find(&self) -> UnionFind<Self> {
-//         let parents = self.parents();
-//         let rank = self.node_map();
-
-//         UnionFind::new(parents, rank)
-//     }
-// }

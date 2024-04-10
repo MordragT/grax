@@ -69,6 +69,7 @@ test edmonds_karp::test::edmonds_karp_g_1_2_adj_mat          ... bench:  14,706,
 
 ```
 
+
 ## double tree
 
 initial
@@ -142,6 +143,30 @@ test kruskal::test::kruskal_graph_1_2_adj_list               ... bench:     411,
 test kruskal::test::kruskal_graph_1_2_adj_mat                ... bench:     434,446 ns/iter (+/- 8,175)
 ```
 
+native cpu
+
+```
+test kruskal::test::kruskal_graph_10_200_adj_list            ... bench:  39,678,650 ns/iter (+/- 12,416,472)
+test kruskal::test::kruskal_graph_10_200_csr_mat             ... bench:  37,659,044 ns/iter (+/- 12,532,907)
+test kruskal::test::kruskal_graph_10_200_hash_graph          ... bench:  36,614,371 ns/iter (+/- 12,215,747)
+test kruskal::test::kruskal_graph_10_20_adj_list             ... bench:   4,691,095 ns/iter (+/- 1,501,017)
+test kruskal::test::kruskal_graph_10_20_csr_mat              ... bench:   4,340,062 ns/iter (+/- 1,497,099)
+test kruskal::test::kruskal_graph_10_20_dense_mat            ... bench:  64,363,510 ns/iter (+/- 32,484,880)
+test kruskal::test::kruskal_graph_10_20_hash_graph           ... bench:   4,768,071 ns/iter (+/- 1,785,233)
+test kruskal::test::kruskal_graph_1_200_adj_list             ... bench:  38,039,580 ns/iter (+/- 11,532,992)
+test kruskal::test::kruskal_graph_1_200_csr_mat              ... bench:  32,535,717 ns/iter (+/- 12,313,503)
+test kruskal::test::kruskal_graph_1_200_dense_mat            ... bench:  43,528,782 ns/iter (+/- 10,176,149)
+test kruskal::test::kruskal_graph_1_200_hash_graph           ... bench:  34,144,815 ns/iter (+/- 12,495,269)
+test kruskal::test::kruskal_graph_1_20_adj_list              ... bench:   4,500,780 ns/iter (+/- 1,427,149)
+test kruskal::test::kruskal_graph_1_20_csr_mat               ... bench:   4,379,244 ns/iter (+/- 1,442,359)
+test kruskal::test::kruskal_graph_1_20_dense_mat             ... bench:   7,416,408 ns/iter (+/- 2,123,536)
+test kruskal::test::kruskal_graph_1_20_hash_graph            ... bench:   4,005,795 ns/iter (+/- 1,409,197)
+test kruskal::test::kruskal_graph_1_2_adj_list               ... bench:     530,282 ns/iter (+/- 267,496)
+test kruskal::test::kruskal_graph_1_2_csr_mat                ... bench:     583,454 ns/iter (+/- 216,204)
+test kruskal::test::kruskal_graph_1_2_dense_mat              ... bench:   1,528,706 ns/iter (+/- 717,982)
+test kruskal::test::kruskal_graph_1_2_hash_graph             ... bench:     513,760 ns/iter (+/- 284,874)
+```
+
 ## prim
 
 - initial
@@ -161,6 +186,23 @@ test prim::test::prim_graph_1_20_dense_mat                   ... bench:   1,725,
 test prim::test::prim_graph_1_2_adj_list                     ... bench:     155,358 ns/iter (+/- 6,145)
 test prim::test::prim_graph_1_2_csr_mat                      ... bench:     155,821 ns/iter (+/- 5,951)
 test prim::test::prim_graph_1_2_dense_mat                    ... bench:     662,069 ns/iter (+/- 20,949)
+```
 
+native cpu
 
+```
+test prim::test::prim_graph_100_200_adj_list                 ... bench:  46,482,949 ns/iter (+/- 8,002,118)
+test prim::test::prim_graph_100_200_csr_mat                  ... bench:  46,119,112 ns/iter (+/- 6,297,338)
+test prim::test::prim_graph_10_200_adj_list                  ... bench:   7,805,904 ns/iter (+/- 1,107,694)
+test prim::test::prim_graph_10_200_csr_mat                   ... bench:   8,202,883 ns/iter (+/- 1,291,948)
+test prim::test::prim_graph_10_20_adj_list                   ... bench:   2,129,951 ns/iter (+/- 486,482)
+test prim::test::prim_graph_10_20_csr_mat                    ... bench:   1,992,201 ns/iter (+/- 416,739)
+test prim::test::prim_graph_10_20_dense_mat                  ... bench:  73,229,730 ns/iter (+/- 32,915,058)
+test prim::test::prim_graph_1_200_adj_list                   ... bench:   2,354,946 ns/iter (+/- 387,698)
+test prim::test::prim_graph_1_20_adj_list                    ... bench:     513,940 ns/iter (+/- 104,423)
+test prim::test::prim_graph_1_20_csr_mat                     ... bench:     473,983 ns/iter (+/- 106,137)
+test prim::test::prim_graph_1_20_dense_mat                   ... bench:   4,573,986 ns/iter (+/- 1,013,619)
+test prim::test::prim_graph_1_2_adj_list                     ... bench:     145,743 ns/iter (+/- 6,204)
+test prim::test::prim_graph_1_2_csr_mat                      ... bench:     148,416 ns/iter (+/- 917)
+test prim::test::prim_graph_1_2_dense_mat                    ... bench:   1,125,005 ns/iter (+/- 492,778)
 ```

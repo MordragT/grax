@@ -1,8 +1,8 @@
 use std::str::FromStr;
 use std::{fs, path::Path};
 
-use grax_core::adaptor::flow::{BalancedNode, FlowBundle};
 use grax_core::prelude::*;
+use grax_flow::{BalancedNode, FlowBundle};
 use grax_impl::error::{GraphError, GraphResult};
 use grax_impl::Graph;
 

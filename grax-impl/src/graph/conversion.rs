@@ -1,8 +1,6 @@
 use crate::{edges::EdgeStorage, error::GraphError, nodes::NodeStorage, Graph};
-use grax_core::{
-    adaptor::flow::{BalancedNode, FlowBundle},
-    index::NodeId,
-};
+use grax_core::index::NodeId;
+use grax_flow::{BalancedNode, FlowBundle};
 use std::{marker::PhantomData, str::FromStr};
 
 // impl<S, N, W, const DI: bool> From<Graph<S, N, W, DI>> for StableGraph<S, N, W, DI>
@@ -251,7 +249,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use grax_core::adaptor::flow::{BalancedNode, FlowBundle};
+    use grax_flow::{BalancedNode, FlowBundle};
 
     use crate::AdjGraph;
     use std::{fs, str::FromStr};
