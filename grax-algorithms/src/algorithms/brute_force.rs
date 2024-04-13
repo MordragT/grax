@@ -42,31 +42,6 @@ where
         .min_by(|a, b| a.sort(b))
         .unwrap();
 
-    // for perm in permute::permutations_of(&start) {
-    //     let mut perm = perm.map(ToOwned::to_owned).collect::<Vec<_>>();
-    //     perm.push(perm[0]);
-
-    //     let edges = perm
-    //         .array_windows::<2>()
-    //         .map(|w| graph.find_edge_id(w[0], w[1]))
-    //         .collect::<Option<Vec<_>>>();
-
-    //     if let Some(edges) = edges {
-    //         let total_weight = edges
-    //             .into_iter()
-    //             .map(|edge| *graph.edge(edge).unwrap().weight.cost())
-    //             .fold(C::default(), |mut accu, w| {
-    //                 accu += w;
-    //                 accu
-    //             });
-
-    //         if total_weight < best_weight {
-    //             best_path = perm.clone();
-    //             best_weight = total_weight;
-    //         }
-    //     }
-    // }
-
     if best_cost == C::MAX {
         None
     } else {
@@ -89,7 +64,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 38.41 * 1.5);
+            assert_le!(total, 38.41);
         })
     }
 
@@ -100,7 +75,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 27.26 * 2.0);
+            assert_le!(total, 27.26);
         })
     }
 
@@ -111,7 +86,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 45.19 * 1.5);
+            assert_le!(total, 45.19);
         })
     }
 
@@ -122,7 +97,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 36.13 * 2.0);
+            assert_le!(total, 36.13);
         })
     }
 
@@ -135,7 +110,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 38.41 * 1.5);
+            assert_le!(total, 38.41);
         })
     }
 
@@ -146,7 +121,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 27.26 * 2.0);
+            assert_le!(total, 27.26);
         })
     }
 
@@ -157,7 +132,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 45.19 * 1.5);
+            assert_le!(total, 45.19);
         })
     }
 
@@ -168,7 +143,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 36.13 * 2.0);
+            assert_le!(total, 36.13);
         })
     }
 
@@ -181,7 +156,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 38.41 * 1.5);
+            assert_le!(total, 38.41);
         })
     }
 
@@ -192,7 +167,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 27.26 * 2.0);
+            assert_le!(total, 27.26);
         })
     }
     #[cfg(feature = "extensive")]
@@ -202,7 +177,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 45.19 * 1.5);
+            assert_le!(total, 45.19);
         })
     }
     #[cfg(feature = "extensive")]
@@ -212,7 +187,7 @@ mod test {
 
         b.iter(|| {
             let total = brute_force(&graph).unwrap().1;
-            assert_le!(total, 36.13 * 2.0);
+            assert_le!(total, 36.13);
         })
     }
 }

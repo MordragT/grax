@@ -31,7 +31,7 @@ where
     let Mst {
         root,
         mut filter,
-        total_cost,
+        total_cost: _,
     } = kruskal(graph)?;
 
     filter(graph);

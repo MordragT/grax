@@ -72,6 +72,28 @@ test algorithms::dfs::test::dfs_scc_graph_ganz_gross_adj_list            ... ben
 test algorithms::dfs::test::dfs_scc_graph_gross_adj_list                 ... bench:  10,111,518 ns/iter (+/- 564,903)
 ```
 
+### Dijkstra
+
+initial
+
+```
+test algorithms::dijkstra::test::dijkstra_g_1_2_di_adj_list              ... bench:      42,867 ns/iter (+/- 5,086)
+test algorithms::dijkstra::test::dijkstra_g_1_2_undi_adj_list            ... bench:      29,277 ns/iter (+/- 2,484)
+test algorithms::dijkstra::test::dijkstra_wege_1_di_adj_list             ... bench:         122 ns/iter (+/- 22)
+test algorithms::dijkstra::test::dijkstra_wege_2_di_adj_list             ... bench:         179 ns/iter (+/- 11)
+test algorithms::dijkstra::test::dijkstra_wege_3_di_adj_list             - should panic ... bench:         187 ns/iter
+```
+
+new
+
+```
+test algorithms::dijkstra::test::dijkstra_g_1_2_di_adj_list              ... bench:      46,094 ns/iter (+/- 2,482)
+test algorithms::dijkstra::test::dijkstra_g_1_2_undi_adj_list            ... bench:      31,976 ns/iter (+/- 5,363)
+test algorithms::dijkstra::test::dijkstra_wege_1_di_adj_list             ... bench:         144 ns/iter (+/- 30)
+test algorithms::dijkstra::test::dijkstra_wege_2_di_adj_list             ... bench:         208 ns/iter (+/- 33)
+test algorithms::dijkstra::test::dijkstra_wege_3_di_adj_list             - should panic ... bench:         207 ns/iter
+```
+
 ### Edmonds Karp
 
 initial

@@ -1,6 +1,6 @@
 use crate::utility::Route;
 
-use super::dijkstra_between;
+use super::dijkstra_to;
 use grax_core::collections::FixedNodeMap;
 use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeCount;
@@ -105,7 +105,7 @@ where
         |NodeRef { node_id, weight }| *weight == Status::Visited || *weight == Status::Diverged
     ));
 
-    match dijkstra_between(graph, prev, start) {
+    match dijkstra_to(graph, prev, start).0 {
         Some(weight) => path.push((start, weight)),
         None => return None,
     }

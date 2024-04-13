@@ -13,7 +13,7 @@ pub trait ShortestPath<C: Clone + Debug, G: Keyed + NodeAttribute> {
         graph: &G,
         from: NodeId<G::Key>,
         to: NodeId<G::Key>,
-    ) -> Option<Distances<C, G>>;
+    ) -> (Option<C>, Distances<C, G>);
     fn shortest_path(graph: &G, from: NodeId<G::Key>) -> Distances<C, G>;
 }
 

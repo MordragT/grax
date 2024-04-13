@@ -1,6 +1,6 @@
 use crate::utility::Route;
 
-use super::{dijkstra_between, nearest_neighbor};
+use super::{dijkstra_to, nearest_neighbor};
 use grax_core::collections::NodeCount;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
@@ -94,9 +94,7 @@ where
                 path.push(to);
 
                 if visited.all_visited() {
-                    if let Some(cost_to_start) =
-                        dijkstra_between(graph, path[path.len() - 1], start)
-                    {
+                    if let Some(cost_to_start) = dijkstra_to(graph, path[path.len() - 1], start).0 {
                         let cost = cost + cost_to_start;
 
                         if cost < total_cost {
@@ -128,7 +126,7 @@ pub(crate) fn _branch_bound_rec<C, G>(
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
     if visited.all_visited()
-        && let Some(cost_to_start) = dijkstra_between(graph, node, start)
+        && let Some(cost_to_start) = dijkstra_to(graph, node, start).0
     {
         let total_cost = cost + cost_to_start;
         if total_cost < *baseline {
