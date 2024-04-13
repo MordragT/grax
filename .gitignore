@@ -2,3 +2,5 @@ target/
 result
 .direnv/
 .vscode/
+*/flamegraph.svg
+*/perf.data

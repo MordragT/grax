@@ -43,31 +43,30 @@ where
     Some(filter)
 }
 
-pub fn dfs_scc<G>(graph: &G) -> Vec<G::FixedEdgeMap<bool>>
+pub fn dfs_scc<G>(graph: &G) -> (u32, G::FixedNodeMap<u32>)
 where
-    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent + NodeIter,
+    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
 {
     let mut counter = 0;
     let mut markers = graph.fixed_node_map(counter);
-    let mut components = Vec::new();
 
     for from in graph.node_ids() {
         if markers.get(from) == &0 {
             counter += 1;
-            let comp = dfs_marker(graph, from, &mut markers, counter);
-            components.push(comp);
+            dfs_marker(graph, from, &mut markers, counter);
         }
     }
 
-    components
+    (counter, markers)
 }
 
-pub fn dfs<G>(graph: &G, from: NodeId<G::Key>) -> G::FixedEdgeMap<bool>
+pub fn dfs<G>(graph: &G, from: NodeId<G::Key>) -> G::FixedNodeMap<bool>
 where
-    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
+    G: NodeAttribute + EdgeIterAdjacent,
 {
     let mut markers = graph.visit_node_map();
-    dfs_marker(graph, from, &mut markers, true)
+    dfs_marker(graph, from, &mut markers, true);
+    markers
 }
 
 pub fn dfs_iter<G>(graph: &G, from: NodeId<G::Key>) -> impl Iterator<Item = NodeId<G::Key>> + '_
@@ -162,12 +161,10 @@ pub(crate) fn dfs_marker<'a, G, M>(
     from: NodeId<G::Key>,
     markers: &mut G::FixedNodeMap<M>,
     mark: M,
-) -> G::FixedEdgeMap<bool>
-where
-    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent,
+) where
+    G: NodeAttribute + EdgeIterAdjacent,
     M: Default + PartialEq + Copy + Debug,
 {
-    let mut filter = graph.visit_edge_map();
     let mut stack = Vec::new();
     stack.push(from);
     markers.update_node(from, mark);
@@ -178,12 +175,9 @@ where
             if markers.get(to) == &M::default() {
                 stack.push(to);
                 markers.update_node(to, mark);
-                filter.visit(edge_id);
             }
         }
     }
-
-    filter
 }
 
 #[cfg(test)]
@@ -199,7 +193,7 @@ mod test {
         let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 2);
         });
     }
@@ -209,7 +203,7 @@ mod test {
         let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 4);
         });
     }
@@ -219,7 +213,7 @@ mod test {
         let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 4);
         });
     }
@@ -230,7 +224,7 @@ mod test {
         let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph_gross.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 222);
         });
     }
@@ -241,7 +235,7 @@ mod test {
         let graph: AdjGraph<_, _> = weightless_undigraph("../data/Graph_ganzgross.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 9560);
         });
     }
@@ -253,7 +247,71 @@ mod test {
             weightless_undigraph("../data/Graph_ganzganzgross.txt").unwrap();
 
         b.iter(|| {
-            let counter = dfs_scc(&graph).len();
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 306);
+        });
+    }
+
+    #[bench]
+    fn dfs_scc_graph1_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = weightless_undigraph("../data/Graph1.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 2);
+        });
+    }
+
+    #[bench]
+    fn dfs_scc_graph2_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = weightless_undigraph("../data/Graph2.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[bench]
+    fn dfs_scc_graph3_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = weightless_undigraph("../data/Graph3.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 4);
+        });
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn dfs_scc_graph_gross_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = weightless_undigraph("../data/Graph_gross.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 222);
+        });
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn dfs_scc_graph_ganz_gross_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> = weightless_undigraph("../data/Graph_ganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
+            assert_eq!(counter, 9560);
+        });
+    }
+
+    #[cfg(feature = "extensive")]
+    #[bench]
+    fn dfs_scc_graph_ganz_ganz_gross_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _> =
+            weightless_undigraph("../data/Graph_ganzganzgross.txt").unwrap();
+
+        b.iter(|| {
+            let (counter, _) = dfs_scc(&graph);
             assert_eq!(counter, 306);
         });
     }

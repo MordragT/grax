@@ -1,5 +1,4 @@
-#![feature(specialization)]
-#![feature(array_windows)]
+#![feature(min_specialization)]
 #![feature(let_chains)]
 #![feature(impl_trait_in_assoc_type)]
 

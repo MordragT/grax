@@ -21,7 +21,10 @@ benches of integration tests for algorithms in grax_impl
 
 - implement Dir Graph which uses a directory for its node and edge storage
 - make traits faillable
+
 ## Benchmarks
+
+### BFS
 
 - initial
 
@@ -32,16 +35,44 @@ test tests::breadth_search_connected_components_graph3                ... bench:
 test tests::breadth_search_connected_components_graph_ganz_ganz_gross ... bench: 298,468,871 ns/iter (+/- 46,563,870)
 test tests::breadth_search_connected_components_graph_ganz_gross      ... bench:  88,745,909 ns/iter (+/- 9,736,944)
 test tests::breadth_search_connected_components_graph_gross           ... bench:  19,259,770 ns/iter (+/- 4,279,775)
+
+```
+new
+
+```
+test algorithms::bfs::test::bfs_scc_graph1_adj_list                      ... bench:         153 ns/iter (+/- 31)
+test algorithms::bfs::test::bfs_scc_graph2_adj_list                      ... bench:      20,961 ns/iter (+/- 1,508)
+test algorithms::bfs::test::bfs_scc_graph3_adj_list                      ... bench:      20,465 ns/iter (+/- 1,467)
+test algorithms::bfs::test::bfs_scc_graph_ganz_ganz_gross_adj_list       ... bench: 177,265,464 ns/iter (+/- 19,975,956)
+test algorithms::bfs::test::bfs_scc_graph_ganz_gross_adj_list            ... bench:  62,047,757 ns/iter (+/- 6,383,007)
+test algorithms::bfs::test::bfs_scc_graph_gross_adj_list                 ... bench:   9,997,379 ns/iter (+/- 1,989,188)
+```
+
+### DFS
+
+initial
+
+```
 test tests::depth_search_connected_components_graph1                  ... bench:         320 ns/iter (+/- 58)
 test tests::depth_search_connected_components_graph2                  ... bench:      29,571 ns/iter (+/- 4,112)
 test tests::depth_search_connected_components_graph3                  ... bench:      26,585 ns/iter (+/- 1,632)
 test tests::depth_search_connected_components_graph_ganz_ganz_gross   ... bench: 289,822,032 ns/iter (+/- 44,371,347)
 test tests::depth_search_connected_components_graph_ganz_gross        ... bench:  99,734,340 ns/iter (+/- 11,296,568)
 test tests::depth_search_connected_components_graph_gross             ... bench:  18,209,196 ns/iter (+/- 1,905,625)
-
 ```
 
-## Edmonds Karp
+new
+
+```
+test algorithms::dfs::test::dfs_scc_graph1_adj_list                      ... bench:         164 ns/iter (+/- 6)
+test algorithms::dfs::test::dfs_scc_graph2_adj_list                      ... bench:      18,809 ns/iter (+/- 2,880)
+test algorithms::dfs::test::dfs_scc_graph3_adj_list                      ... bench:      19,552 ns/iter (+/- 1,605)
+test algorithms::dfs::test::dfs_scc_graph_ganz_ganz_gross_adj_list       ... bench: 185,272,518 ns/iter (+/- 24,192,504)
+test algorithms::dfs::test::dfs_scc_graph_ganz_gross_adj_list            ... bench:  66,601,702 ns/iter (+/- 621,164)
+test algorithms::dfs::test::dfs_scc_graph_gross_adj_list                 ... bench:  10,111,518 ns/iter (+/- 564,903)
+```
+
+### Edmonds Karp
 
 initial
 
@@ -69,8 +100,7 @@ test edmonds_karp::test::edmonds_karp_g_1_2_adj_mat          ... bench:  14,706,
 
 ```
 
-
-## double tree
+### double tree
 
 initial
 
@@ -100,7 +130,7 @@ test double_tree::test::double_tree_k_12e_adj_mat            ... bench:      14,
 
 ```
 
-## brute force
+### brute force
 
 initial
 
@@ -114,7 +144,7 @@ parallel
 test brute_force::test::brute_force_k_10_adj_list            ... bench: 1,481,942,610 ns/iter (+/- 12,224,827)
 ```
 
-## kruskal
+### kruskal
 
 initial
 
@@ -167,7 +197,7 @@ test kruskal::test::kruskal_graph_1_2_dense_mat              ... bench:   1,528,
 test kruskal::test::kruskal_graph_1_2_hash_graph             ... bench:     513,760 ns/iter (+/- 284,874)
 ```
 
-## prim
+### prim
 
 - initial
 

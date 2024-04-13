@@ -9,6 +9,10 @@ members = [
     "grax-flow",
 ]
 
+
+[profile.release]
+debug = true
+
 # [profile.bench]
 # opt-level = 3
 # debug = true
