@@ -6,6 +6,7 @@ use grax_core::graph::*;
 use grax_core::prelude::*;
 
 use either::Either;
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
@@ -106,55 +107,46 @@ where
 
     let mut updated = false;
 
-    for _ in 0..graph.node_count() {
+    for _ in 1..graph.node_count() {
         updated = relax(graph, &mut distances, &mut parents, &filter);
         if !updated {
             break;
         }
     }
 
-    if updated {
-        let member = detect_cycle_member(graph, &distances, &filter);
+    if updated && relax(graph, &mut distances, &mut parents, &filter) {
+        let cycle = detect_cycle(graph, parents);
 
-        Either::Right(Cycle { parents, member })
+        Either::Right(cycle)
     } else {
         Either::Left(ShortestPath { distances, parents })
     }
 }
 
-fn detect_cycle_member<C, F, G>(
-    graph: &G,
-    distances: &Distances<C, G>,
-    filter: &F,
-) -> NodeId<G::Key>
+fn detect_cycle<G>(graph: &G, parents: Parents<G>) -> Cycle<G>
 where
-    C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
-    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G: NodeAttribute,
 {
-    for from in graph.node_ids() {
-        if let Some(&dist) = distances.distance(from) {
-            for edge @ EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
-                if !filter(edge) {
-                    continue;
-                }
+    let member = parents
+        .node_ids()
+        .find_map(|from| {
+            let mut visited = graph.visit_node_map();
+            visited.visit(from);
 
-                let next = dist + *weight.cost();
-                let to = edge_id.to();
-
-                if let Some(&prev) = distances.distance(to)
-                    && prev <= next
-                {
-                    continue;
+            for parent in parents.iter(from) {
+                if parent == from {
+                    return Some(from);
+                } else if visited.is_visited(parent) {
+                    return None;
                 } else {
-                    return to;
+                    visited.visit(parent);
                 }
             }
-        }
-    }
+            None
+        })
+        .unwrap();
 
-    unreachable!()
+    Cycle { parents, member }
 }
 
 fn relax<C, F, G>(

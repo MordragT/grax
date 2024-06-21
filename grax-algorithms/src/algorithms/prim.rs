@@ -35,7 +35,7 @@ where
 {
     let root = graph.node_ids().next()?;
 
-    let mut visit = graph.visit_node_map();
+    let mut visited = graph.visit_node_map();
     let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count() / 2);
     priority_queue.push(root, C::default());
 
@@ -44,15 +44,15 @@ where
     let mut total_cost = C::default();
 
     while let Some((from, cost)) = priority_queue.pop() {
-        if visit.is_visited(from) {
+        if visited.is_visited(from) {
             continue;
         }
-        visit.visit(from);
+        visited.visit(from);
         total_cost += cost;
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
             let to = edge_id.to();
-            if !visit.is_visited(to) {
+            if !visited.is_visited(to) {
                 let edge_cost = *weight.cost();
                 let cost = costs.get_mut(to);
                 if *cost > edge_cost {
