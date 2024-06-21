@@ -13,9 +13,9 @@ use grax_core::{
 };
 use grax_flow::{EdgeFlow, FlowBundle};
 
-use crate::utility::Parents;
+use crate::Bfs;
 
-use super::{_ford_fulkerson, bfs_sp};
+use super::ford_fulkerson;
 
 pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
 where
@@ -66,22 +66,7 @@ where
     G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
     G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
 {
-    fn shortest_path<C, G>(
-        graph: &G,
-        source: NodeId<G::Key>,
-        sink: NodeId<G::Key>,
-    ) -> Option<Parents<G>>
-    where
-        C: Default + Sub<C, Output = C> + PartialOrd + Copy + Debug,
-        G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
-        G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
-    {
-        bfs_sp(graph, source, sink, |weight| {
-            (*weight.capacity() - *weight.flow()) > C::default()
-        })
-    }
-
-    _ford_fulkerson(graph, source, sink, shortest_path)
+    ford_fulkerson(graph, source, sink, Bfs)
 }
 
 #[cfg(test)]

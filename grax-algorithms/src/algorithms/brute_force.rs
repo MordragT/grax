@@ -6,7 +6,7 @@ use grax_core::edge::*;
 use grax_core::weight::{Maximum, Sortable};
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
 
-use crate::utility::Route;
+use crate::util::Route;
 
 pub fn brute_force<C, G>(graph: &G) -> Option<(Route<G>, C)>
 where

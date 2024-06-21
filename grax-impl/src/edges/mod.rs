@@ -27,12 +27,7 @@ pub trait EdgeStorage<K: Identifier, W>:
         node_count: usize,
         edge_count: usize,
         edges: impl IntoIterator<Item = (NodeId<K>, NodeId<K>, W)>,
-    ) -> Self {
-        let mut storage = Self::with_capacity(node_count, edge_count);
-        storage.allocate(edge_count);
-        storage.extend_edges(edges);
-        storage
-    }
+    ) -> Self;
 
     /// Allocates space for additional elements
     fn allocate(&mut self, additional: usize);

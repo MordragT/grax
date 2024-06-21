@@ -1,27 +1,24 @@
 use std::fmt::Debug;
-use std::ops::{Add, AddAssign};
+use std::iter::Sum;
+use std::ops::AddAssign;
 
-use crate::{dfs_iter_edges, kruskal, prim};
+use crate::{dfs_where, kruskal};
 
-use crate::category::Mst;
-use grax_core::collections::{
-    EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter, RemoveEdge, RemoveNode, VisitEdgeMap,
-};
+use crate::util::{Mst, Path};
+use grax_core::collections::{EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter};
 use grax_core::edge::*;
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use grax_core::weight::{Maximum, Sortable};
 
-pub fn double_tree<C, G>(graph: &mut G) -> Option<(G::FixedEdgeMap<bool>, C)>
+pub fn double_tree<C, G>(graph: &G) -> Option<(C, Path<G>)>
 where
-    C: Default + Sortable + Copy + AddAssign + Add<C, Output = C> + Debug + Maximum,
+    C: Default + Sortable + Copy + AddAssign + Debug + Maximum + Sum<C>,
     G: NodeAttribute
         + EdgeAttribute
         + NodeIter
         + EdgeIter
         + EdgeIterAdjacent
         + GetEdge
-        + RemoveEdge
-        + RemoveNode
         + EdgeCollection<EdgeWeight: Send + Sync>
         + NodeCount,
     G::EdgeWeight: EdgeCost<Cost = C>,
@@ -30,21 +27,18 @@ where
 {
     let Mst {
         root,
-        mut filter,
+        edges,
         total_cost: _,
     } = kruskal(graph)?;
 
-    filter(graph);
+    let path = dfs_where(graph, root, |edge| edges.contains_edge_id(edge.edge_id));
+    let cost = path
+        .parents
+        .edge_ids()
+        .map(|edge_id| *graph.edge(edge_id).unwrap().weight.cost())
+        .sum();
 
-    let mut cost = C::default();
-    let mut view = graph.visit_edge_map();
-
-    for edge_id in dfs_iter_edges(graph, root) {
-        cost += *graph.edge(edge_id).unwrap().weight.cost();
-        view.visit(edge_id);
-    }
-
-    Some((view, cost))
+    Some((cost, path))
 }
 
 #[cfg(test)]
@@ -61,7 +55,7 @@ mod test {
         let mut graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 38.41 * 1.5);
@@ -74,7 +68,7 @@ mod test {
         let mut graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 27.26 * 2.0);
@@ -87,7 +81,7 @@ mod test {
         let mut graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 45.19 * 1.5);
@@ -100,7 +94,7 @@ mod test {
         let mut graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 36.13 * 2.0);
@@ -115,7 +109,7 @@ mod test {
         let mut graph: CsrGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 38.41 * 1.5);
@@ -128,7 +122,7 @@ mod test {
         let mut graph: CsrGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 27.26 * 2.0);
@@ -141,7 +135,7 @@ mod test {
         let mut graph: CsrGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 45.19 * 1.5);
@@ -154,7 +148,7 @@ mod test {
         let mut graph: CsrGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 36.13 * 2.0);
@@ -169,7 +163,7 @@ mod test {
         let mut graph: MatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 38.41 * 1.5);
@@ -182,7 +176,7 @@ mod test {
         let mut graph: MatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 27.26 * 2.0);
@@ -195,7 +189,7 @@ mod test {
         let mut graph: MatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 45.19 * 1.5);
@@ -208,7 +202,7 @@ mod test {
         let mut graph: MatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = double_tree(&mut graph).unwrap().1;
+            let total = double_tree(&mut graph).unwrap().0;
             println!("{total}");
 
             assert_le!(total, 36.13 * 2.0);

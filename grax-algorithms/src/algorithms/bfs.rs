@@ -9,7 +9,37 @@ use grax_core::prelude::*;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
-use crate::utility::Parents;
+use crate::util::Parents;
+use crate::util::Path;
+use crate::util::PathFinder;
+
+#[derive(Clone, Copy)]
+pub struct Bfs;
+
+impl<G> PathFinder<G> for Bfs
+where
+    G: NodeAttribute + EdgeIterAdjacent,
+{
+    fn path_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> Path<G>
+    where
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    {
+        bfs_where(graph, from, filter)
+    }
+
+    fn path_to_where<F>(
+        self,
+        graph: &G,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+        filter: F,
+    ) -> Option<Path<G>>
+    where
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    {
+        bfs_to_where(graph, from, to, filter)
+    }
+}
 
 pub fn bfs_scc<G>(graph: &G) -> (u32, G::FixedNodeMap<u32>)
 where
@@ -115,14 +145,39 @@ where
     })
 }
 
-pub fn bfs_sp<F, G>(
+pub fn bfs_where<F, G>(graph: &G, source: NodeId<G::Key>, filter: F) -> Path<G>
+where
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    G: NodeAttribute + EdgeIterAdjacent,
+{
+    let mut queue = VecDeque::new();
+    let mut visited = graph.visit_node_map();
+    let mut parents = Parents::new(graph);
+
+    queue.push_front(source);
+    visited.visit(source);
+
+    while let Some(from) = queue.pop_front() {
+        for edge in graph.iter_adjacent_edges(from) {
+            let to = edge.edge_id.to();
+            if !visited.is_visited(to) && filter(edge) {
+                parents.insert(from, to);
+                queue.push_back(to);
+                visited.visit(to);
+            }
+        }
+    }
+    Path { parents }
+}
+
+pub fn bfs_to_where<F, G>(
     graph: &G,
     source: NodeId<G::Key>,
     sink: NodeId<G::Key>,
-    mut cost_fn: F,
-) -> Option<Parents<G>>
+    filter: F,
+) -> Option<Path<G>>
 where
-    F: FnMut(&G::EdgeWeight) -> bool,
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeIterAdjacent,
 {
     let mut queue = VecDeque::new();
@@ -134,12 +189,12 @@ where
 
     while let Some(from) = queue.pop_front() {
         if from == sink {
-            return Some(parents);
+            return Some(Path { parents });
         }
 
-        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
-            let to = edge_id.to();
-            if !visited.is_visited(to) && cost_fn(weight) {
+        for edge in graph.iter_adjacent_edges(from) {
+            let to = edge.edge_id.to();
+            if !visited.is_visited(to) && filter(edge) {
                 parents.insert(from, to);
                 queue.push_back(to);
                 visited.visit(to);

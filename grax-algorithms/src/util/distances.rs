@@ -8,7 +8,11 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub struct Distances<C: Clone + Debug, G: NodeAttribute>(G::FixedNodeMap<Option<C>>);
 
-impl<C: Clone + Debug, G: NodeAttribute> Distances<C, G> {
+impl<C, G> Distances<C, G>
+where
+    C: Clone + Debug,
+    G: NodeAttribute,
+{
     pub fn new(graph: &G) -> Self {
         Self(graph.fixed_node_map(None))
     }

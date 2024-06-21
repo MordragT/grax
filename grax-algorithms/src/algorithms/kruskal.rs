@@ -1,8 +1,6 @@
-use crate::category::{MinimumSpanningTree, Mst};
+use crate::util::{Mst, MstBuilder};
 use crate::UnionFind;
-use grax_core::collections::{
-    EdgeCollection, EdgeIter, NodeIter, RemoveEdge, RemoveNode, VisitEdgeMap,
-};
+use grax_core::collections::{EdgeCollection, EdgeIter, NodeIter, VisitEdgeMap};
 use grax_core::edge::*;
 use grax_core::graph::{EdgeAttribute, NodeAttribute};
 use grax_core::weight::Sortable;
@@ -11,22 +9,21 @@ use rayon::slice::ParallelSliceMut;
 use std::fmt::Debug;
 use std::ops::AddAssign;
 
+#[derive(Clone, Copy)]
 pub struct Kruskal;
 
-impl<C, G> MinimumSpanningTree<C, G> for Kruskal
+impl<C, G> MstBuilder<C, G> for Kruskal
 where
     C: Sortable + Default + AddAssign + Copy + Debug,
     G: NodeIter
         + EdgeIter
         + EdgeAttribute
         + NodeAttribute
-        + EdgeCollection<EdgeWeight: Send + Sync>
-        + RemoveNode
-        + RemoveEdge,
+        + EdgeCollection<EdgeWeight: Send + Sync>,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedEdgeMap<bool>: 'static,
 {
-    fn minimum_spanning_tree(graph: &G) -> Option<Mst<C, G>> {
+    fn mst(self, graph: &G) -> Option<Mst<C, G>> {
         kruskal(graph)
     }
 }
@@ -38,9 +35,7 @@ where
         + EdgeIter
         + EdgeAttribute
         + NodeAttribute
-        + EdgeCollection<EdgeWeight: Send + Sync>
-        + RemoveNode
-        + RemoveEdge,
+        + EdgeCollection<EdgeWeight: Send + Sync>,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedEdgeMap<bool>: 'static,
 {
@@ -74,11 +69,7 @@ where
 
     Some(Mst {
         root,
-        filter: Box::new(move |graph| {
-            for edge_id in edges.iter_unvisited() {
-                graph.remove_edge(edge_id);
-            }
-        }),
+        edges,
         total_cost,
     })
 }

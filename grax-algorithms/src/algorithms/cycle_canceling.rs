@@ -1,28 +1,52 @@
+use either::Either;
 use grax_core::{
     collections::{
-        EdgeCollection, EdgeIter, GetEdge, InsertEdge, InsertNode, NodeCollection, NodeIter,
+        EdgeCollection, EdgeIter, GetEdge, GetEdgeMut, InsertEdge, InsertNode, NodeCollection,
+        NodeCount, NodeIter,
     },
-    edge::EdgeRef,
+    edge::{EdgeCost, EdgeRef},
+    graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     node::NodeRef,
+    weight::Sortable,
 };
 use grax_flow::{BalancedNode, EdgeFlow, FlowBundle, NodeBalance};
 use std::{
     fmt::Debug,
-    ops::{Neg, Sub},
+    iter::Sum,
+    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
 };
+
+use crate::{bellman_ford_cycle, edmonds_karp};
 
 pub fn cycle_canceling<G, N, W, C>(graph: &mut G) -> C
 where
     N: Default,
     W: Default + Copy + Debug,
-    C: Default + Sub<C, Output = C> + Neg<Output = C> + Copy + PartialOrd + Debug,
+    C: Default
+        + Add<C, Output = C>
+        + AddAssign<C>
+        + Sum
+        + Sub<C, Output = C>
+        + SubAssign<C>
+        + Mul<C, Output = C>
+        + Neg<Output = C>
+        + Copy
+        + PartialOrd
+        + Debug
+        + Sortable,
+
     G: EdgeCollection<EdgeWeight = FlowBundle<W, C>>
         + NodeCollection<NodeWeight = BalancedNode<N, C>>
+        + EdgeAttribute
+        + NodeAttribute
+        + EdgeIterAdjacent
         + InsertEdge
         + InsertNode
         + EdgeIter
         + NodeIter
-        + GetEdge,
+        + GetEdge
+        + GetEdgeMut
+        + NodeCount,
 {
     let mut to_insert = Vec::new();
 
@@ -61,97 +85,65 @@ where
 
     graph.extend_edges(to_insert);
 
-    todo!()
+    assert_eq!(
+        edmonds_karp(graph, source, sink),
+        graph
+            .iter_nodes()
+            .filter_map(|node| {
+                let balance = *node.weight.balance();
+                if balance > C::default() {
+                    Some(balance)
+                } else {
+                    None
+                }
+            })
+            .sum()
+    );
+
+    let node_ids = graph.node_ids().collect::<Vec<_>>();
+    let start = graph.insert_node(BalancedNode::default());
+
+    for node_id in node_ids {
+        graph.insert_edge(start, node_id, FlowBundle::default());
+    }
+
+    let filter = |EdgeRef { edge_id, weight }: EdgeRef<G::Key, G::EdgeWeight>| {
+        edge_id.contains(start) || (*weight.capacity() - *weight.flow()) > C::default()
+    };
+
+    while let Either::Right(cycle) = bellman_ford_cycle(graph, start, filter) {
+        let bottleneck = cycle
+            .iter_edges()
+            .map(|edge_id| {
+                let weight = graph.edge(edge_id).unwrap().weight;
+                *weight.capacity() - *weight.flow()
+            })
+            .min_by(|a, b| a.sort(b))
+            .unwrap();
+
+        for edge_id in cycle.iter_edges() {
+            let weight = graph.edge_mut(edge_id).unwrap().weight;
+            *weight.flow_mut() += bottleneck;
+
+            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
+            *weight_rev.flow_mut() -= bottleneck;
+        }
+    }
+
+    let cost = graph
+        .iter_edges()
+        .filter_map(|edge| {
+            let weight = edge.weight;
+            if !weight.is_reverse() {
+                Some(*weight.flow() * *weight.cost())
+            } else {
+                None
+            }
+        })
+        .sum();
+
+    cost
 }
-
-// pub fn cycle_canceling<C, G>(graph: &G) -> C
-// where
-//     C: Maximum
-//         + Default
-//         + PartialOrd
-//         + Copy
-//         + Neg<Output = C>
-//         + AddAssign
-//         + SubAssign
-//         + Add<C, Output = C>
-//         + Mul<C, Output = C>
-//         + Sub<C, Output = C>
-//         + Debug,
-//     G: Index
-//         + Get
-//         + GetMut
-//         + Insert
-//         + Remove
-//         + Count
-//         + IndexAdjacent
-//         + Index
-//         + Iter
-//         + IterAdjacent
-//         + Viewable
-//         + Visitable
-//         + Flow<C>
-//         + Cost<C>
-//         + Balance<C>
-//         + Clone
-//         + Debug,
-// {
-//     let mut mcf = Mcf::init(graph);
-//     assert!(mcf.solvable());
-//     let Mcf {
-//         mut residual_graph,
-//         source: _,
-//         sink: _,
-//     } = mcf;
-
-//     let mut total_flow = C::default();
-
-//     for start in graph.node_ids() {
-//         while let Either::Right(cycle) = bellman_ford_cycle(&residual_graph, start) {
-//             let mut bottleneck = C::MAX;
-
-//             for edge_id in cycle.edge_id_cycle() {
-//                 let weight = residual_graph.weight(edge_id).unwrap();
-//                 let residual_capacity = *weight.capacity() - *weight.flow();
-
-//                 if residual_capacity < bottleneck {
-//                     bottleneck = residual_capacity;
-//                 }
-//             }
-
-//             assert!(bottleneck >= C::default());
-//             if bottleneck == C::default() {
-//                 break;
-//             }
-
-//             total_flow += bottleneck;
-
-//             for edge_id in cycle.edge_id_cycle() {
-//                 let weight = residual_graph.weight_mut(edge_id).unwrap();
-//                 *weight.flow_mut() += bottleneck;
-//                 // *weight.capacity_mut() -= bottleneck;
-//                 assert!(weight.flow() >= &C::default());
-
-//                 let weight_rev = residual_graph.weight_mut(edge_id.rev()).unwrap();
-//                 *weight_rev.flow_mut() -= bottleneck;
-//                 // *weight_rev.capacity_mut() += bottleneck;
-//                 assert!(weight_rev.flow() >= &C::default());
-//             }
-//         }
-//     }
-
-//     let cost = residual_graph
-//         .iter_edges()
-//         .fold(C::default(), |mut akku, edge| {
-//             let weight = edge.weight;
-//             if !weight.is_reverse() {
-//                 akku += *weight.flow() * *weight.cost();
-//             }
-
-//             akku
-//         });
-
-//     cost
-// }
 
 #[cfg(test)]
 mod test {

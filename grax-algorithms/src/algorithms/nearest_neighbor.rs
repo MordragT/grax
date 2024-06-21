@@ -1,4 +1,4 @@
-use crate::utility::Route;
+use crate::util::Route;
 
 use super::dijkstra_to;
 use grax_core::collections::FixedNodeMap;
@@ -101,11 +101,12 @@ where
         }
     }
 
-    assert!(states.iter_nodes().all(
-        |NodeRef { node_id, weight }| *weight == Status::Visited || *weight == Status::Diverged
-    ));
+    assert!(states
+        .iter_nodes()
+        .all(|NodeRef { node_id: _, weight }| *weight == Status::Visited
+            || *weight == Status::Diverged));
 
-    match dijkstra_to(graph, prev, start).0 {
+    match dijkstra_to(graph, prev, start).distance {
         Some(weight) => path.push((start, weight)),
         None => return None,
     }

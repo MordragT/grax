@@ -1,5 +1,5 @@
-use crate::category::ShortestPath;
-use crate::utility::Distances;
+use crate::util::{Cycle, Distances, Parents, ShortestPathFinder};
+use crate::util::{ShortestPath, ShortestPathTo};
 use grax_core::collections::*;
 use grax_core::edge::*;
 use grax_core::graph::*;
@@ -10,110 +10,162 @@ use either::Either;
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
 
+#[derive(Clone, Copy)]
 pub struct BellmanFord;
 
-impl<C, G> ShortestPath<C, G> for BellmanFord
+impl<C, G> ShortestPathFinder<C, G> for BellmanFord
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    fn shortest_path(graph: &G, from: NodeId<G::Key>) -> Distances<C, G> {
-        bellman_ford(graph, from)
+    fn shortest_path_were<F>(
+        self,
+        graph: &G,
+        from: NodeId<<G as Keyed>::Key>,
+        filter: F,
+    ) -> ShortestPath<C, G>
+    where
+        F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    {
+        bellman_ford(graph, from, filter)
     }
 
-    fn shortest_path_to(
+    fn shortest_path_to_where<F>(
+        self,
         graph: &G,
-        from: NodeId<G::Key>,
-        to: NodeId<G::Key>,
-    ) -> (Option<C>, Distances<C, G>) {
-        bellman_ford_to(graph, from, to)
+        from: NodeId<<G as Keyed>::Key>,
+        to: NodeId<<G as Keyed>::Key>,
+        filter: F,
+    ) -> ShortestPathTo<C, G>
+    where
+        F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    {
+        bellman_ford_to(graph, from, to, filter)
     }
 }
 
-pub fn bellman_ford_to<C, G>(
+pub fn bellman_ford_to<C, F, G>(
     graph: &G,
     from: NodeId<G::Key>,
     to: NodeId<G::Key>,
-) -> (Option<C>, Distances<C, G>)
+    filter: F,
+) -> ShortestPathTo<C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    let distances = bellman_ford(graph, from);
+    let ShortestPath { distances, parents } = bellman_ford(graph, from, filter);
+    let distance = distances.distance(to).copied();
 
-    (distances.distance(to).copied(), distances)
+    ShortestPathTo {
+        distance,
+        distances,
+        parents,
+    }
 }
 
-pub fn bellman_ford<C, G>(graph: &G, start: NodeId<G::Key>) -> Distances<C, G>
+pub fn bellman_ford<C, F, G>(graph: &G, start: NodeId<G::Key>, filter: F) -> ShortestPath<C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
+    let mut parents = Parents::new(graph);
+
     let mut distances = Distances::new(graph);
     distances.update(start, C::default());
 
     for _ in 1..graph.node_count() {
-        if !relax(graph, &mut distances) {
+        if !relax(graph, &mut distances, &mut parents, &filter) {
             break;
         }
     }
 
-    distances
+    ShortestPath { distances, parents }
 }
 
-pub fn bellman_ford_cycle<C, G>(
+pub fn bellman_ford_cycle<C, F, G>(
     graph: &G,
     start: NodeId<G::Key>,
-) -> Either<Distances<C, G>, G::FixedEdgeMap<bool>>
+    filter: F,
+) -> Either<ShortestPath<C, G>, Cycle<G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
+    let mut parents = Parents::new(graph);
+
     let mut distances = Distances::new(graph);
     distances.update(start, C::default());
 
     let mut updated = false;
 
-    for _ in 1..graph.node_count() {
-        updated = relax(graph, &mut distances);
+    for _ in 0..graph.node_count() {
+        updated = relax(graph, &mut distances, &mut parents, &filter);
         if !updated {
             break;
         }
     }
 
     if updated {
-        let mut cycle = graph.visit_edge_map();
+        let member = detect_cycle_member(graph, &distances, &filter);
 
-        for from in graph.node_ids() {
-            if let Some(&dist) = distances.distance(from) {
-                for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
-                    let next = dist + *weight.cost();
-                    let to = edge_id.to();
-
-                    if let Some(&prev) = distances.distance(to)
-                        && prev < next
-                    {
-                        continue;
-                    } else {
-                        cycle.visit(edge_id);
-                    }
-                }
-            }
-        }
-
-        Either::Right(cycle)
+        Either::Right(Cycle { parents, member })
     } else {
-        Either::Left(distances)
+        Either::Left(ShortestPath { distances, parents })
     }
 }
 
-fn relax<C, G>(graph: &G, distances: &mut Distances<C, G>) -> bool
+fn detect_cycle_member<C, F, G>(
+    graph: &G,
+    distances: &Distances<C, G>,
+    filter: &F,
+) -> NodeId<G::Key>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C>,
+{
+    for from in graph.node_ids() {
+        if let Some(&dist) = distances.distance(from) {
+            for edge @ EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+                if !filter(edge) {
+                    continue;
+                }
+
+                let next = dist + *weight.cost();
+                let to = edge_id.to();
+
+                if let Some(&prev) = distances.distance(to)
+                    && prev <= next
+                {
+                    continue;
+                } else {
+                    return to;
+                }
+            }
+        }
+    }
+
+    unreachable!()
+}
+
+fn relax<C, F, G>(
+    graph: &G,
+    distances: &mut Distances<C, G>,
+    parents: &mut Parents<G>,
+    filter: &F,
+) -> bool
+where
+    C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
@@ -121,15 +173,20 @@ where
 
     for from in graph.node_ids() {
         if let Some(&dist) = distances.distance(from) {
-            for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+            for edge @ EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+                if !filter(edge) {
+                    continue;
+                }
+
                 let next = dist + *weight.cost();
                 let to = edge_id.to();
 
                 if let Some(&prev) = distances.distance(to)
-                    && prev < next
+                    && prev <= next
                 {
                     continue;
                 } else {
+                    parents.insert(from, to);
                     distances.update(to, next);
                     updated = true;
                 }
@@ -154,7 +211,9 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -164,7 +223,9 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -174,7 +235,9 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -184,7 +247,9 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -194,7 +259,7 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let result = bellman_ford_cycle(&graph, id(2));
+            let result = bellman_ford_cycle(&graph, id(2), |_| true);
             assert!(result.is_right());
         })
     }
@@ -206,7 +271,9 @@ mod test {
         let graph: CsrGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -216,7 +283,9 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -226,7 +295,9 @@ mod test {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -236,7 +307,9 @@ mod test {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
+                .distance
+                .unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -246,7 +319,7 @@ mod test {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let result = bellman_ford_cycle(&graph, id(2));
+            let result = bellman_ford_cycle(&graph, id(2), |_| true);
             assert!(result.is_right())
         })
     }

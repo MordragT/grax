@@ -1,46 +1,43 @@
 use grax_core::collections::FixedNodeMap;
 use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeIter;
-use grax_core::collections::VisitEdgeMap;
 use grax_core::collections::VisitNodeMap;
-use grax_core::graph::EdgeAttribute;
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
 use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
 use std::fmt::Debug;
 
-use crate::utility::Parents;
+use crate::util::Parents;
+use crate::util::Path;
+use crate::util::PathFinder;
 
-pub fn dfs_cycle<'a, G>(graph: &'a G, from: NodeId<G::Key>) -> Option<G::FixedEdgeMap<bool>>
+#[derive(Clone, Copy)]
+pub struct Dfs;
+
+impl<G> PathFinder<G> for Dfs
 where
-    G: EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
+    G: NodeAttribute + EdgeIterAdjacent,
 {
-    let mut filter = graph.visit_edge_map();
-    let mut stack = Vec::new();
-    let mut visited = graph.visit_node_map();
-    let mut path = Vec::new();
-    stack.push(from);
-    visited.visit(from);
-
-    while let Some(from) = stack.pop() {
-        for edge_id in graph.adjacent_edge_ids(from) {
-            let to = edge_id.to();
-
-            if !visited.is_visited(to) {
-                stack.push(to);
-                path.push(to);
-                visited.visit(to);
-                filter.visit(edge_id);
-            } else if path.contains(&to) {
-                return None;
-            }
-        }
-
-        path.pop();
+    fn path_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> Path<G>
+    where
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    {
+        dfs_where(graph, from, filter)
     }
 
-    Some(filter)
+    fn path_to_where<F>(
+        self,
+        graph: &G,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+        filter: F,
+    ) -> Option<Path<G>>
+    where
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    {
+        dfs_to_where(graph, from, to, filter)
+    }
 }
 
 pub fn dfs_scc<G>(graph: &G) -> (u32, G::FixedNodeMap<u32>)
@@ -122,14 +119,39 @@ where
     })
 }
 
-pub fn dfs_sp<F, G>(
+pub fn dfs_where<F, G>(graph: &G, source: NodeId<G::Key>, filter: F) -> Path<G>
+where
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
+    G: NodeAttribute + EdgeIterAdjacent,
+{
+    let mut stack = Vec::new();
+    let mut visited = graph.visit_node_map();
+    let mut parents = Parents::new(graph);
+
+    stack.push(source);
+    visited.visit(source);
+
+    while let Some(from) = stack.pop() {
+        for edge in graph.iter_adjacent_edges(from) {
+            let to = edge.edge_id.to();
+            if !visited.is_visited(to) && filter(edge) {
+                parents.insert(from, to);
+                stack.push(to);
+                visited.visit(to);
+            }
+        }
+    }
+    Path { parents }
+}
+
+pub fn dfs_to_where<F, G>(
     graph: &G,
     source: NodeId<G::Key>,
     sink: NodeId<G::Key>,
-    mut cost_fn: F,
-) -> Option<Parents<G>>
+    filter: F,
+) -> Option<Path<G>>
 where
-    F: FnMut(&G::EdgeWeight) -> bool,
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeIterAdjacent,
 {
     let mut stack = Vec::new();
@@ -141,12 +163,12 @@ where
 
     while let Some(from) = stack.pop() {
         if from == sink {
-            return Some(parents);
+            return Some(Path { parents });
         }
 
-        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
-            let to = edge_id.to();
-            if !visited.is_visited(to) && cost_fn(weight) {
+        for edge in graph.iter_adjacent_edges(from) {
+            let to = edge.edge_id.to();
+            if !visited.is_visited(to) && filter(edge) {
                 parents.insert(from, to);
                 stack.push(to);
                 visited.visit(to);
@@ -155,7 +177,6 @@ where
     }
     None
 }
-
 pub(crate) fn dfs_marker<'a, G, M>(
     graph: &'a G,
     from: NodeId<G::Key>,

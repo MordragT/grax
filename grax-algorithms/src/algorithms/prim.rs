@@ -1,15 +1,8 @@
-use crate::category::{MinimumSpanningTree, Mst};
-use grax_core::collections::FixedNodeMap;
-use grax_core::collections::NodeCount;
-use grax_core::collections::NodeIter;
-use grax_core::collections::RemoveEdge;
-use grax_core::collections::RemoveNode;
-use grax_core::collections::VisitNodeMap;
+use crate::util::{Mst, MstBuilder};
+use grax_core::collections::{FixedNodeMap, VisitNodeMap};
+use grax_core::collections::{NodeCount, NodeIter};
 use grax_core::edge::*;
-use grax_core::graph::EdgeAttribute;
-use grax_core::graph::EdgeIterAdjacent;
-use grax_core::graph::NodeAttribute;
-use grax_core::node::NodeRef;
+use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
 use orx_priority_queue::DaryHeap;
@@ -18,22 +11,17 @@ use orx_priority_queue::PriorityQueue;
 use std::fmt::Debug;
 use std::ops::AddAssign;
 
+#[derive(Clone, Copy)]
 pub struct Prim;
 
-impl<C, G> MinimumSpanningTree<C, G> for Prim
+impl<C, G> MstBuilder<C, G> for Prim
 where
     C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
-    G: NodeCount
-        + NodeIter
-        + EdgeIterAdjacent
-        + NodeAttribute
-        + EdgeAttribute
-        + RemoveEdge
-        + RemoveNode,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + EdgeAttribute + NodeAttribute,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedNodeMap<bool>: 'static,
 {
-    fn minimum_spanning_tree(graph: &G) -> Option<Mst<C, G>> {
+    fn mst(self, graph: &G) -> Option<Mst<C, G>> {
         prim(graph)
     }
 }
@@ -41,13 +29,7 @@ where
 pub fn prim<C, G>(graph: &G) -> Option<Mst<C, G>>
 where
     C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
-    G: NodeCount
-        + NodeIter
-        + EdgeIterAdjacent
-        + NodeAttribute
-        + EdgeAttribute
-        + RemoveEdge
-        + RemoveNode,
+    G: NodeCount + NodeIter + EdgeIterAdjacent + EdgeAttribute + NodeAttribute,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedNodeMap<bool>: 'static,
 {
@@ -83,11 +65,7 @@ where
 
     Some(Mst {
         root,
-        filter: Box::new(move |graph| {
-            for node_id in visit.iter_unvisited() {
-                graph.remove_node(node_id);
-            }
-        }),
+        edges: graph.visit_edge_map(),
         total_cost,
     })
 }

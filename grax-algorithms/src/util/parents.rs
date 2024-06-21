@@ -29,6 +29,15 @@ impl<G: NodeAttribute> Parents<G> {
         self.0.node(child).and_then(|parent| *parent.weight)
     }
 
+    pub fn has_parent(&self, child: NodeId<G::Key>) -> bool {
+        self.parent(child).is_some()
+    }
+
+    pub fn contains_edge_id(&self, edge_id: EdgeId<G::Key>) -> bool {
+        self.parent(edge_id.to())
+            .is_some_and(|parent| parent == edge_id.from())
+    }
+
     pub fn edge_ids(&self) -> impl Iterator<Item = EdgeId<G::Key>> + '_ {
         self.0.iter_nodes().filter_map(|node| {
             if let Some(parent) = node.weight {
@@ -40,45 +49,67 @@ impl<G: NodeAttribute> Parents<G> {
         })
     }
 
-    /// Panics if there is no connection between source and sink
-    pub fn iter_parents(
-        &self,
-        source: NodeId<G::Key>,
-        sink: NodeId<G::Key>,
-    ) -> impl Iterator<Item = NodeId<G::Key>> + '_
-    where
-        G::Key: 'static,
-    {
-        let mut to = sink;
-
+    pub fn iter(&self, mut from: NodeId<G::Key>) -> impl Iterator<Item = NodeId<G::Key>> + '_ {
         std::iter::from_fn(move || {
-            while to != source {
-                let from = self.parent(to).unwrap();
-                to = from;
-                return Some(from);
+            if let Some(parent) = self.parent(from) {
+                from = parent;
+                Some(parent)
+            } else {
+                None
             }
-            None
+        })
+    }
+
+    pub fn iter_edges(
+        &self,
+        mut from: NodeId<G::Key>,
+    ) -> impl Iterator<Item = EdgeId<G::Key>> + '_ {
+        std::iter::from_fn(move || {
+            if let Some(parent) = self.parent(from) {
+                let edge_id = EdgeId::new_unchecked(parent, from);
+                from = parent;
+                Some(edge_id)
+            } else {
+                None
+            }
         })
     }
 
     /// Panics if there is no connection between source and sink
-    pub fn iter_parent_edges(
+    pub fn iter_to(
         &self,
         source: NodeId<G::Key>,
         sink: NodeId<G::Key>,
-    ) -> impl Iterator<Item = EdgeId<G::Key>> + '_
-    where
-        G::Key: 'static,
-    {
+    ) -> impl Iterator<Item = NodeId<G::Key>> + '_ {
         let mut to = sink;
 
         std::iter::from_fn(move || {
-            while to != source {
-                let from = self.parent(to).unwrap();
-                to = from;
-                return Some(EdgeId::new_unchecked(from, to));
+            if to != source {
+                to = self.parent(to).unwrap();
+                Some(to)
+            } else {
+                None
             }
-            None
+        })
+    }
+
+    /// Panics if there is no connection between source and sink
+    pub fn iter_edges_to(
+        &self,
+        source: NodeId<G::Key>,
+        sink: NodeId<G::Key>,
+    ) -> impl Iterator<Item = EdgeId<G::Key>> + '_ {
+        let mut to = sink;
+
+        std::iter::from_fn(move || {
+            if to != source {
+                let from = self.parent(to).unwrap();
+                let edge_id = EdgeId::new_unchecked(from, to);
+                to = from;
+                Some(edge_id)
+            } else {
+                None
+            }
         })
     }
 }

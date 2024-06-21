@@ -16,6 +16,7 @@ num-traits = "0.2.15"
 rayon = "1.8.0"
 # dary_heap = "0.3.6"
 orx-priority-queue = "1.0.0"
+itertools = "0.13.0"
 
 [dev-dependencies]
 grax-impl = { path = "../grax-impl" }

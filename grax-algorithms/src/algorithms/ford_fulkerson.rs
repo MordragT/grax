@@ -1,5 +1,6 @@
 use grax_core::collections::GetEdgeMut;
 use grax_core::prelude::*;
+use grax_core::weight::Sortable;
 use grax_core::{collections::GetEdge, graph::NodeAttribute};
 use grax_flow::EdgeFlow;
 
@@ -8,76 +9,48 @@ use std::{
     ops::{AddAssign, Sub, SubAssign},
 };
 
-use crate::utility::Parents;
+use crate::util::{Path, PathFinder};
 
-pub(crate) fn _ford_fulkerson<C, G, F>(
+pub fn ford_fulkerson<C, G>(
     graph: &mut G,
     source: NodeId<G::Key>,
     sink: NodeId<G::Key>,
-    mut sp: F,
+    path_finder: impl PathFinder<G>,
 ) -> C
 where
-    F: FnMut(&G, NodeId<G::Key>, NodeId<G::Key>) -> Option<Parents<G>>,
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + Sortable,
     G: GetEdge + GetEdgeMut + Debug + NodeAttribute,
     G::EdgeWeight: EdgeFlow<Flow = C>,
 {
     let mut total_flow = C::default();
 
-    // loop while bfs finds a path
-    while let Some(parents) = sp(graph, source, sink) {
+    let filter = |EdgeRef { edge_id: _, weight }: EdgeRef<G::Key, G::EdgeWeight>| {
+        (*weight.capacity() - *weight.flow()) > C::default()
+    };
+
+    // loop while path_finder finds a path
+    while let Some(Path { parents }) = path_finder.path_to_where(graph, source, sink, filter) {
         if parents.is_empty() {
             break;
         }
 
-        let mut to = sink;
-        let mut bottleneck = None;
+        let bottleneck = parents
+            .iter_edges_to(source, sink)
+            .map(|edge_id| {
+                let weight = graph.edge(edge_id).unwrap().weight;
+                *weight.capacity() - *weight.flow()
+            })
+            .min_by(|a, b| a.sort(b))
+            .unwrap();
 
-        // TODO compute route in parents instead of going over parents manually.
-
-        // compute the bottleneck
-        while to != source {
-            let from = parents.parent(to).unwrap();
-            let edge_id = EdgeId::new_unchecked(from, to);
-
-            let weight = graph.edge(edge_id).unwrap().weight;
-            let residual_capacity = *weight.capacity() - *weight.flow();
-
-            bottleneck = match bottleneck {
-                Some(b) => {
-                    if b > residual_capacity {
-                        Some(residual_capacity)
-                    } else {
-                        Some(b)
-                    }
-                }
-                None => Some(residual_capacity),
-            };
-
-            to = from;
-        }
-
-        let bottleneck = bottleneck.unwrap();
         total_flow += bottleneck;
-        to = sink;
 
-        // assign the bottleneck to every edge in the path
-        while to != source {
-            let from = parents.parent(to).unwrap();
-
-            let weight = graph
-                .edge_mut(EdgeId::new_unchecked(from, to))
-                .unwrap()
-                .weight;
+        for edge_id in parents.iter_edges_to(source, sink) {
+            let weight = graph.edge_mut(edge_id).unwrap().weight;
             *weight.flow_mut() += bottleneck;
 
-            let weight_rev = graph
-                .edge_mut(EdgeId::new_unchecked(to, from))
-                .unwrap()
-                .weight;
+            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
             *weight_rev.flow_mut() -= bottleneck;
-
-            to = from;
         }
     }
 

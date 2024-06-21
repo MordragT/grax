@@ -122,6 +122,20 @@ test edmonds_karp::test::edmonds_karp_g_1_2_adj_mat          ... bench:  14,706,
 
 ```
 
+new2
+
+```
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_adj_list        ... bench:       4,732 ns/iter (+/- 349)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_csr_mat         ... bench:       3,914 ns/iter (+/- 84)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_dense_mat       ... bench:       8,357 ns/iter (+/- 21)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_adj_list         ... bench:       2,120 ns/iter (+/- 18)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_csr_mat          ... bench:       1,981 ns/iter (+/- 16)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_dense_mat        ... bench:       2,806 ns/iter (+/- 40)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_adj_list         ... bench:     744,162 ns/iter (+/- 50,439)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_csr_mat          ... bench:   4,371,949 ns/iter (+/- 210,311)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_dense_mat        ... bench:  25,006,617 ns/iter (+/- 1,277,626)
+```
+
 ### double tree
 
 initial
@@ -148,8 +162,23 @@ test double_tree::test::double_tree_k_12_adj_list            ... bench:      12,
 test double_tree::test::double_tree_k_12_adj_mat             ... bench:      14,803 ns/iter (+/- 1,477)
 test double_tree::test::double_tree_k_12e_adj_list           ... bench:      12,224 ns/iter (+/- 305)
 test double_tree::test::double_tree_k_12e_adj_mat            ... bench:      14,998 ns/iter (+/- 199)
+```
 
+new2
 
+```
+test algorithms::double_tree::test::double_tree_k_10_adj_list            ... bench:       5,846 ns/iter (+/- 190)
+test algorithms::double_tree::test::double_tree_k_10_csr_graph           ... bench:       5,605 ns/iter (+/- 163)
+test algorithms::double_tree::test::double_tree_k_10_dense_mat           ... bench:       5,824 ns/iter (+/- 395)
+test algorithms::double_tree::test::double_tree_k_10e_adj_list           ... bench:       5,914 ns/iter (+/- 153)
+test algorithms::double_tree::test::double_tree_k_10e_csr_graph          ... bench:       5,648 ns/iter (+/- 106)
+test algorithms::double_tree::test::double_tree_k_10e_dense_mat          ... bench:       6,026 ns/iter (+/- 216)
+test algorithms::double_tree::test::double_tree_k_12_adj_list            ... bench:       8,690 ns/iter (+/- 237)
+test algorithms::double_tree::test::double_tree_k_12_csr_graph           ... bench:       8,328 ns/iter (+/- 1,619)
+test algorithms::double_tree::test::double_tree_k_12_dense_mat           ... bench:       8,703 ns/iter (+/- 1,525)
+test algorithms::double_tree::test::double_tree_k_12e_adj_list           ... bench:       8,643 ns/iter (+/- 297)
+test algorithms::double_tree::test::double_tree_k_12e_csr_graph          ... bench:       8,142 ns/iter (+/- 383)
+test algorithms::double_tree::test::double_tree_k_12e_dense_mat          ... bench:       8,506 ns/iter (+/- 355)
 ```
 
 ### brute force
@@ -257,4 +286,23 @@ test prim::test::prim_graph_1_20_dense_mat                   ... bench:   4,573,
 test prim::test::prim_graph_1_2_adj_list                     ... bench:     145,743 ns/iter (+/- 6,204)
 test prim::test::prim_graph_1_2_csr_mat                      ... bench:     148,416 ns/iter (+/- 917)
 test prim::test::prim_graph_1_2_dense_mat                    ... bench:   1,125,005 ns/iter (+/- 492,778)
+```
+
+
+new2
+```
+test algorithms::prim::test::prim_graph_100_200_adj_list                 ... bench:  32,108,141 ns/iter (+/- 3,496,710)
+test algorithms::prim::test::prim_graph_100_200_csr_mat                  ... bench:  30,334,686 ns/iter (+/- 3,055,574)
+test algorithms::prim::test::prim_graph_10_200_adj_list                  ... bench:   6,394,235 ns/iter (+/- 139,199)
+test algorithms::prim::test::prim_graph_10_200_csr_mat                   ... bench:   6,054,597 ns/iter (+/- 191,380)
+test algorithms::prim::test::prim_graph_10_20_adj_list                   ... bench:   1,721,724 ns/iter (+/- 26,669)
+test algorithms::prim::test::prim_graph_10_20_csr_mat                    ... bench:   1,707,785 ns/iter (+/- 93,754)
+test algorithms::prim::test::prim_graph_10_20_dense_mat                  ... bench:  49,646,724 ns/iter (+/- 364,379)
+test algorithms::prim::test::prim_graph_1_200_adj_list                   ... bench:   1,912,484 ns/iter (+/- 9,389)
+test algorithms::prim::test::prim_graph_1_20_adj_list                    ... bench:     442,683 ns/iter (+/- 25,148)
+test algorithms::prim::test::prim_graph_1_20_csr_mat                     ... bench:     435,747 ns/iter (+/- 65,600)
+test algorithms::prim::test::prim_graph_1_20_dense_mat                   ... bench:   1,722,942 ns/iter (+/- 268,333)
+test algorithms::prim::test::prim_graph_1_2_adj_list                     ... bench:     108,872 ns/iter (+/- 302)
+test algorithms::prim::test::prim_graph_1_2_csr_mat                      ... bench:     105,554 ns/iter (+/- 2,346)
+test algorithms::prim::test::prim_graph_1_2_dense_mat                    ... bench:     636,106 ns/iter (+/- 40,673)
 ```

@@ -213,6 +213,17 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for AdjacencyMatrix<W> {
         Self { edges }
     }
 
+    fn with_edges(
+        node_count: usize,
+        edge_count: usize,
+        edges: impl IntoIterator<Item = (NodeId<usize>, NodeId<usize>, W)>,
+    ) -> Self {
+        let mut storage = Self::with_capacity(node_count, edge_count);
+        storage.allocate(node_count);
+        storage.extend_edges(edges);
+        storage
+    }
+
     fn clear(&mut self) {
         for row in &mut self.edges {
             row.clear()

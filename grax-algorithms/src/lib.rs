@@ -6,7 +6,6 @@
 pub use algorithms::*;
 
 mod algorithms;
-pub mod category;
 #[cfg(test)]
 mod test;
-pub mod utility;
+pub mod util;

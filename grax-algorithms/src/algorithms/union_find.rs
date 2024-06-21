@@ -6,7 +6,7 @@ use grax_core::{
     prelude::NodeId,
 };
 
-use crate::utility::Parents;
+use crate::util::Parents;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rank(u32);
