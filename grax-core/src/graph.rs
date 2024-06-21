@@ -78,26 +78,42 @@ pub trait Create: NodeCollection + Keyed {
     // ) -> Self;
 }
 
-pub trait AdaptNode<G, N>: NodeCollection + Keyed
+pub trait AdaptNodes<G, N>: NodeCollection + Keyed + Sized
 where
     G: NodeCollection<NodeWeight = N>,
 {
-    fn map_node<F>(self, f: F) -> G
+    type Iterator: Iterator<Item = Node<Self::Key, Self::NodeWeight>>;
+
+    fn adapt_nodes<F, O>(self, f: F) -> G
     where
-        F: Fn(Node<Self::Key, Self::NodeWeight>) -> Node<Self::Key, N>;
+        F: Fn(Self::Iterator) -> O,
+        O: Iterator<Item = Node<Self::Key, N>>;
+
+    fn map_nodes<F>(self, f: F) -> G
+    where
+        F: Fn(Node<Self::Key, Self::NodeWeight>) -> Node<Self::Key, N>,
+    {
+        self.adapt_nodes(|nodes| nodes.map(&f))
+    }
 }
 
-pub trait AdaptEdge<G, W>: EdgeCollection + Keyed
+pub trait AdaptEdges<G, W>: EdgeCollection + Keyed + Sized
 where
     G: EdgeCollection<EdgeWeight = W>,
 {
-    fn map_edge<F>(self, f: F) -> G
-    where
-        F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Edge<Self::Key, W>;
+    type Iterator: Iterator<Item = Edge<Self::Key, Self::EdgeWeight>>;
 
-    fn split_map_edge<F>(self, f: F) -> G
+    fn adapt_edges<F, O>(self, f: F) -> G
     where
-        F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Vec<Edge<Self::Key, W>>;
+        F: Fn(Self::Iterator) -> O,
+        O: Iterator<Item = Edge<Self::Key, W>>;
+
+    fn map_edges<F>(self, f: F) -> G
+    where
+        F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Edge<Self::Key, W>,
+    {
+        self.adapt_edges(|edges| edges.map(&f))
+    }
 }
 
 pub trait NodeIterAdjacent: NodeCollection + Keyed {

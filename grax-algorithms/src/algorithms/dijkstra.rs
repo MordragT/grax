@@ -48,24 +48,28 @@ where
     distances.update(from, C::default());
     priority_queue.push(from, C::default());
 
-    while let Some((node, cost)) = priority_queue.pop() {
+    while let Some((node, dist)) = priority_queue.pop() {
         if node == to {
             return (distances.distance(node).cloned(), distances);
         }
 
-        if let Some(d) = distances.distance(node)
-            && cost > *d
+        if let Some(&prev) = distances.distance(node)
+            && prev < dist
         {
             continue;
         }
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+            let next = dist + *weight.cost();
             let to = edge_id.to();
 
-            let cost = cost + *weight.cost();
-
-            if distances.replace_min(from, to, cost) {
-                priority_queue.push(to, cost);
+            if let Some(&prev) = distances.distance(to)
+                && prev < next
+            {
+                continue;
+            } else {
+                distances.update(to, next);
+                priority_queue.push(to, next);
             }
         }
     }
@@ -85,20 +89,24 @@ where
     distances.update(from, C::default());
     priority_queue.push(from, C::default());
 
-    while let Some((node, cost)) = priority_queue.pop() {
-        if let Some(d) = distances.distance(node)
-            && cost > *d
+    while let Some((node, dist)) = priority_queue.pop() {
+        if let Some(&prev) = distances.distance(node)
+            && prev < dist
         {
             continue;
         }
 
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+            let next = dist + *weight.cost();
             let to = edge_id.to();
 
-            let cost = cost + *weight.cost();
-
-            if distances.replace_min(from, to, cost) {
-                priority_queue.push(to, cost);
+            if let Some(&prev) = distances.distance(to)
+                && prev < next
+            {
+                continue;
+            } else {
+                distances.update(to, next);
+                priority_queue.push(to, next);
             }
         }
     }

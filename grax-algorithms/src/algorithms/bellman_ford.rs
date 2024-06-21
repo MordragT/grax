@@ -1,182 +1,160 @@
-// use crate::view::{Distances, Route};
-use crate::utility::{parents_cycle, Distances, Route};
+use crate::category::ShortestPath;
+use crate::utility::Distances;
 use grax_core::collections::*;
 use grax_core::edge::*;
 use grax_core::graph::*;
 use grax_core::prelude::*;
-use grax_flow::*;
 
 use either::Either;
 
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
 
-pub fn bellman_ford_between<C, G>(graph: &G, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<C>
+pub struct BellmanFord;
+
+impl<C, G> ShortestPath<C, G> for BellmanFord
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    bellman_ford(graph, from).and_then(|d| d.distances.get(to).to_owned())
+    fn shortest_path(graph: &G, from: NodeId<G::Key>) -> Distances<C, G> {
+        bellman_ford(graph, from)
+    }
+
+    fn shortest_path_to(
+        graph: &G,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
+    ) -> (Option<C>, Distances<C, G>) {
+        bellman_ford_to(graph, from, to)
+    }
 }
 
-pub fn bellman_ford<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<Distances<C, G>>
+pub fn bellman_ford_to<C, G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+    to: NodeId<G::Key>,
+) -> (Option<C>, Distances<C, G>)
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    let mut bf = BellmanFord::init(graph, start);
+    let distances = bellman_ford(graph, from);
+
+    (distances.distance(to).copied(), distances)
+}
+
+pub fn bellman_ford<C, G>(graph: &G, start: NodeId<G::Key>) -> Distances<C, G>
+where
+    C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C>,
+{
+    let mut distances = Distances::new(graph);
+    distances.update(start, C::default());
 
     for _ in 1..graph.node_count() {
-        bf.updated = false;
-        bf.relax();
-        if !bf.updated {
+        if !relax(graph, &mut distances) {
             break;
         }
     }
 
-    let BellmanFord {
-        distances,
-        updated,
-        graph: _,
-    } = bf;
-
-    if !updated {
-        Some(distances)
-    } else {
-        None
-    }
+    distances
 }
 
-pub fn bellman_ford_cycle<N, W, C, G>(
+pub fn bellman_ford_cycle<C, G>(
     graph: &G,
     start: NodeId<G::Key>,
-) -> Either<Distances<C, G>, Route<G>>
+) -> Either<Distances<C, G>, G::FixedEdgeMap<bool>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    let mut bf = BellmanFord::init(graph, start);
+    let mut distances = Distances::new(graph);
+    distances.update(start, C::default());
+
+    let mut updated = false;
 
     for _ in 1..graph.node_count() {
-        bf.updated = false;
-        bf.relax();
-        if !bf.updated {
+        updated = relax(graph, &mut distances);
+        if !updated {
             break;
         }
     }
 
-    if bf.updated {
-        let to = bf.relax_cycle();
-        let route = parents_cycle(graph, &bf.distances.parents, to);
-        Either::Right(route)
-    } else {
-        Either::Left(bf.distances)
-    }
-}
+    if updated {
+        let mut cycle = graph.visit_edge_map();
 
-struct BellmanFord<'a, C: Clone + Debug, G: EdgeCollection + NodeAttribute>
-where
-    G::EdgeWeight: EdgeCost<Cost = C>,
-{
-    distances: Distances<C, G>,
-    updated: bool,
-    graph: &'a G,
-}
+        for from in graph.node_ids() {
+            if let Some(&dist) = distances.distance(from) {
+                for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+                    let next = dist + *weight.cost();
+                    let to = edge_id.to();
 
-impl<'a, C, G> BellmanFord<'a, C, G>
-where
-    C: Default + Debug + Clone,
-    G: EdgeCollection + NodeAttribute,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-{
-    fn init(graph: &'a G, start: NodeId<G::Key>) -> Self {
-        let mut distances = Distances::new(graph);
-        distances.update(start, C::default());
-
-        Self {
-            distances,
-            updated: false,
-            graph,
+                    if let Some(&prev) = distances.distance(to)
+                        && prev < next
+                    {
+                        continue;
+                    } else {
+                        cycle.visit(edge_id);
+                    }
+                }
+            }
         }
+
+        Either::Right(cycle)
+    } else {
+        Either::Left(distances)
     }
 }
 
-impl<'a, C, G> BellmanFord<'a, C, G>
+fn relax<C, G>(graph: &G, distances: &mut Distances<C, G>) -> bool
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
+    G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
+    G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    fn relax(&mut self) {
-        for from in self.graph.node_ids() {
-            if let Some(&cost) = self.distances.distance(from) {
-                for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
-                    let to = edge_id.to();
-                    let combined_cost = cost + *weight.cost();
-                    let to_cost = self.distances.distance(to);
+    let mut updated = false;
 
-                    let update = match to_cost {
-                        Some(&c) => c > combined_cost,
-                        None => true,
-                    } && (*weight.capacity() - *weight.flow()) > C::default();
+    for from in graph.node_ids() {
+        if let Some(&dist) = distances.distance(from) {
+            for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
+                let next = dist + *weight.cost();
+                let to = edge_id.to();
 
-                    if update {
-                        self.distances.insert(from, to, combined_cost);
-                        self.updated = true;
-                    }
+                if let Some(&prev) = distances.distance(to)
+                    && prev < next
+                {
+                    continue;
+                } else {
+                    distances.update(to, next);
+                    updated = true;
                 }
-            } else {
-                continue;
             }
         }
     }
 
-    fn relax_cycle(&mut self) -> NodeId<G::Key> {
-        for from in self.graph.node_ids() {
-            if let Some(&cost) = self.distances.distance(from) {
-                for EdgeRef { edge_id, weight } in self.graph.iter_adjacent_edges(from) {
-                    let to = edge_id.to();
-                    let combined_cost = cost + *weight.cost();
-                    let to_cost = self.distances.distance(to);
-
-                    let update = match to_cost {
-                        Some(&c) => c > combined_cost,
-                        None => true,
-                    } && (*weight.capacity() - *weight.flow()) > C::default();
-
-                    if update {
-                        return to;
-                    }
-                }
-            } else {
-                continue;
-            }
-        }
-
-        unreachable!()
-    }
+    updated
 }
 
 #[cfg(test)]
 mod test {
     extern crate test;
 
-    use super::{bellman_ford, bellman_ford_between};
+    use super::{bellman_ford_cycle, bellman_ford_to};
     use crate::test::{digraph, id, undigraph};
-    use grax_flow::flow_adaptor;
     use grax_impl::*;
     use test::Bencher;
 
     #[bench]
     fn bellman_ford_g_1_2_di_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-        let graph: AdjGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -184,10 +162,9 @@ mod test {
     #[bench]
     fn bellman_ford_g_1_2_undi_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-        let graph: AdjGraph<_, _> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -195,10 +172,9 @@ mod test {
     #[bench]
     fn bellman_ford_wege_1_di_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
-        let graph: AdjGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -206,10 +182,9 @@ mod test {
     #[bench]
     fn bellman_ford_wege_2_di_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
-        let graph: AdjGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -217,11 +192,10 @@ mod test {
     #[bench]
     fn bellman_ford_wege_3_di_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
-        let graph: AdjGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let result = bellman_ford(&graph, id(2));
-            assert!(result.is_none());
+            let result = bellman_ford_cycle(&graph, id(2));
+            assert!(result.is_right());
         })
     }
 
@@ -230,10 +204,9 @@ mod test {
     #[bench]
     fn bellman_ford_g_1_2_di_csr_graph(b: &mut Bencher) {
         let graph: CsrGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
-        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -241,10 +214,9 @@ mod test {
     #[bench]
     fn bellman_ford_g_1_2_undi_csr_graph(b: &mut Bencher) {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
-        let graph: CsrGraph<_, _> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(0), id(1)).unwrap();
+            let total = bellman_ford_to(&graph, id(0), id(1)).0.unwrap();
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -252,10 +224,9 @@ mod test {
     #[bench]
     fn bellman_ford_wege_1_di_csr_graph(b: &mut Bencher) {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
-        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -263,10 +234,9 @@ mod test {
     #[bench]
     fn bellman_ford_wege_2_di_csr_graph(b: &mut Bencher) {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
-        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let total = bellman_ford_between(&graph, id(2), id(0)).unwrap();
+            let total = bellman_ford_to(&graph, id(2), id(0)).0.unwrap();
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -274,11 +244,10 @@ mod test {
     #[bench]
     fn bellman_ford_wege_3_di_csr_graph(b: &mut Bencher) {
         let graph: CsrGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
-        let graph: CsrGraph<_, _, true> = flow_adaptor(graph);
 
         b.iter(|| {
-            let result = bellman_ford(&graph, id(2));
-            assert!(result.is_none())
+            let result = bellman_ford_cycle(&graph, id(2));
+            assert!(result.is_right())
         })
     }
 }

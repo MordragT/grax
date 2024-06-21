@@ -457,9 +457,34 @@ impl<
         W1: Debug,
         W2: Clone + Debug,
         const DI: bool,
-    > AdaptEdge<Graph<NS, M2, N, W2, DI>, W2> for Graph<NS, M1, N, W1, DI>
+    > AdaptEdges<Graph<NS, M2, N, W2, DI>, W2> for Graph<NS, M1, N, W1, DI>
 {
-    fn map_edge<F>(self, f: F) -> Graph<NS, M2, N, W2, DI>
+    type Iterator = M1::IntoIter;
+
+    fn adapt_edges<F, O>(self, f: F) -> Graph<NS, M2, N, W2, DI>
+    where
+        F: Fn(Self::Iterator) -> O,
+        O: Iterator<Item = Edge<Self::Key, W2>>,
+    {
+        let node_count = self.node_count();
+
+        let Self {
+            nodes,
+            edges,
+            edge_weight: _,
+            node_weight: _,
+        } = self;
+
+        let edges =
+            f(edges.into_iter()).map(|edge| (edge.edge_id.from(), edge.edge_id.to(), edge.weight));
+
+        let mut graph = Graph::with_nodes(node_count, nodes.into_iter().map(|node| node.weight));
+        graph.extend_edges(edges);
+
+        graph
+    }
+
+    fn map_edges<F>(self, f: F) -> Graph<NS, M2, N, W2, DI>
     where
         F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Edge<Self::Key, W2>,
     {
@@ -475,31 +500,6 @@ impl<
         let edges = edges.into_iter().map(|edge| {
             let edge = f(edge);
             (edge.edge_id.from(), edge.edge_id.to(), edge.weight)
-        });
-
-        let mut graph = Graph::with_nodes(node_count, nodes.into_iter().map(|node| node.weight));
-        graph.extend_edges(edges);
-
-        graph
-    }
-
-    fn split_map_edge<F>(self, f: F) -> Graph<NS, M2, N, W2, DI>
-    where
-        F: Fn(Edge<Self::Key, Self::EdgeWeight>) -> Vec<Edge<Self::Key, W2>>,
-    {
-        let node_count = self.node_count();
-
-        let Self {
-            nodes,
-            edges,
-            edge_weight: _,
-            node_weight: _,
-        } = self;
-
-        let edges = edges.into_iter().flat_map(|edge| {
-            f(edge)
-                .into_iter()
-                .map(|edge| (edge.edge_id.from(), edge.edge_id.to(), edge.weight))
         });
 
         let mut graph = Graph::with_nodes(node_count, nodes.into_iter().map(|node| node.weight));

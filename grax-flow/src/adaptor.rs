@@ -1,9 +1,12 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{Neg, Sub},
+};
 
 use grax_core::{
     collections::EdgeCollection,
     edge::{Edge, EdgeCost},
-    graph::AdaptEdge,
+    graph::AdaptEdges,
     weight::Maximum,
 };
 
@@ -54,7 +57,11 @@ impl<W: Clone + Debug, C: Clone + Debug> EdgeCost for FlowBundle<W, C> {
     }
 }
 
-impl<W: Clone + Debug, C: Clone + Debug> EdgeFlow for FlowBundle<W, C> {
+impl<W, C> EdgeFlow for FlowBundle<W, C>
+where
+    W: Clone + Debug,
+    C: Clone + Debug + Neg<Output = C> + Sub<C, Output = C>,
+{
     type Flow = C;
 
     fn flow(&self) -> &Self::Flow {
@@ -77,18 +84,32 @@ impl<W: Clone + Debug, C: Clone + Debug> EdgeFlow for FlowBundle<W, C> {
         self.reverse
     }
 
-    fn reverse(&mut self) {
-        self.reverse = true;
+    fn rev(self) -> Self {
+        let Self {
+            weight,
+            cost,
+            capacity,
+            flow,
+            reverse,
+        } = self;
+
+        Self {
+            cost: -cost,
+            flow: capacity.clone() - flow,
+            capacity,
+            weight,
+            reverse: !reverse,
+        }
     }
 }
 
 pub fn flow_adaptor<G1, G2, W1>(graph: G1) -> G2
 where
     W1: Clone + Maximum + Default,
-    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, W1>>,
+    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdges<G2, FlowBundle<W1, W1>>,
     G2: EdgeCollection<EdgeWeight = FlowBundle<W1, W1>>,
 {
-    graph.map_edge(|edge| {
+    graph.map_edges(|edge| {
         let Edge { edge_id, weight } = edge;
 
         let bundle = FlowBundle {

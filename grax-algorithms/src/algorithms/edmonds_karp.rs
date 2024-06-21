@@ -7,7 +7,7 @@ use std::{
 use grax_core::{
     collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
     edge::*,
-    graph::{AdaptEdge, EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
+    graph::{AdaptEdges, EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     prelude::*,
     weight::Maximum,
 };
@@ -21,40 +21,42 @@ pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
 where
     C: Default + Copy + Neg<Output = C>,
     W1: Clone + Maximum + Default,
-    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdge<G2, FlowBundle<W1, C>> + EdgeIter,
+    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdges<G2, FlowBundle<W1, C>> + EdgeIter,
     G1::EdgeWeight: EdgeCost<Cost = C>,
     G2: EdgeCollection<EdgeWeight = FlowBundle<W1, C>>,
 {
     let edge_ids = graph.edge_ids().collect::<HashSet<_>>();
 
-    graph.split_map_edge(|edge| {
-        let Edge { edge_id, weight } = edge;
+    graph.adapt_edges(|edges| {
+        let mut adapted = Vec::new();
 
-        let cost = *weight.cost();
+        for Edge { edge_id, weight } in edges {
+            let cost = *weight.cost();
 
-        let bundle = FlowBundle {
-            cost: cost,
-            weight: weight.clone(),
-            capacity: cost,
-            flow: C::default(),
-            reverse: false,
-        };
-
-        let mut edges = vec![Edge::new(edge_id, bundle)];
-
-        if !edge_ids.contains(&edge_id.rev()) {
             let bundle = FlowBundle {
+                cost: cost,
                 weight: weight.clone(),
                 capacity: cost,
-                cost: -cost,
-                flow: cost,
-                reverse: true,
+                flow: C::default(),
+                reverse: false,
             };
 
-            edges.push(Edge::new(edge_id.rev(), bundle));
+            adapted.push(Edge::new(edge_id, bundle));
+
+            if !edge_ids.contains(&edge_id.rev()) {
+                let bundle = FlowBundle {
+                    weight: weight.clone(),
+                    capacity: cost,
+                    cost: -cost,
+                    flow: cost,
+                    reverse: true,
+                };
+
+                adapted.push(Edge::new(edge_id.rev(), bundle));
+            }
         }
 
-        edges
+        adapted.into_iter()
     })
 }
 

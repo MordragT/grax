@@ -1,52 +1,8 @@
-use super::Route;
 use grax_core::{
-    collections::{GetNode, GetNodeMut, NodeCount, NodeIter, VisitNodeMap},
+    collections::{GetNode, GetNodeMut, NodeCount, NodeIter},
     graph::NodeAttribute,
     prelude::{EdgeId, NodeId},
 };
-
-// only use this if parents is known to have cycle and "node" is in it
-pub fn parents_cycle<G: NodeAttribute>(
-    graph: &G,
-    parents: &Parents<G>,
-    start: NodeId<G::Key>,
-) -> Route<G> {
-    let mut visited = graph.visit_node_map();
-    let mut path = Vec::new();
-    let mut node = start;
-
-    loop {
-        let ancestor = match parents.parent(node) {
-            Some(predecessor_node) => predecessor_node,
-            None => node, // no predecessor, self cycle
-        };
-        // We have only 2 ways to find the cycle and break the loop:
-        // 1. start is reached
-        if ancestor == start {
-            path.push(ancestor);
-            break;
-        }
-        // 2. some node was reached twice
-        else if visited.is_visited(ancestor) {
-            // Drop any node in path that is before the first ancestor
-            let pos = path
-                .iter()
-                .position(|&p| p == ancestor)
-                .expect("we should always have a position");
-            path = path[pos..path.len()].to_vec();
-
-            break;
-        }
-
-        // None of the above, some middle path node
-        path.push(ancestor);
-        visited.visit(ancestor);
-        node = ancestor;
-    }
-    path.reverse();
-
-    Route::new(path)
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Parents<G: NodeAttribute>(G::FixedNodeMap<Option<NodeId<G::Key>>>);
@@ -125,55 +81,4 @@ impl<G: NodeAttribute> Parents<G> {
             None
         })
     }
-}
-
-#[cfg(test)]
-mod tests {
-    // use crate::test::{id, PhantomGraph};
-
-    // use super::*;
-
-    // // Helper function to create a Parents struct from a given list of parent nodes
-    // fn create_parents(parents: Vec<Option<usize>>) -> Parents<PhantomGraph> {
-    //     Parents(parents.into_iter().map(|opt| opt.map(id)).collect())
-    // }
-
-    // #[test]
-    // fn parents_find_cycle_no_cycle() {
-    //     let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(4), None]);
-    //     let start = 0;
-    //     let cycle = parents.find_cycle(id(start));
-
-    //     assert_eq!(cycle.count(), 0); // No cycle should be found
-    // }
-
-    // #[test]
-    // fn parents_find_cycle_self_cycle() {
-    //     let parents = create_parents(vec![Some(0), Some(2), Some(0), Some(3), Some(4)]);
-    //     let start = 0;
-    //     let cycle = parents.find_cycle(id(start));
-
-    //     assert_eq!(cycle.count(), 1); // Self cycle should be found
-    //     assert_eq!(cycle.into_raw(), vec![id(0)]);
-    // }
-
-    // #[test]
-    // fn parents_find_cycle_single_cycle() {
-    //     let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(0), Some(4)]);
-    //     let start = 0;
-    //     let cycle = parents.find_cycle(id(start));
-
-    //     assert_eq!(cycle.count(), 4); // Cycle with 4 nodes should be found
-    //     assert_eq!(cycle.into_raw(), vec![id(0), id(3), id(2), id(1)]);
-    // }
-
-    // #[test]
-    // fn parents_find_cycle_multiple_cycles() {
-    //     let parents = create_parents(vec![Some(1), Some(2), Some(3), Some(0), Some(5), Some(4)]);
-    //     let start = 0;
-    //     let cycle = parents.find_cycle(id(start));
-
-    //     assert_eq!(cycle.count(), 4); // Cycle with 4 nodes should be found
-    //     assert_eq!(cycle.into_raw(), vec![id(0), id(3), id(2), id(1)]);
-    // }
 }

@@ -12,7 +12,7 @@ pub trait EdgeFlow: Clone + Debug {
     fn flow(&self) -> &Self::Flow;
     fn flow_mut(&mut self) -> &mut Self::Flow;
     fn is_reverse(&self) -> bool;
-    fn reverse(&mut self);
+    fn rev(self) -> Self;
 }
 
 pub trait NodeBalance {

@@ -75,10 +75,8 @@ where
     Some(Mst {
         root,
         filter: Box::new(move |graph| {
-            for EdgeRef { edge_id, weight } in edges.iter_edges() {
-                if !weight {
-                    graph.remove_edge(edge_id);
-                }
+            for edge_id in edges.iter_unvisited() {
+                graph.remove_edge(edge_id);
             }
         }),
         total_cost,

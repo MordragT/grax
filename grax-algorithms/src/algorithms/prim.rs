@@ -84,10 +84,8 @@ where
     Some(Mst {
         root,
         filter: Box::new(move |graph| {
-            for NodeRef { node_id, weight } in visit.iter_nodes() {
-                if !weight {
-                    graph.remove_node(node_id);
-                }
+            for node_id in visit.iter_unvisited() {
+                graph.remove_node(node_id);
             }
         }),
         total_cost,
