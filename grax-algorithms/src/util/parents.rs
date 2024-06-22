@@ -4,8 +4,14 @@ use grax_core::{
     prelude::{EdgeId, NodeId},
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Parents<G: NodeAttribute>(G::FixedNodeMap<Option<NodeId<G::Key>>>);
+
+impl<G: NodeAttribute> Clone for Parents<G> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 impl<G: NodeAttribute> Parents<G> {
     pub fn new(graph: &G) -> Self {
@@ -23,6 +29,16 @@ impl<G: NodeAttribute> Parents<G> {
 
     pub fn insert(&mut self, from: NodeId<G::Key>, to: NodeId<G::Key>) -> Option<NodeId<G::Key>> {
         self.0.update_node(to, Some(from)).flatten()
+    }
+
+    pub fn remove_parent(&mut self, child: NodeId<G::Key>) -> Option<NodeId<G::Key>> {
+        self.0.update_node(child, None).flatten()
+    }
+
+    pub fn extend(&mut self, edges: impl IntoIterator<Item = (NodeId<G::Key>, NodeId<G::Key>)>) {
+        for (from, to) in edges {
+            self.insert(from, to);
+        }
     }
 
     pub fn parent(&self, child: NodeId<G::Key>) -> Option<NodeId<G::Key>> {

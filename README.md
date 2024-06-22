@@ -306,3 +306,24 @@ test algorithms::prim::test::prim_graph_1_2_adj_list                     ... ben
 test algorithms::prim::test::prim_graph_1_2_csr_mat                      ... bench:     105,554 ns/iter (+/- 2,346)
 test algorithms::prim::test::prim_graph_1_2_dense_mat                    ... bench:     636,106 ns/iter (+/- 40,673)
 ```
+
+## nearest neighbor
+
+```
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_10_adj_list  ... bench:         811 ns/iter (+/- 135)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_10e_adj_list ... bench:         738 ns/iter (+/- 25)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_12_adj_list  ... bench:       1,035 ns/iter (+/- 28)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_12e_adj_list ... bench:         979 ns/iter (+/- 16)
+```
+
+new2
+
+```
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_10_adj_list  ... bench:         228.78 ns/iter (+/- 11.92)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_10e_adj_list ... bench:         218.88 ns/iter (+/- 4.05)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_12_adj_list  ... bench:         266.94 ns/iter (+/- 6.79)
+test algorithms::nearest_neighbor::test::nearest_neighbor_k_12e_adj_list ... bench:         268.09 ns/iter (+/- 5.54)
+```
+
+## branch
+

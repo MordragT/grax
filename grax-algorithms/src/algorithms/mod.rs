@@ -13,7 +13,7 @@ pub use kruskal::*;
 // pub use mcf::*;
 pub use nearest_neighbor::*;
 pub use prim::*;
-// pub use ssp::*;
+pub use ssp::*;
 pub use union_find::*;
 
 mod bellman_ford;
@@ -32,5 +32,5 @@ mod kruskal;
 // mod mcf;
 mod nearest_neighbor;
 mod prim;
-// mod ssp;
+mod ssp;
 mod union_find;

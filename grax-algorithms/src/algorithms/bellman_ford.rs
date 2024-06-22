@@ -6,7 +6,6 @@ use grax_core::graph::*;
 use grax_core::prelude::*;
 
 use either::Either;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
@@ -27,7 +26,7 @@ where
         filter: F,
     ) -> ShortestPath<C, G>
     where
-        F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         bellman_ford(graph, from, filter)
     }
@@ -35,12 +34,12 @@ where
     fn shortest_path_to_where<F>(
         self,
         graph: &G,
-        from: NodeId<<G as Keyed>::Key>,
-        to: NodeId<<G as Keyed>::Key>,
+        from: NodeId<G::Key>,
+        to: NodeId<G::Key>,
         filter: F,
     ) -> ShortestPathTo<C, G>
     where
-        F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+        F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         bellman_ford_to(graph, from, to, filter)
     }
@@ -54,7 +53,7 @@ pub fn bellman_ford_to<C, F, G>(
 ) -> ShortestPathTo<C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
@@ -71,7 +70,7 @@ where
 pub fn bellman_ford<C, F, G>(graph: &G, start: NodeId<G::Key>, filter: F) -> ShortestPath<C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
@@ -96,7 +95,7 @@ pub fn bellman_ford_cycle<C, F, G>(
 ) -> Either<ShortestPath<C, G>, Cycle<G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
-    F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
+    F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {

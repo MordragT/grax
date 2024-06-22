@@ -18,7 +18,7 @@ use std::{
 
 use crate::{bellman_ford_cycle, edmonds_karp};
 
-pub fn cycle_canceling<G, N, W, C>(graph: &mut G) -> C
+pub fn cycle_canceling<G, N, W, C>(graph: &mut G) -> Option<C>
 where
     N: Default,
     W: Default + Copy + Debug,
@@ -85,9 +85,8 @@ where
 
     graph.extend_edges(to_insert);
 
-    assert_eq!(
-        edmonds_karp(graph, source, sink),
-        graph
+    if edmonds_karp(graph, source, sink)
+        != graph
             .iter_nodes()
             .filter_map(|node| {
                 let balance = *node.weight.balance();
@@ -98,7 +97,9 @@ where
                 }
             })
             .sum()
-    );
+    {
+        return None;
+    }
 
     let node_ids = graph.node_ids().collect::<Vec<_>>();
     let start = graph.insert_node(BalancedNode::default());
@@ -142,7 +143,7 @@ where
         })
         .sum();
 
-    cost
+    Some(cost)
 }
 
 #[cfg(test)]
@@ -154,49 +155,49 @@ mod test {
     #[test]
     fn cycle_canceling_kostenminimal_1() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph).unwrap();
         assert_eq!(cost, 3.0);
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_2() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph).unwrap();
         assert_eq!(cost, 0.0);
     }
 
     #[test]
-    #[should_panic]
     fn cycle_canceling_kostenminimal_3() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
-        let _cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph);
+        assert!(cost.is_none());
     }
 
     #[test]
-    #[should_panic]
     fn cycle_canceling_kostenminimal_4() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
-        let _cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph);
+        assert!(cost.is_none());
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_gross_1() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph).unwrap();
         assert_eq!(cost, 1537.0);
     }
 
     #[test]
     fn cycle_canceling_kostenminimal_gross_2() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph).unwrap();
         assert_eq!(cost, 1838.0);
     }
 
     #[test]
-    #[should_panic]
     fn cycle_canceling_kostenminimal_gross_3() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
-        let _cost = cycle_canceling(&mut graph);
+        let cost = cycle_canceling(&mut graph);
+        assert!(cost.is_none());
     }
 }

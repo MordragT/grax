@@ -1,6 +1,8 @@
-use crate::util::Route;
+use crate::util::Parents;
+use crate::util::Path;
 
-use super::{dijkstra_to, nearest_neighbor};
+use super::nearest_neighbor;
+use grax_core::collections::GetEdge;
 use grax_core::collections::NodeCount;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
@@ -15,10 +17,10 @@ use grax_core::weight::Sortable;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<C, G>(graph: &G) -> Option<(Route<G>, C)>
+pub fn branch_bound<C, G>(graph: &G) -> Option<(C, Path<G>)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedNodeMap<bool>: Clone,
 {
@@ -28,126 +30,124 @@ where
     }
 }
 
-pub fn branch_bound_rec<C, G>(graph: &G) -> Option<(Route<G>, C)>
+pub fn branch_bound_rec<C, G>(graph: &G) -> Option<(C, Path<G>)>
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
     match graph.node_ids().next() {
         Some(start) => {
-            let mut baseline = nearest_neighbor(graph, start)
-                .map(|tour| tour.1)
+            let mut best_cost = nearest_neighbor(graph, start)
+                .map(|result| result.0)
                 .unwrap_or(Maximum::MAX);
-            let mut path = vec![start];
+
+            let mut parents = Parents::new(graph);
             let mut visited = graph.visit_node_map();
-            let cost = C::default();
+            visited.visit(start);
 
             _branch_bound_rec(
-                start,
                 graph,
                 start,
-                &mut path,
+                &mut best_cost,
+                C::default(),
+                &mut parents,
+                start,
                 &mut visited,
-                cost,
-                &mut baseline,
             );
 
-            Some((Route::new(path), baseline))
+            Some((best_cost, Path { parents }))
         }
         None => None,
     }
 }
 
-pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Key>) -> (Route<G>, C)
+pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Key>) -> (C, Path<G>)
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedNodeMap<bool>: Clone,
 {
-    let mut stack = Vec::new();
-    let mut total_cost = nearest_neighbor(graph, start)
-        .map(|tour| tour.1)
-        .unwrap_or(Maximum::MAX);
-    let mut route = Vec::new();
+    let (mut best_cost, mut best_path) =
+        nearest_neighbor(graph, start).unwrap_or((Maximum::MAX, Path::new(graph)));
 
     let mut visited = graph.visit_node_map();
     visited.visit(start);
 
-    stack.push((C::default(), vec![start], visited));
+    let mut stack = Vec::new();
+    stack.push((C::default(), Parents::new(graph), start, visited));
 
-    while let Some((cost, path, visited)) = stack.pop() {
-        let node = path
-            .last()
-            .expect("INTERNAL: Path always expected to have atleast one element");
-
-        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
+    while let Some((cost, parents, from, visited)) = stack.pop() {
+        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
             let to = edge_id.to();
-            let cost = cost + *weight.cost();
+            let mut cost = cost + *weight.cost();
 
-            if !visited.is_visited(to) && cost < total_cost {
+            if !visited.is_visited(to) && cost < best_cost {
                 let mut visited = visited.clone();
                 visited.visit(to);
 
-                let mut path = path.clone();
-                path.push(to);
+                let mut parents = parents.clone();
+                parents.insert(from, to);
 
                 if visited.all_visited() {
-                    if let Some(cost_to_start) =
-                        dijkstra_to(graph, path[path.len() - 1], start).distance
-                    {
-                        let cost = cost + cost_to_start;
+                    cost += *graph
+                        .edge(EdgeId::new_unchecked(to, start))
+                        .unwrap()
+                        .weight
+                        .cost();
 
-                        if cost < total_cost {
-                            total_cost = cost;
-                            std::mem::swap(&mut path, &mut route);
-                        }
+                    if cost < best_cost {
+                        best_cost = cost;
+                        best_path = Path { parents };
                     }
                 } else {
-                    stack.push((cost, path, visited));
+                    stack.push((cost, parents, to, visited));
                 }
             }
         }
     }
 
-    (Route::new(route), total_cost)
+    (best_cost, best_path)
 }
 
 pub(crate) fn _branch_bound_rec<C, G>(
-    start: NodeId<G::Key>,
     graph: &G,
-    node: NodeId<G::Key>,
-    path: &mut Vec<NodeId<G::Key>>,
+    start: NodeId<G::Key>,
+    best_cost: &mut C,
+    mut cost: C,
+    parents: &mut Parents<G>,
+    from: NodeId<G::Key>,
     visited: &mut G::FixedNodeMap<bool>,
-    cost: C,
-    baseline: &mut C,
 ) where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + NodeCount,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    if visited.all_visited()
-        && let Some(cost_to_start) = dijkstra_to(graph, node, start).distance
-    {
-        let total_cost = cost + cost_to_start;
-        if total_cost < *baseline {
-            *baseline = total_cost;
+    if visited.all_visited() {
+        cost += *graph
+            .edge(EdgeId::new_unchecked(from, start))
+            .unwrap()
+            .weight
+            .cost();
+
+        if cost < *best_cost {
+            *best_cost = cost;
         }
     }
 
-    for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(node) {
+    for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
         let to = edge_id.to();
         let cost = cost + *weight.cost();
 
-        if !visited.is_visited(to) && cost < *baseline {
+        if !visited.is_visited(to) && cost < *best_cost {
             visited.visit(to);
-            path.push(to);
+            parents.insert(from, to);
 
-            _branch_bound_rec(start, graph, to, path, visited, cost, baseline);
+            _branch_bound_rec(graph, start, best_cost, cost, parents, to, visited);
 
             visited.unvisit(to);
-            path.pop();
+            parents.remove_parent(to);
         }
     }
 }
@@ -166,7 +166,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
+            let total = branch_bound(&graph).unwrap().0 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -176,7 +176,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
+            let total = branch_bound(&graph).unwrap().0 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -186,7 +186,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
+            let total = branch_bound(&graph).unwrap().0 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -196,7 +196,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().1 as f32;
+            let total = branch_bound(&graph).unwrap().0 as f32;
             assert_eq!(total, 36.13);
         })
     }
@@ -206,7 +206,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
+            let total = branch_bound_rec(&graph).unwrap().0 as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -216,7 +216,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
+            let total = branch_bound_rec(&graph).unwrap().0 as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -227,7 +227,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
+            let total = branch_bound_rec(&graph).unwrap().0 as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -238,7 +238,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().1 as f32;
+            let total = branch_bound_rec(&graph).unwrap().0 as f32;
             assert_eq!(total, 36.13);
         })
     }

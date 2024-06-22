@@ -3,20 +3,23 @@ use std::ops::Add;
 
 use grax_core::collections::{GetEdge, NodeIter};
 use grax_core::edge::*;
+use grax_core::graph::NodeAttribute;
 use grax_core::weight::{Maximum, Sortable};
-use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
-use crate::util::Route;
+use crate::util::{Parents, Path};
 
-pub fn brute_force<C, G>(graph: &G) -> Option<(Route<G>, C)>
+// test algorithms::brute_force::test::brute_force_k_10_adj_list            ... bench: 1,465,152,334.10 ns/iter (+/- 327,616,152.94)
+
+pub fn brute_force<C, G>(graph: &G) -> Option<(C, Path<G>)>
 where
     C: Default + Maximum + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + Sortable,
-    G: NodeIter + GetEdge + Send + Sync,
+    G: NodeIter + GetEdge + NodeAttribute + Send + Sync,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
     let start = graph.node_ids().collect::<Vec<_>>();
 
-    let best_cost = permute::permutations_of(&start)
+    let (best_cost, edges) = permute::permutations_of(&start)
         .par_bridge()
         .filter_map(|perm| {
             if let Some(mut edges) = perm
@@ -30,22 +33,30 @@ where
                     edges.push(edge_id);
 
                     let total_cost: C = edges
-                        .into_par_iter()
+                        .iter()
+                        .copied()
                         .map(|edge_id| *graph.edge(edge_id).unwrap().weight.cost())
                         .sum();
 
-                    return Some(total_cost);
+                    return Some((total_cost, edges));
                 }
             }
             None
         })
-        .min_by(|a, b| a.sort(b))
+        .min_by(|a, b| a.0.sort(&b.0))
         .unwrap();
 
     if best_cost == C::MAX {
         None
     } else {
-        Some((Route::new(Vec::new()), best_cost))
+        let mut parents = Parents::new(graph);
+        parents.extend(
+            edges
+                .into_iter()
+                .map(|edge_id| (edge_id.from(), edge_id.to())),
+        );
+
+        Some((best_cost, Path { parents }))
     }
 }
 
@@ -63,7 +74,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 38.41);
         })
     }
@@ -74,7 +85,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 27.26);
         })
     }
@@ -85,7 +96,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 45.19);
         })
     }
@@ -96,7 +107,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 36.13);
         })
     }
@@ -109,7 +120,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 38.41);
         })
     }
@@ -120,7 +131,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 27.26);
         })
     }
@@ -131,7 +142,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 45.19);
         })
     }
@@ -142,7 +153,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 36.13);
         })
     }
@@ -155,7 +166,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 38.41);
         })
     }
@@ -166,7 +177,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 27.26);
         })
     }
@@ -176,7 +187,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 45.19);
         })
     }
@@ -186,7 +197,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = brute_force(&graph).unwrap().1;
+            let total = brute_force(&graph).unwrap().0;
             assert_le!(total, 36.13);
         })
     }

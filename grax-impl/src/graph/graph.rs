@@ -423,13 +423,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
     NodeAttribute for Graph<NS, ES, N, W, DI>
 {
     type FixedNodeMap<V: Debug + Clone> = FixedNodeVec<V>;
-    type NodeMap<V: Debug> = StableNodeVec<V>;
+    type NodeMap<V: Debug + Clone> = StableNodeVec<V>;
 
     fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V> {
         FixedNodeVec::new(vec![fill; self.node_count()])
     }
 
-    fn node_map<V: Debug>(&self) -> Self::NodeMap<V> {
+    fn node_map<V: Debug + Clone>(&self) -> Self::NodeMap<V> {
         StableNodeVec::with_capacity(self.node_count())
     }
 }

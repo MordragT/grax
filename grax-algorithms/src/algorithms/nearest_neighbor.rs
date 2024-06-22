@@ -1,14 +1,12 @@
-use crate::util::Route;
+use crate::util::Parents;
+use crate::util::Path;
 
-use super::dijkstra_to;
-use grax_core::collections::FixedNodeMap;
-use grax_core::collections::GetNodeMut;
-use grax_core::collections::NodeCount;
+use grax_core::collections::GetEdge;
 use grax_core::collections::NodeIter;
+use grax_core::collections::VisitNodeMap;
 use grax_core::edge::*;
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
-use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
 use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
@@ -16,10 +14,10 @@ use grax_core::weight::Sortable;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(Route<G>, C)>
+pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(C, Path<G>)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIter + NodeCount + EdgeIterAdjacent + NodeIterAdjacent + NodeAttribute,
+    G: NodeIter + EdgeIterAdjacent + NodeAttribute + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
     match graph.node_ids().next() {
@@ -28,96 +26,44 @@ where
     }
 }
 
-pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<(Route<G>, C)>
+pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<(C, Path<G>)>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeCount + EdgeIterAdjacent + NodeIterAdjacent + NodeAttribute,
+    G: EdgeIterAdjacent + NodeAttribute + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-    enum Status {
-        Visited,
-        #[default]
-        Unvisited,
-        Diverged,
-    }
+    let mut cost = C::default();
+    let mut parents = Parents::new(graph);
+    let mut visited = graph.visit_node_map();
+    let mut stack = Vec::new();
+    stack.push(start);
 
-    let mut states = graph.fixed_node_map(Status::default());
+    while let Some(from) = stack.pop() {
+        visited.visit(from);
 
-    // let mut states = vec![Status::default(); graph.node_count()];
-    let mut path = vec![(start, C::default())];
-    let mut prev = start;
-
-    states.update_node(start, Status::Visited);
-    // states[start.raw()] = Status::Visited;
-
-    while let Some((node, _)) = path.last()
-        && path.len() < graph.node_count()
-    {
-        let mut min_node = None;
-        let mut min_cost = C::MAX;
-
-        for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(*node) {
-            let cost = *weight.cost();
+        if let Some(EdgeRef { edge_id, weight }) = graph
+            .iter_adjacent_edges(from)
+            .filter(|edge| !visited.is_visited(edge.edge_id.to()))
+            .min_by(|a, b| a.weight.cost().sort(b.weight.cost()))
+        {
             let to = edge_id.to();
-            if *states.get(to) == Status::Unvisited && to != prev {
-                if min_cost > cost {
-                    min_node = Some(to);
-                    min_cost = cost;
-                }
-            }
-        }
+            parents.insert(from, to);
+            stack.push(to);
+            cost += *weight.cost();
+        } else {
+            // no more unvisited neighbors
+            // compute cost from last node to start node
 
-        match min_node {
-            Some(next) => {
-                path.push((next, min_cost));
-                *states.get_mut(next) = Status::Visited;
-                prev = next;
-            }
-            None => {
-                let open_end = path.iter().rposition(|(node, _)| {
-                    graph
-                        .adjacent_node_ids(*node)
-                        .any(|neigh| *states.get(neigh) == Status::Unvisited)
-                });
-
-                if let Some(index) = open_end {
-                    let branch_point = path[index].0;
-
-                    if *states.get(branch_point) == Status::Diverged {
-                        return None;
-                    } else {
-                        *states.get_mut(branch_point) = Status::Diverged;
-                    }
-                    let splitted_off = path.split_off(index + 1);
-                    for (node, _) in splitted_off.into_iter().rev() {
-                        *states.get_mut(node) = Status::Unvisited;
-                        prev = node;
-                    }
-                } else {
-                    return None;
-                }
-            }
+            parents.insert(from, start);
+            let edge_id = EdgeId::new_unchecked(from, start);
+            cost += *graph.edge(edge_id).unwrap().weight.cost();
+            break;
         }
     }
 
-    assert!(states
-        .iter_nodes()
-        .all(|NodeRef { node_id: _, weight }| *weight == Status::Visited
-            || *weight == Status::Diverged));
+    assert!(visited.all_visited());
 
-    match dijkstra_to(graph, prev, start).distance {
-        Some(weight) => path.push((start, weight)),
-        None => return None,
-    }
-
-    let (route, weight): (_, Vec<_>) = path.into_iter().unzip();
-    let weight = weight.into_iter().fold(C::default(), |mut accu, w| {
-        accu += w;
-        accu
-    });
-
-    Some((Route::new(route), weight))
+    Some((cost, Path { parents }))
 }
 
 #[cfg(test)]
@@ -134,8 +80,9 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
+            let total = nearest_neighbor_from_first(&graph).unwrap().0;
             assert_le!(total, 38.41 * 1.2);
+            assert_ge!(total, 38.41)
         })
     }
 
@@ -144,8 +91,9 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
+            let total = nearest_neighbor_from_first(&graph).unwrap().0;
             assert_le!(total, 27.26 * 1.2);
+            assert_ge!(total, 27.26)
         })
     }
 
@@ -154,8 +102,9 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
+            let total = nearest_neighbor_from_first(&graph).unwrap().0;
             assert_le!(total, 45.19 * 1.2);
+            assert_ge!(total, 45.19)
         })
     }
 
@@ -164,8 +113,9 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().1;
+            let total = nearest_neighbor_from_first(&graph).unwrap().0;
             assert_le!(total, 36.13 * 1.2);
+            assert_ge!(total, 36.13)
         })
     }
 }

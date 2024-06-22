@@ -39,3 +39,14 @@ where
 {
     pub parents: Parents<G>,
 }
+
+impl<G> Path<G>
+where
+    G: NodeAttribute,
+{
+    pub fn new(graph: &G) -> Self {
+        Self {
+            parents: Parents::new(graph),
+        }
+    }
+}

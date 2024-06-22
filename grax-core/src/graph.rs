@@ -164,11 +164,11 @@ pub trait EdgeIterAdjacentMut: EdgeCollection + Keyed {
 
 pub trait NodeAttribute: Keyed {
     type FixedNodeMap<V: Debug + Clone>: FixedNodeMap<Self::Key, V>;
-    type NodeMap<V: Debug>: NodeMap<Self::Key, V>;
+    type NodeMap<V: Debug + Clone>: NodeMap<Self::Key, V>;
 
     // implement by stable vec
     fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V>;
-    fn node_map<V: Debug>(&self) -> Self::NodeMap<V>;
+    fn node_map<V: Debug + Clone>(&self) -> Self::NodeMap<V>;
 
     fn visit_node_map(&self) -> Self::FixedNodeMap<bool> {
         self.fixed_node_map(false)
