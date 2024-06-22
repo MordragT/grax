@@ -1,76 +1,50 @@
-use crate::util::Parents;
-use crate::util::Path;
-
 use super::nearest_neighbor;
-use grax_core::collections::GetEdge;
-use grax_core::collections::NodeCount;
-use grax_core::collections::NodeIter;
-use grax_core::collections::VisitNodeMap;
-use grax_core::edge::*;
-use grax_core::graph::EdgeIterAdjacent;
-use grax_core::graph::NodeAttribute;
-use grax_core::graph::NodeIterAdjacent;
-use grax_core::prelude::*;
-use grax_core::weight::Maximum;
-use grax_core::weight::Sortable;
+use crate::problems::{TspCycle, TspSolver};
+use crate::util::{Cycle, Parents};
 
+use grax_core::collections::*;
+use grax_core::edge::*;
+use grax_core::graph::*;
+use grax_core::prelude::*;
+use grax_core::weight::*;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-pub fn branch_bound<C, G>(graph: &G) -> Option<(C, Path<G>)>
-where
-    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedNodeMap<bool>: Clone,
-{
-    match graph.node_ids().next() {
-        Some(start) => Some(_branch_bound(graph, start)),
-        None => None,
-    }
-}
+#[derive(Debug, Clone, Copy)]
+pub struct BranchBound;
 
-pub fn branch_bound_rec<C, G>(graph: &G) -> Option<(C, Path<G>)>
+impl<C, G> TspSolver<C, G> for BranchBound
 where
     C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
     G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    match graph.node_ids().next() {
-        Some(start) => {
-            let mut best_cost = nearest_neighbor(graph, start)
-                .map(|result| result.0)
-                .unwrap_or(Maximum::MAX);
-
-            let mut parents = Parents::new(graph);
-            let mut visited = graph.visit_node_map();
-            visited.visit(start);
-
-            _branch_bound_rec(
-                graph,
-                start,
-                &mut best_cost,
-                C::default(),
-                &mut parents,
-                start,
-                &mut visited,
-            );
-
-            Some((best_cost, Path { parents }))
-        }
-        None => None,
+    fn solve(graph: &G) -> Option<TspCycle<C, G>> {
+        branch_bound_rec(graph)
     }
 }
 
-pub(crate) fn _branch_bound<C, G>(graph: &G, start: NodeId<G::Key>) -> (C, Path<G>)
+// test algorithms::branch_bound::test::branch_bound_k_10e_adj_list         ... bench:   4,498,493.70 ns/iter (+/- 390,846.68)
+
+pub fn branch_bound<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
     G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
     G::FixedNodeMap<bool>: Clone,
 {
-    let (mut best_cost, mut best_path) =
-        nearest_neighbor(graph, start).unwrap_or((Maximum::MAX, Path::new(graph)));
+    let start = graph.node_ids().next()?;
+
+    let TspCycle {
+        cost: mut best_cost,
+        cycle: mut best_cycle,
+    } = nearest_neighbor(graph).unwrap_or(TspCycle {
+        cost: Maximum::MAX,
+        cycle: Cycle {
+            parents: Parents::new(graph),
+            member: start,
+        },
+    });
 
     let mut visited = graph.visit_node_map();
     visited.visit(start);
@@ -99,7 +73,10 @@ where
 
                     if cost < best_cost {
                         best_cost = cost;
-                        best_path = Path { parents };
+                        best_cycle = Cycle {
+                            parents,
+                            member: to,
+                        };
                     }
                 } else {
                     stack.push((cost, parents, to, visited));
@@ -108,7 +85,47 @@ where
         }
     }
 
-    (best_cost, best_path)
+    Some(TspCycle {
+        cost: best_cost,
+        cycle: best_cycle,
+    })
+}
+
+// test algorithms::branch_bound::test::branch_bound_rec_k_10e_adj_list     ... bench:   2,234,155.80 ns/iter (+/- 24,961.04)
+
+pub fn branch_bound_rec<C, G>(graph: &G) -> Option<TspCycle<C, G>>
+where
+    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
+    G::EdgeWeight: EdgeCost<Cost = C>,
+{
+    let mut best_cost = nearest_neighbor(graph)
+        .map(|result| result.cost)
+        .unwrap_or(Maximum::MAX);
+
+    let start = graph.node_ids().next()?;
+
+    let mut parents = Parents::new(graph);
+    let mut visited = graph.visit_node_map();
+    visited.visit(start);
+
+    _branch_bound_rec(
+        graph,
+        start,
+        &mut best_cost,
+        C::default(),
+        &mut parents,
+        start,
+        &mut visited,
+    );
+
+    Some(TspCycle {
+        cost: best_cost,
+        cycle: Cycle {
+            member: start,
+            parents,
+        },
+    })
 }
 
 pub(crate) fn _branch_bound_rec<C, G>(
@@ -166,7 +183,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().0 as f32;
+            let total = branch_bound(&graph).unwrap().cost as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -176,27 +193,29 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().0 as f32;
+            let total = branch_bound(&graph).unwrap().cost as f32;
             assert_eq!(total, 27.26);
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn branch_bound_k_12_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().0 as f32;
+            let total = branch_bound(&graph).unwrap().cost as f32;
             assert_eq!(total, 45.19);
         })
     }
 
+    #[cfg(feature = "extensive")]
     #[bench]
     fn branch_bound_k_12e_adj_list(b: &mut Bencher) {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound(&graph).unwrap().0 as f32;
+            let total = branch_bound(&graph).unwrap().cost as f32;
             assert_eq!(total, 36.13);
         })
     }
@@ -206,7 +225,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().0 as f32;
+            let total = branch_bound_rec(&graph).unwrap().cost as f32;
             assert_eq!(total, 38.41);
         })
     }
@@ -216,7 +235,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().0 as f32;
+            let total = branch_bound_rec(&graph).unwrap().cost as f32;
             assert_eq!(total, 27.26);
         })
     }
@@ -227,7 +246,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().0 as f32;
+            let total = branch_bound_rec(&graph).unwrap().cost as f32;
             assert_eq!(total, 45.19);
         })
     }
@@ -238,7 +257,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = branch_bound_rec(&graph).unwrap().0 as f32;
+            let total = branch_bound_rec(&graph).unwrap().cost as f32;
             assert_eq!(total, 36.13);
         })
     }

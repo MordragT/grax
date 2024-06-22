@@ -1,12 +1,11 @@
-use crate::util::{Cycle, Distances, Parents, ShortestPathFinder};
-use crate::util::{ShortestPath, ShortestPathTo};
+use crate::problems::{ShortestPath, ShortestPathFinder, ShortestPathTree};
+use crate::util::{Cycle, Distances, Parents};
+
+use either::Either;
 use grax_core::collections::*;
 use grax_core::edge::*;
 use grax_core::graph::*;
 use grax_core::prelude::*;
-
-use either::Either;
-
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
 
@@ -19,25 +18,25 @@ where
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    fn shortest_path_were<F>(
+    fn shortest_path_tree_where<F>(
         self,
         graph: &G,
         from: NodeId<<G as Keyed>::Key>,
         filter: F,
-    ) -> ShortestPath<C, G>
+    ) -> ShortestPathTree<C, G>
     where
         F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         bellman_ford(graph, from, filter)
     }
 
-    fn shortest_path_to_where<F>(
+    fn shortest_path_where<F>(
         self,
         graph: &G,
         from: NodeId<G::Key>,
         to: NodeId<G::Key>,
         filter: F,
-    ) -> ShortestPathTo<C, G>
+    ) -> Option<ShortestPath<C, G>>
     where
         F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
@@ -50,24 +49,32 @@ pub fn bellman_ford_to<C, F, G>(
     from: NodeId<G::Key>,
     to: NodeId<G::Key>,
     filter: F,
-) -> ShortestPathTo<C, G>
+) -> Option<ShortestPath<C, G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    let ShortestPath { distances, parents } = bellman_ford(graph, from, filter);
-    let distance = distances.distance(to).copied();
-
-    ShortestPathTo {
-        distance,
+    let ShortestPathTree {
         distances,
         parents,
+        from,
+    } = bellman_ford(graph, from, filter);
+    if let Some(distance) = distances.distance(to).copied() {
+        Some(ShortestPath {
+            distance,
+            from,
+            to,
+            distances,
+            parents,
+        })
+    } else {
+        None
     }
 }
 
-pub fn bellman_ford<C, F, G>(graph: &G, start: NodeId<G::Key>, filter: F) -> ShortestPath<C, G>
+pub fn bellman_ford<C, F, G>(graph: &G, from: NodeId<G::Key>, filter: F) -> ShortestPathTree<C, G>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
@@ -77,7 +84,7 @@ where
     let mut parents = Parents::new(graph);
 
     let mut distances = Distances::new(graph);
-    distances.update(start, C::default());
+    distances.update(from, C::default());
 
     for _ in 1..graph.node_count() {
         if !relax(graph, &mut distances, &mut parents, &filter) {
@@ -85,14 +92,18 @@ where
         }
     }
 
-    ShortestPath { distances, parents }
+    ShortestPathTree {
+        from,
+        distances,
+        parents,
+    }
 }
 
 pub fn bellman_ford_cycle<C, F, G>(
     graph: &G,
-    start: NodeId<G::Key>,
+    from: NodeId<G::Key>,
     filter: F,
-) -> Either<ShortestPath<C, G>, Cycle<G>>
+) -> Either<ShortestPathTree<C, G>, Cycle<G>>
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
@@ -102,7 +113,7 @@ where
     let mut parents = Parents::new(graph);
 
     let mut distances = Distances::new(graph);
-    distances.update(start, C::default());
+    distances.update(from, C::default());
 
     let mut updated = false;
 
@@ -118,7 +129,11 @@ where
 
         Either::Right(cycle)
     } else {
-        Either::Left(ShortestPath { distances, parents })
+        Either::Left(ShortestPathTree {
+            from,
+            distances,
+            parents,
+        })
     }
 }
 
@@ -203,8 +218,8 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -215,8 +230,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -227,8 +243,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -239,8 +256,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -263,8 +281,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -275,8 +294,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(0), id(1), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -287,8 +307,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -299,8 +320,9 @@ mod test {
 
         b.iter(|| {
             let total = bellman_ford_to(&graph, id(2), id(0), |_| true)
-                .distance
-                .unwrap();
+                .unwrap()
+                .distance;
+
             assert_eq!(total as f32, 2.0)
         })
     }

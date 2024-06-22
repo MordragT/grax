@@ -1,8 +1,4 @@
-use std::{
-    collections::HashSet,
-    fmt::Debug,
-    ops::{AddAssign, Neg, Sub, SubAssign},
-};
+use super::{ford_fulkerson, Bfs};
 
 use grax_core::{
     collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
@@ -12,10 +8,11 @@ use grax_core::{
     weight::Maximum,
 };
 use grax_flow::{EdgeFlow, FlowBundle};
-
-use crate::Bfs;
-
-use super::ford_fulkerson;
+use std::{
+    collections::HashSet,
+    fmt::Debug,
+    ops::{AddAssign, Neg, Sub, SubAssign},
+};
 
 pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
 where

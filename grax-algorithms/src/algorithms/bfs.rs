@@ -1,17 +1,11 @@
-use grax_core::collections::FixedNodeMap;
-use grax_core::collections::GetNodeMut;
-use grax_core::collections::NodeIter;
-use grax_core::collections::VisitNodeMap;
-use grax_core::graph::EdgeIterAdjacent;
-use grax_core::graph::NodeAttribute;
-use grax_core::graph::NodeIterAdjacent;
+use crate::problems::{Path, PathFinder, PathTree};
+use crate::util::Parents;
+
+use grax_core::collections::*;
+use grax_core::graph::*;
 use grax_core::prelude::*;
 use std::collections::VecDeque;
 use std::fmt::Debug;
-
-use crate::util::Parents;
-use crate::util::Path;
-use crate::util::PathFinder;
 
 #[derive(Clone, Copy)]
 pub struct Bfs;
@@ -20,14 +14,14 @@ impl<G> PathFinder<G> for Bfs
 where
     G: NodeAttribute + EdgeIterAdjacent,
 {
-    fn path_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> Path<G>
+    fn path_tree_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> PathTree<G>
     where
         F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         bfs_where(graph, from, filter)
     }
 
-    fn path_to_where<F>(
+    fn path_where<F>(
         self,
         graph: &G,
         from: NodeId<G::Key>,
@@ -145,7 +139,7 @@ where
     })
 }
 
-pub fn bfs_where<F, G>(graph: &G, source: NodeId<G::Key>, filter: F) -> Path<G>
+pub fn bfs_where<F, G>(graph: &G, from: NodeId<G::Key>, filter: F) -> PathTree<G>
 where
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeIterAdjacent,
@@ -154,8 +148,8 @@ where
     let mut visited = graph.visit_node_map();
     let mut parents = Parents::new(graph);
 
-    queue.push_front(source);
-    visited.visit(source);
+    queue.push_front(from);
+    visited.visit(from);
 
     while let Some(from) = queue.pop_front() {
         for edge in graph.iter_adjacent_edges(from) {
@@ -167,7 +161,7 @@ where
             }
         }
     }
-    Path { parents }
+    PathTree { from, parents }
 }
 
 pub fn bfs_to_where<F, G>(
@@ -189,7 +183,11 @@ where
 
     while let Some(from) = queue.pop_front() {
         if from == sink {
-            return Some(Path { parents });
+            return Some(Path {
+                from: source,
+                to: sink,
+                parents,
+            });
         }
 
         for edge in graph.iter_adjacent_edges(from) {
@@ -231,11 +229,8 @@ pub(crate) fn bfs_marker<G, M>(
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::bfs_scc;
-    use crate::{
-        bfs_bipartite,
-        test::{id, weightless_undigraph},
-    };
+    use super::{bfs_bipartite, bfs_scc};
+    use crate::test::{id, weightless_undigraph};
     use grax_impl::*;
     use test::Bencher;
 

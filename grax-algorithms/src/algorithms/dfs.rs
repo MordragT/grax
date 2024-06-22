@@ -1,3 +1,8 @@
+use crate::problems::Path;
+use crate::problems::PathFinder;
+use crate::problems::PathTree;
+use crate::util::Parents;
+
 use grax_core::collections::FixedNodeMap;
 use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeIter;
@@ -8,10 +13,6 @@ use grax_core::graph::NodeIterAdjacent;
 use grax_core::prelude::*;
 use std::fmt::Debug;
 
-use crate::util::Parents;
-use crate::util::Path;
-use crate::util::PathFinder;
-
 #[derive(Clone, Copy)]
 pub struct Dfs;
 
@@ -19,14 +20,14 @@ impl<G> PathFinder<G> for Dfs
 where
     G: NodeAttribute + EdgeIterAdjacent,
 {
-    fn path_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> Path<G>
+    fn path_tree_where<F>(self, graph: &G, from: NodeId<G::Key>, filter: F) -> PathTree<G>
     where
         F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         dfs_where(graph, from, filter)
     }
 
-    fn path_to_where<F>(
+    fn path_where<F>(
         self,
         graph: &G,
         from: NodeId<G::Key>,
@@ -119,7 +120,7 @@ where
     })
 }
 
-pub fn dfs_where<F, G>(graph: &G, source: NodeId<G::Key>, filter: F) -> Path<G>
+pub fn dfs_where<F, G>(graph: &G, source: NodeId<G::Key>, filter: F) -> PathTree<G>
 where
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeIterAdjacent,
@@ -141,7 +142,10 @@ where
             }
         }
     }
-    Path { parents }
+    PathTree {
+        from: source,
+        parents,
+    }
 }
 
 pub fn dfs_to_where<F, G>(
@@ -163,7 +167,11 @@ where
 
     while let Some(from) = stack.pop() {
         if from == sink {
-            return Some(Path { parents });
+            return Some(Path {
+                from: source,
+                to: sink,
+                parents,
+            });
         }
 
         for edge in graph.iter_adjacent_edges(from) {

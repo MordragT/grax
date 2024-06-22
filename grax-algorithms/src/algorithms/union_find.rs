@@ -1,12 +1,11 @@
-use std::ops::{Add, AddAssign, Deref, DerefMut};
+use crate::util::Parents;
 
 use grax_core::{
     collections::{FixedNodeMap, GetNodeMut},
     graph::NodeAttribute,
     prelude::NodeId,
 };
-
-use crate::util::Parents;
+use std::ops::{Add, AddAssign, Deref, DerefMut};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rank(u32);

@@ -65,13 +65,13 @@ impl<G: NodeAttribute> Parents<G> {
         })
     }
 
-    // pub fn first(&self) -> Option<NodeId<G::Key>> {
-    //     self.0
-    //         .iter_nodes()
-    //         .filter_map(|node| node.weight.as_ref())
-    //         .next()
-    //         .copied()
-    // }
+    pub fn first(&self) -> Option<NodeId<G::Key>> {
+        self.0
+            .iter_nodes()
+            .filter_map(|node| node.weight.as_ref())
+            .next()
+            .copied()
+    }
 
     pub fn node_ids(&self) -> impl Iterator<Item = NodeId<G::Key>> + '_ {
         self.0.node_ids()

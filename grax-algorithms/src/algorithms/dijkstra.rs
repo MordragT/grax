@@ -1,12 +1,12 @@
-use crate::util::{Distances, Parents, ShortestPath, ShortestPathFinder, ShortestPathTo};
+use crate::problems::{ShortestPath, ShortestPathTree};
+use crate::util::{Distances, Parents};
+
 use grax_core::collections::NodeCount;
 use grax_core::edge::*;
 use grax_core::graph::{EdgeIterAdjacent, NodeAttribute};
 use grax_core::prelude::*;
 use grax_core::weight::Sortable;
-
 use orx_priority_queue::{DaryHeap, PriorityQueue};
-
 use std::fmt::Debug;
 use std::ops::Add;
 
@@ -37,7 +37,7 @@ pub fn dijkstra_to<C, G>(
     graph: &G,
     from: NodeId<G::Key>,
     to: NodeId<G::Key>,
-) -> ShortestPathTo<C, G>
+) -> Option<ShortestPath<C, G>>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
     G: EdgeIterAdjacent + NodeAttribute + NodeCount,
@@ -52,12 +52,14 @@ where
 
     while let Some((node, dist)) = priority_queue.pop() {
         if node == to {
-            let distance = distances.distance(node).cloned();
-            return ShortestPathTo {
+            let distance = distances.distance(node).cloned().unwrap();
+            return Some(ShortestPath {
                 distance,
+                from,
+                to,
                 distances,
                 parents,
-            };
+            });
         }
 
         if let Some(&prev) = distances.distance(node)
@@ -82,15 +84,10 @@ where
         }
     }
 
-    let distance = distances.distance(to).cloned();
-    ShortestPathTo {
-        distance,
-        distances,
-        parents,
-    }
+    None
 }
 
-pub fn dijkstra<C, G>(graph: &G, from: NodeId<G::Key>) -> ShortestPath<C, G>
+pub fn dijkstra<C, G>(graph: &G, from: NodeId<G::Key>) -> ShortestPathTree<C, G>
 where
     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
     G: EdgeIterAdjacent + NodeAttribute + NodeCount,
@@ -126,7 +123,11 @@ where
         }
     }
 
-    ShortestPath { distances, parents }
+    ShortestPathTree {
+        from,
+        distances,
+        parents,
+    }
 }
 
 #[cfg(test)]
@@ -143,7 +144,7 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_to(&graph, id(0), id(1)).distance.unwrap();
+            let total = dijkstra_to(&graph, id(0), id(1)).unwrap().distance;
             assert_eq!(total as f32, 5.56283)
         })
     }
@@ -153,7 +154,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_to(&graph, id(0), id(1)).distance.unwrap();
+            let total = dijkstra_to(&graph, id(0), id(1)).unwrap().distance;
             assert_eq!(total as f32, 2.36802)
         })
     }
@@ -163,7 +164,7 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege1.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_to(&graph, id(2), id(0)).distance.unwrap();
+            let total = dijkstra_to(&graph, id(2), id(0)).unwrap().distance;
             assert_eq!(total as f32, 6.0)
         })
     }
@@ -173,7 +174,7 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege2.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_to(&graph, id(2), id(0)).distance.unwrap();
+            let total = dijkstra_to(&graph, id(2), id(0)).unwrap().distance;
             assert_eq!(total as f32, 2.0)
         })
     }
@@ -184,7 +185,7 @@ mod test {
         let graph: AdjGraph<_, _, true> = digraph("../data/Wege3.txt").unwrap();
 
         b.iter(|| {
-            let total = dijkstra_to(&graph, id(2), id(0)).distance.unwrap();
+            let total = dijkstra_to(&graph, id(2), id(0)).unwrap().distance;
             // cycle
             assert_eq!(total as f32, 2.0)
         })

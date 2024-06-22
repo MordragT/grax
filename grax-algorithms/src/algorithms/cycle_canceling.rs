@@ -1,9 +1,9 @@
+use super::{bellman_ford_cycle, edmonds_karp};
+use crate::problems::McfSolver;
+
 use either::Either;
 use grax_core::{
-    collections::{
-        EdgeCollection, EdgeIter, GetEdge, GetEdgeMut, InsertEdge, InsertNode, NodeCollection,
-        NodeCount, NodeIter,
-    },
+    collections::*,
     edge::{EdgeCost, EdgeRef},
     graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     node::NodeRef,
@@ -16,7 +16,14 @@ use std::{
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
 };
 
-use crate::{bellman_ford_cycle, edmonds_karp};
+#[derive(Debug, Clone, Copy)]
+pub struct CycleCanceling;
+
+impl<C, G> McfSolver<C, G> for CycleCanceling {
+    fn solve(graph: &G) -> Option<C> {
+        todo!()
+    }
+}
 
 pub fn cycle_canceling<G, N, W, C>(graph: &mut G) -> Option<C>
 where

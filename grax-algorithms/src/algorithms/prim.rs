@@ -1,4 +1,6 @@
-use crate::util::{Mst, MstBuilder};
+use crate::problems::{Mst, MstBuilder};
+use crate::util::Tree;
+
 use grax_core::collections::{FixedNodeMap, VisitNodeMap};
 use grax_core::collections::{NodeCount, NodeIter};
 use grax_core::edge::*;
@@ -7,7 +9,6 @@ use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
 use orx_priority_queue::DaryHeap;
 use orx_priority_queue::PriorityQueue;
-
 use std::fmt::Debug;
 use std::ops::AddAssign;
 
@@ -63,10 +64,14 @@ where
         }
     }
 
-    Some(Mst {
+    let tree = Tree {
         root,
         edges: graph.visit_edge_map(),
-        total_cost,
+    };
+
+    Some(Mst {
+        tree,
+        cost: total_cost,
     })
 }
 
@@ -83,7 +88,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -93,7 +98,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -103,7 +108,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -113,7 +118,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -123,7 +128,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -133,7 +138,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -145,7 +150,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -155,7 +160,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -166,7 +171,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -176,7 +181,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -187,7 +192,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -198,7 +203,7 @@ mod test {
         let graph: MatGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }
@@ -210,7 +215,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_2.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 287.32286);
         })
     }
@@ -220,7 +225,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 36.86275);
         })
     }
@@ -231,7 +236,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_1_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 12.68182);
         })
     }
@@ -241,7 +246,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_10_20.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 2785.62417);
         })
     }
@@ -251,7 +256,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_10_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 372.14417);
         })
     }
@@ -261,7 +266,7 @@ mod test {
         let graph: CsrGraph<_, _> = undigraph("../data/G_100_200.txt").unwrap();
 
         b.iter(|| {
-            let count = prim(&graph).unwrap().total_cost as f32;
+            let count = prim(&graph).unwrap().cost as f32;
             assert_eq!(count, 27550.51488);
         })
     }

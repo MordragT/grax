@@ -3,9 +3,9 @@
 #![feature(array_windows)]
 #![feature(iter_array_chunks)]
 
-pub use algorithms::*;
+pub mod algorithms;
+pub mod problems;
+pub mod util;
 
-mod algorithms;
 #[cfg(test)]
 mod test;
-pub mod util;

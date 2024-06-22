@@ -1,5 +1,7 @@
+use crate::problems::TspCycle;
+use crate::problems::TspSolver;
+use crate::util::Cycle;
 use crate::util::Parents;
-use crate::util::Path;
 
 use grax_core::collections::GetEdge;
 use grax_core::collections::NodeIter;
@@ -10,28 +12,30 @@ use grax_core::graph::NodeAttribute;
 use grax_core::prelude::*;
 use grax_core::weight::Maximum;
 use grax_core::weight::Sortable;
-
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
-pub fn nearest_neighbor_from_first<C, G>(graph: &G) -> Option<(C, Path<G>)>
+#[derive(Debug, Clone, Copy)]
+pub struct NearestNeighbor;
+
+impl<C, G> TspSolver<C, G> for NearestNeighbor
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
     G: NodeIter + EdgeIterAdjacent + NodeAttribute + GetEdge,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
-    match graph.node_ids().next() {
-        Some(start) => nearest_neighbor(graph, start),
-        None => None,
+    fn solve(graph: &G) -> Option<TspCycle<C, G>> {
+        nearest_neighbor(graph)
     }
 }
 
-pub fn nearest_neighbor<C, G>(graph: &G, start: NodeId<G::Key>) -> Option<(C, Path<G>)>
+pub fn nearest_neighbor<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + GetEdge,
+    G: EdgeIterAdjacent + NodeAttribute + GetEdge + NodeIter,
     G::EdgeWeight: EdgeCost<Cost = C>,
 {
+    let start = graph.node_ids().next()?;
     let mut cost = C::default();
     let mut parents = Parents::new(graph);
     let mut visited = graph.visit_node_map();
@@ -63,13 +67,19 @@ where
 
     assert!(visited.all_visited());
 
-    Some((cost, Path { parents }))
+    Some(TspCycle {
+        cost,
+        cycle: Cycle {
+            parents,
+            member: start,
+        },
+    })
 }
 
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::nearest_neighbor_from_first;
+    use super::nearest_neighbor;
     use crate::test::undigraph;
     use grax_impl::*;
     use more_asserts::*;
@@ -80,7 +90,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().0;
+            let total = nearest_neighbor(&graph).unwrap().cost;
             assert_le!(total, 38.41 * 1.2);
             assert_ge!(total, 38.41)
         })
@@ -91,7 +101,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_10e.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().0;
+            let total = nearest_neighbor(&graph).unwrap().cost;
             assert_le!(total, 27.26 * 1.2);
             assert_ge!(total, 27.26)
         })
@@ -102,7 +112,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().0;
+            let total = nearest_neighbor(&graph).unwrap().cost;
             assert_le!(total, 45.19 * 1.2);
             assert_ge!(total, 45.19)
         })
@@ -113,7 +123,7 @@ mod test {
         let graph: AdjGraph<_, _> = undigraph("../data/K_12e.txt").unwrap();
 
         b.iter(|| {
-            let total = nearest_neighbor_from_first(&graph).unwrap().0;
+            let total = nearest_neighbor(&graph).unwrap().cost;
             assert_le!(total, 36.13 * 1.2);
             assert_ge!(total, 36.13)
         })

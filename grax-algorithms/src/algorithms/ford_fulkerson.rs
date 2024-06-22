@@ -1,15 +1,14 @@
+use crate::problems::PathFinder;
+
 use grax_core::collections::GetEdgeMut;
 use grax_core::prelude::*;
 use grax_core::weight::Sortable;
 use grax_core::{collections::GetEdge, graph::NodeAttribute};
 use grax_flow::EdgeFlow;
-
 use std::{
     fmt::Debug,
     ops::{AddAssign, Sub, SubAssign},
 };
-
-use crate::util::{Path, PathFinder};
 
 pub fn ford_fulkerson<C, G>(
     graph: &mut G,
@@ -29,7 +28,9 @@ where
     };
 
     // loop while path_finder finds a path
-    while let Some(Path { parents }) = path_finder.path_to_where(graph, source, sink, filter) {
+    while let Some(path) = path_finder.path_where(graph, source, sink, filter) {
+        let parents = path.parents;
+
         if parents.is_empty() {
             break;
         }
