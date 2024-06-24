@@ -5,7 +5,7 @@ use grax_core::{
 };
 use std::fmt::Debug;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Distances<C: Clone + Debug, G: NodeAttribute>(G::FixedNodeMap<Option<C>>);
 
 impl<C, G> Distances<C, G>

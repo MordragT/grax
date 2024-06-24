@@ -1,44 +1,60 @@
-// use std::{
-//     cmp::min_by,
-//     fmt::Debug,
-//     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
-// };
-
-// use num_traits::{Float, Pow};
-
-// use super::{bellman_ford, dijkstra};
-// use crate::algorithms::{Mcf, _ford_fulkerson, bfs_sp};
-// use crate::view::Parents;
-// use grax_core::prelude::*;
-// use grax_core::traits::*;
-
 use std::{
     fmt::Debug,
-    ops::{Neg, Sub},
+    iter::Sum,
+    ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
 };
 
-use grax_core::edge::{weight::*, *};
 use grax_core::{
     collections::{
-        EdgeCollection, EdgeIter, EdgeIterMut, GetEdgeMut, GetNodeMut, NodeCollection, NodeIter,
-        NodeIterMut,
+        EdgeCollection, EdgeIter, GetEdge, GetEdgeMut, GetNode, GetNodeMut, InsertEdge,
+        NodeCollection, NodeCount, NodeIter, NodeIterMut,
     },
-    graph::NodeAttribute,
-    node::{NodeMut, NodeRef},
+    edge::{weight::*, *},
+    graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
+    node::{weight::*, NodeMut, NodeRef},
 };
+use more_asserts::assert_gt;
+
+use crate::{algorithms::bellman_ford_to, problems::ShortestPath, weight::TotalOrd};
 
 /// successive shortest path
 pub fn ssp<C, G>(graph: &mut G) -> Option<C>
 where
-    C: PartialOrd + Default + Copy + Debug + Neg<Output = C> + Sub<C, Output = C>,
+    C: PartialOrd
+        + Default
+        + Copy
+        + Debug
+        + Neg<Output = C>
+        + Add<C, Output = C>
+        + Sub<C, Output = C>
+        + Mul<C, Output = C>
+        + AddAssign<C>
+        + SubAssign<C>
+        + Sum
+        + TotalOrd,
     G: EdgeCollection<EdgeWeight = FlowCostBundle<C>>
         + NodeCollection<NodeWeight = C>
+        + InsertEdge
         + GetNodeMut
         + GetEdgeMut
+        + GetNode
+        + GetEdge
         + EdgeIter
-        + NodeAttribute,
+        + NodeIter
+        + NodeIterMut
+        + NodeAttribute
+        + EdgeIterAdjacent
+        + EdgeAttribute
+        + NodeCount,
 {
-    let (to_augment, flows): (Vec<_>, Vec<_>) = graph
+    let mut balances = graph.fixed_node_map(C::default());
+
+    for NodeMut { node_id, weight } in graph.iter_nodes_mut() {
+        balances.update_node(node_id, **weight.balance());
+        *weight.balance_mut() = C::default()
+    }
+
+    let to_augment = graph
         .iter_edges()
         .filter_map(|EdgeRef { edge_id, weight }| {
             if *weight.cost() < C::default() {
@@ -48,101 +64,115 @@ where
                 None
             }
         })
-        .unzip();
+        .collect::<Vec<_>>();
 
-    let mut balances = graph.fixed_node_map(C::default());
+    for (edge_id, flow) in to_augment {
+        let weight = graph.edge_mut(edge_id).unwrap().weight;
+        *weight.flow_mut() += flow;
 
-    for (edge_id, flow) in to_augment.into_iter().zip(flows) {
-        let mut weight = graph.edge_mut(edge_id).unwrap().weight;
-        *weight.flow_mut() = flow;
+        let source = graph.node_mut(edge_id.from()).unwrap();
+        *source.weight.balance_mut() += flow;
 
-        let source_id = edge_id.from();
-        let mut source = graph.node_mut(edge_id.from()).unwrap();
-
-        // balances.update_node(source_id, source.weight.clone());
-        // *source.weight.balance_mut() += flow;
+        let sink = graph.node_mut(edge_id.to()).unwrap();
+        *sink.weight.balance_mut() -= flow;
     }
 
-    todo!()
+    let back_edges = graph
+        .iter_edges()
+        .filter_map(|EdgeRef { edge_id, weight }| {
+            if !graph.contains_edge_id(edge_id.rev()) {
+                Some((edge_id.to(), edge_id.from(), weight.clone().reverse()))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    graph.extend_edges(back_edges);
+
+    loop {
+        let mut s_candidates = Vec::new();
+        let mut t_candidates = Vec::new();
+
+        for NodeRef { node_id, weight } in graph.iter_nodes() {
+            let balance = *balances.node(node_id).unwrap().weight;
+            let residual_balance = *weight.balance();
+
+            if residual_balance < balance {
+                s_candidates.push(node_id);
+            } else if residual_balance > balance {
+                t_candidates.push(node_id);
+            }
+        }
+
+        if s_candidates.is_empty() && t_candidates.is_empty() {
+            let cost = graph
+                .iter_edges()
+                .filter_map(|edge| {
+                    let weight = edge.weight;
+                    if !weight.is_reverse() {
+                        Some(*weight.flow() * *weight.cost())
+                    } else {
+                        None
+                    }
+                })
+                .sum();
+
+            return Some(cost);
+        }
+
+        let filter = |EdgeRef { edge_id: _, weight }: EdgeRef<G::Key, G::EdgeWeight>| {
+            (*weight.capacity() - *weight.flow()) > C::default()
+        };
+
+        let ShortestPath {
+            distance: _,
+            from: source,
+            to: sink,
+            distances: _,
+            parents,
+        } = s_candidates.into_iter().find_map(|from| {
+            for &to in &t_candidates {
+                if let Some(path) = bellman_ford_to(graph, from, to, filter) {
+                    return Some(path);
+                }
+            }
+            None
+        })?;
+
+        let s_delta =
+            *balances.node(source).unwrap().weight - *graph.node(source).unwrap().weight.balance();
+        assert_gt!(s_delta, C::default());
+        let t_delta =
+            *graph.node(sink).unwrap().weight.balance() - *balances.node(sink).unwrap().weight;
+        assert_gt!(t_delta, C::default());
+
+        let balances_min = [s_delta, t_delta];
+
+        let gamma = parents
+            .iter_edges_to(source, sink)
+            .map(|edge_id| {
+                let weight = graph.edge(edge_id).unwrap().weight;
+                *weight.capacity() - *weight.flow()
+            })
+            .chain(balances_min)
+            .min_by(TotalOrd::total_ord)
+            .unwrap();
+
+        for edge_id in parents.iter_edges_to(source, sink) {
+            let weight = graph.edge_mut(edge_id).unwrap().weight;
+            *weight.flow_mut() += gamma;
+
+            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
+            *weight_rev.flow_mut() -= gamma;
+        }
+
+        let source_weight = graph.node_mut(source).unwrap().weight;
+        *source_weight.balance_mut() += gamma;
+
+        let sink_weight = graph.node_mut(sink).unwrap().weight;
+        *sink_weight.balance_mut() -= gamma;
+    }
 }
-
-// where
-//     N: Default + NodeBalance<Balance = C>,
-//     W: EdgeCapacity<Capacity = C>
-//         + Cost<C>
-//         + Default
-//         + EdgeDirection
-//         + EdgeFlow<Flow = C>,
-//     C: Default
-//         + PartialOrd
-//         + Copy
-//         + Neg<Output = C>
-//         + AddAssign
-//         + SubAssign
-//         + Debug
-//         + Sub<C, Output = C>
-//         + Mul<C, Output = C>
-//         + Add<C, Output = C>
-//         + Sortable,
-//     G: Index
-//         + Get
-//         + GetMut
-//         + Insert
-//         + Remove
-//         + Count
-//         + IndexAdjacent
-//         + IterAdjacent
-//         + Iter
-//         + IterMut
-//         + Clone
-//         + Base<Node = N, Weight = W>
-//         + Debug,
-// {
-//     // let Mcf {
-//     //     mut residual_graph,
-//     //     source,
-//     //     sink,
-//     // } = Mcf::init(graph);
-
-//     // pseudo flow, erfüllt kapazitätsbedinungen aber verletzt ddie massenbalancebedingung
-//     let mut delta = match graph
-//         .iter_edges()
-//         .map(|edge| edge.weight.capacity())
-//         .cloned()
-//         .reduce(C::min)
-//     {
-//         Some(d) => d,
-//         None => return None,
-//     };
-
-//     let mut graphR = graph.clone();
-
-//     for edge in graphR.iter_edges_mut() {
-//         *edge.weight.flow_mut() += delta;
-//     }
-
-//     for EdgeRef { edge_id, weight } in graph.iter_edges() {
-//         if !graphR.contains_edge_id(edge_id.rev()) {
-//             let mut w = W::default();
-//             *w.cost_mut() = -*weight.cost();
-//             *w.capacity_mut() = *weight.capacity();
-//             *w.flow_mut() = *weight.capacity() - *weight.flow();
-//             w.reverse();
-
-//             graphR.insert_edge(edge_id.to(), edge_id.from(), w);
-//         }
-//     }
-
-//     let cost = graphR.iter_edges().fold(C::default(), |mut akku, edge| {
-//         let weight = edge.weight;
-//         if !weight.is_reverse() {
-//             akku += *weight.flow() * *weight.cost();
-//         }
-
-//         akku
-//     });
-
-//     Some(cost)
 
 #[cfg(test)]
 mod test {
@@ -165,17 +195,17 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn ssp_kostenminimal_3() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
-        let _cost = ssp(&mut graph).unwrap();
+        let cost = ssp(&mut graph);
+        assert!(cost.is_none());
     }
 
     #[test]
-    #[should_panic]
     fn ssp_kostenminimal_4() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
-        let _cost = ssp(&mut graph).unwrap();
+        let cost = ssp(&mut graph);
+        assert!(cost.is_none());
     }
 
     #[test]
@@ -193,9 +223,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     fn ssp_kostenminimal_gross_3() {
         let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
-        let _cost = ssp(&mut graph).unwrap();
+        let cost = ssp(&mut graph);
+        assert!(cost.is_none());
     }
 }

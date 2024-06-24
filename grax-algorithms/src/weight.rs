@@ -45,27 +45,35 @@ impl TotalOrd for f64 {
     }
 }
 
+macro_rules! impl_total_ord(
+    ( $( $t:ident ),* )=> {
+        $(
+            impl TotalOrd for $t {
+                fn total_ord(&self, other: &Self) -> Ordering {
+                    Self::cmp(self, other)
+                }
+            }
+        )*
+    }
+);
+
+impl_total_ord!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
+
 pub trait Bounded {
     const MAX: Self;
     const MIN: Self;
 }
 
-impl Bounded for f64 {
-    const MAX: Self = f64::INFINITY;
-    const MIN: Self = f64::MIN;
-}
+macro_rules! impl_bounded(
+    ( $( $t:ident ),* )=> {
+        $(
+            impl Bounded for $t {
+                const MAX: Self = $t::MAX;
+                const MIN: Self = $t::MIN;
+            }
 
-impl Bounded for f32 {
-    const MAX: Self = f32::INFINITY;
-    const MIN: Self = f32::MIN;
-}
+        )*
+    }
+);
 
-impl Bounded for u32 {
-    const MAX: Self = u32::MAX;
-    const MIN: Self = u32::MIN;
-}
-
-impl Bounded for usize {
-    const MAX: Self = usize::MAX;
-    const MIN: Self = usize::MIN;
-}
+impl_bounded!(f32, f64, u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);

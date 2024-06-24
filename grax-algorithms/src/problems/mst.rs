@@ -11,6 +11,7 @@ where
     fn mst(self, graph: &G) -> Option<Mst<C, G>>;
 }
 
+#[derive(Debug, Clone)]
 pub struct Mst<C, G>
 where
     G: EdgeAttribute,

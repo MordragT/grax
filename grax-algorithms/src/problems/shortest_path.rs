@@ -53,6 +53,7 @@ where
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ShortestPathTree<C, G>
 where
     C: Clone + Debug,
@@ -63,6 +64,7 @@ where
     pub parents: Parents<G>,
 }
 
+#[derive(Debug, Clone)]
 pub struct ShortestPath<C, G>
 where
     C: Clone + Debug,

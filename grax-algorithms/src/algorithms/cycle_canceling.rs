@@ -18,7 +18,7 @@ use std::{
 pub struct CycleCanceling;
 
 impl<C, G> McfSolver<C, G> for CycleCanceling {
-    fn solve(graph: &G) -> Option<C> {
+    fn solve(_: &G) -> Option<C> {
         todo!()
     }
 }

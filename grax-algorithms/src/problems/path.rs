@@ -40,6 +40,7 @@ where
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct PathTree<G>
 where
     G: NodeAttribute,
@@ -48,6 +49,7 @@ where
     pub parents: Parents<G>,
 }
 
+#[derive(Debug, Clone)]
 pub struct Path<G>
 where
     G: NodeAttribute,

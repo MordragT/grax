@@ -1,5 +1,6 @@
 use grax_core::{graph::EdgeAttribute, index::NodeId};
 
+#[derive(Debug, Clone)]
 pub struct Tree<G>
 where
     G: EdgeAttribute,

@@ -3,8 +3,8 @@ use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Tree};
 use crate::weight::{Bounded, TotalOrd};
 
-use grax_core::collections::{EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter};
-use grax_core::edge::{weight::*, *};
+use grax_core::collections::{EdgeIter, GetEdge, NodeCount, NodeIter};
+use grax_core::edge::weight::*;
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use std::fmt::Debug;
 use std::iter::Sum;

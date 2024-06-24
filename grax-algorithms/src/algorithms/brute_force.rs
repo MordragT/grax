@@ -3,7 +3,7 @@ use crate::util::{Cycle, Parents};
 use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::{GetEdge, NodeIter};
-use grax_core::edge::{weight::*, *};
+use grax_core::edge::weight::*;
 use grax_core::graph::NodeAttribute;
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::iter::Sum;

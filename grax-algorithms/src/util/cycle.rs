@@ -8,7 +8,7 @@ use itertools::Itertools;
 
 use super::Parents;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cycle<G>
 where
     G: NodeAttribute,
