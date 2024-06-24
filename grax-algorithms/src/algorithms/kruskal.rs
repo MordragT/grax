@@ -1,11 +1,11 @@
 use super::UnionFind;
 use crate::problems::{Mst, MstBuilder};
 use crate::util::Tree;
+use crate::weight::TotalOrd;
 
-use grax_core::collections::{EdgeCollection, EdgeIter, NodeIter, VisitEdgeMap};
-use grax_core::edge::*;
+use grax_core::collections::{EdgeIter, NodeIter, VisitEdgeMap};
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeAttribute, NodeAttribute};
-use grax_core::weight::Sortable;
 use rayon::slice::ParallelSliceMut;
 use std::fmt::Debug;
 use std::ops::AddAssign;
@@ -15,14 +15,9 @@ pub struct Kruskal;
 
 impl<C, G> MstBuilder<C, G> for Kruskal
 where
-    C: Sortable + Default + AddAssign + Copy + Debug,
-    G: NodeIter
-        + EdgeIter
-        + EdgeAttribute
-        + NodeAttribute
-        + EdgeCollection<EdgeWeight: Send + Sync>,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedEdgeMap<bool>: 'static,
+    C: TotalOrd + Default + AddAssign + Copy + Debug,
+    G: NodeIter + EdgeIter + EdgeAttribute + NodeAttribute,
+    G::EdgeWeight: Cost<C> + Clone + Send + Sync,
 {
     fn mst(self, graph: &G) -> Option<Mst<C, G>> {
         kruskal(graph)
@@ -31,14 +26,9 @@ where
 
 pub fn kruskal<C, G>(graph: &G) -> Option<Mst<C, G>>
 where
-    C: Sortable + Default + AddAssign + Copy + Debug,
-    G: NodeIter
-        + EdgeIter
-        + EdgeAttribute
-        + NodeAttribute
-        + EdgeCollection<EdgeWeight: Send + Sync>,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedEdgeMap<bool>: 'static,
+    C: TotalOrd + Default + AddAssign + Copy + Debug,
+    G: NodeIter + EdgeIter + EdgeAttribute + NodeAttribute,
+    G::EdgeWeight: Cost<C> + Clone + Send + Sync,
 {
     let mut root = graph.node_ids().next()?;
 
@@ -47,7 +37,7 @@ where
         .iter_edges()
         .map(|edge| edge.to_owned())
         .collect::<Vec<_>>();
-    priority_queue.par_sort_unstable_by(|a, b| a.weight.cost().sort(&b.weight.cost()));
+    priority_queue.par_sort_unstable_by(|a, b| a.weight.cost().total_ord(&b.weight.cost()));
 
     let mut union_find = UnionFind::new(graph);
 

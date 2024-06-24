@@ -1,7 +1,0 @@
-[package]
-name = "grax-flow"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-grax-core = { path = "../grax-core" }

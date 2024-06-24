@@ -1,12 +1,12 @@
 use super::nearest_neighbor;
 use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Parents};
+use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::*;
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::*;
 use grax_core::prelude::*;
-use grax_core::weight::*;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
@@ -15,9 +15,9 @@ pub struct BranchBound;
 
 impl<C, G> TspSolver<C, G> for BranchBound
 where
-    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
+    C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
     G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
         branch_bound_rec(graph)
@@ -28,9 +28,9 @@ where
 
 pub fn branch_bound<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
+    C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
     G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
     G::FixedNodeMap<bool>: Clone,
 {
     let start = graph.node_ids().next()?;
@@ -39,7 +39,7 @@ where
         cost: mut best_cost,
         cycle: mut best_cycle,
     } = nearest_neighbor(graph).unwrap_or(TspCycle {
-        cost: Maximum::MAX,
+        cost: Bounded::MAX,
         cycle: Cycle {
             parents: Parents::new(graph),
             member: start,
@@ -95,13 +95,13 @@ where
 
 pub fn branch_bound_rec<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Maximum + Debug,
+    C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
     G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut best_cost = nearest_neighbor(graph)
         .map(|result| result.cost)
-        .unwrap_or(Maximum::MAX);
+        .unwrap_or(Bounded::MAX);
 
     let start = graph.node_ids().next()?;
 
@@ -137,9 +137,9 @@ pub(crate) fn _branch_bound_rec<C, G>(
     from: NodeId<G::Key>,
     visited: &mut G::FixedNodeMap<bool>,
 ) where
-    C: Default + Copy + Add<C, Output = C> + AddAssign + PartialOrd + Sortable + Debug,
+    C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
     G: EdgeIterAdjacent + NodeAttribute + NodeCount + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     if visited.all_visited() {
         cost += *graph

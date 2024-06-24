@@ -6,6 +6,7 @@
 pub mod algorithms;
 pub mod problems;
 pub mod util;
+pub mod weight;
 
 #[cfg(test)]
 mod test;

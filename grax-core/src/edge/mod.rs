@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use super::index::{EdgeId, Identifier, NodeId};
 use std::fmt::Debug;
 
+pub mod weight;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Edge<Id: Identifier, Weight> {
     pub edge_id: EdgeId<Id>,
@@ -125,36 +127,5 @@ impl<'a, Id: Identifier, Weight> From<&'a mut Edge<Id, Weight>> for EdgeMut<'a, 
             edge_id: edge.edge_id,
             weight: &mut edge.weight,
         }
-    }
-}
-
-pub trait EdgeCost: Clone + Debug {
-    type Cost;
-
-    fn cost(&self) -> &Self::Cost;
-    fn cost_mut(&mut self) -> &mut Self::Cost;
-}
-
-impl EdgeCost for f32 {
-    type Cost = f32;
-
-    fn cost(&self) -> &Self::Cost {
-        &self
-    }
-
-    fn cost_mut(&mut self) -> &mut Self::Cost {
-        self
-    }
-}
-
-impl EdgeCost for f64 {
-    type Cost = f64;
-
-    fn cost(&self) -> &Self::Cost {
-        &self
-    }
-
-    fn cost_mut(&mut self) -> &mut Self::Cost {
-        self
     }
 }

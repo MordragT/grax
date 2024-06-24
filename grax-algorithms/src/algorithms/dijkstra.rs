@@ -1,11 +1,11 @@
 use crate::problems::{ShortestPath, ShortestPathTree};
 use crate::util::{Distances, Parents};
+use crate::weight::TotalOrd;
 
 use grax_core::collections::NodeCount;
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeIterAdjacent, NodeAttribute};
 use grax_core::prelude::*;
-use grax_core::weight::Sortable;
 use orx_priority_queue::{DaryHeap, PriorityQueue};
 use std::fmt::Debug;
 use std::ops::Add;
@@ -17,7 +17,7 @@ use std::ops::Add;
 // where
 //     C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
 //     G: EdgeIterAdjacent + NodeAttribute + NodeCount,
-//     G::EdgeWeight: EdgeCost<Cost = C>,
+//     G::EdgeWeight: Cost<C>,
 // {
 //     fn shortest_path(self, graph: &G, from: NodeId<G::Key>) -> ShortestPath<C, G> {
 //         dijkstra(graph, from)
@@ -39,9 +39,9 @@ pub fn dijkstra_to<C, G>(
     to: NodeId<G::Key>,
 ) -> Option<ShortestPath<C, G>>
 where
-    C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
+    C: Default + TotalOrd + Copy + Add<C, Output = C> + Debug + PartialOrd,
     G: EdgeIterAdjacent + NodeAttribute + NodeCount,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
     let mut distances = Distances::new(graph);
@@ -89,9 +89,9 @@ where
 
 pub fn dijkstra<C, G>(graph: &G, from: NodeId<G::Key>) -> ShortestPathTree<C, G>
 where
-    C: Default + Sortable + Copy + Add<C, Output = C> + Debug,
+    C: Default + TotalOrd + Copy + Add<C, Output = C> + Debug + PartialOrd,
     G: EdgeIterAdjacent + NodeAttribute + NodeCount,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut priority_queue = DaryHeap::<_, _, 4>::with_capacity(graph.node_count());
     let mut distances = Distances::new(graph);

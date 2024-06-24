@@ -1,11 +1,11 @@
 use super::{dfs_where, kruskal};
 use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Tree};
+use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::{EdgeCollection, EdgeIter, GetEdge, NodeCount, NodeIter};
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
-use grax_core::weight::{Maximum, Sortable};
 use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::AddAssign;
@@ -15,18 +15,9 @@ pub struct DoubleTree;
 
 impl<C, G> TspSolver<C, G> for DoubleTree
 where
-    C: Default + Sortable + Copy + AddAssign + Debug + Maximum + Sum<C>,
-    G: NodeAttribute
-        + EdgeAttribute
-        + NodeIter
-        + EdgeIter
-        + EdgeIterAdjacent
-        + GetEdge
-        + EdgeCollection<EdgeWeight: Send + Sync>
-        + NodeCount,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedEdgeMap<bool>: 'static,
-    G::FixedNodeMap<bool>: 'static,
+    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
+    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + GetEdge + NodeCount,
+    G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
         double_tree(graph)
@@ -35,18 +26,9 @@ where
 
 pub fn double_tree<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + Sortable + Copy + AddAssign + Debug + Maximum + Sum<C>,
-    G: NodeAttribute
-        + EdgeAttribute
-        + NodeIter
-        + EdgeIter
-        + EdgeIterAdjacent
-        + GetEdge
-        + EdgeCollection<EdgeWeight: Send + Sync>
-        + NodeCount,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedEdgeMap<bool>: 'static,
-    G::FixedNodeMap<bool>: 'static,
+    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
+    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + GetEdge + NodeCount,
+    G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
     let Tree { root, edges } = kruskal(graph)?.tree;
 

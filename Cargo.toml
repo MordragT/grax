@@ -1,13 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "grax",
-    "grax-algorithms",
-    "grax-core",
-    "grax-query",
-    "grax-impl",
-    "grax-flow",
-]
+members = ["grax", "grax-algorithms", "grax-core", "grax-query", "grax-impl"]
 
 
 [profile.release]

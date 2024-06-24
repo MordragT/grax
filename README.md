@@ -327,3 +327,64 @@ test algorithms::nearest_neighbor::test::nearest_neighbor_k_12e_adj_list ... ben
 
 ## branch
 
+```
+
+```
+
+## conversion
+
+```
+test graph::conversion::test::read_digraph_100_200_adj_list ... bench:  37,407,896.50 ns/iter (+/- 1,491,658.10)
+test graph::conversion::test::read_digraph_10_200_adj_list  ... bench:  35,493,591.90 ns/iter (+/- 2,519,055.60)
+test graph::conversion::test::read_digraph_10_20_adj_list   ... bench:   2,944,768.05 ns/iter (+/- 296,310.88)
+test graph::conversion::test::read_digraph_1_200_adj_list   ... bench:  42,673,604.90 ns/iter (+/- 2,605,262.60)
+test graph::conversion::test::read_digraph_1_20_adj_list    ... bench:   2,967,491.80 ns/iter (+/- 58,780.39)
+test graph::conversion::test::read_digraph_1_2_adj_list     ... bench:     260,548.85 ns/iter (+/- 20,632.22)
+test graph::conversion::test::read_graph_100_200_adj_list   ... bench:  57,106,970.90 ns/iter (+/- 5,384,408.85)
+test graph::conversion::test::read_graph_10_200_adj_list    ... bench:  66,692,513.40 ns/iter (+/- 4,301,225.77)
+test graph::conversion::test::read_graph_10_20_adj_list     ... bench:   3,649,486.40 ns/iter (+/- 161,212.30)
+test graph::conversion::test::read_graph_1_200_adj_list     ... bench: 104,340,824.40 ns/iter (+/- 13,012,557.80)
+test graph::conversion::test::read_graph_1_20_adj_list      ... bench:   4,442,879.80 ns/iter (+/- 437,433.58)
+test graph::conversion::test::read_graph_1_2_adj_list       ... bench:     333,235.45 ns/iter (+/- 17,446.75)
+```
+
+new
+
+```
+test graph::conversion::test::read_digraph_100_200_adj_list ... bench:  28,522,759.40 ns/iter (+/- 1,637,934.78)
+test graph::conversion::test::read_digraph_10_200_adj_list  ... bench:  26,717,736.90 ns/iter (+/- 1,462,959.88)
+test graph::conversion::test::read_digraph_10_20_adj_list   ... bench:   2,029,833.40 ns/iter (+/- 35,002.39)
+test graph::conversion::test::read_digraph_1_200_adj_list   ... bench:  34,756,255.10 ns/iter (+/- 699,784.98)
+test graph::conversion::test::read_digraph_1_20_adj_list    ... bench:   2,253,500.60 ns/iter (+/- 72,359.75)
+test graph::conversion::test::read_digraph_1_2_adj_list     ... bench:     186,398.42 ns/iter (+/- 13,201.99)
+test graph::conversion::test::read_graph_100_200_adj_list   ... bench:  48,316,485.00 ns/iter (+/- 4,841,516.26)
+test graph::conversion::test::read_graph_10_200_adj_list    ... bench:  59,306,389.30 ns/iter (+/- 5,799,690.82)
+test graph::conversion::test::read_graph_10_20_adj_list     ... bench:   2,890,843.80 ns/iter (+/- 171,367.69)
+test graph::conversion::test::read_graph_1_200_adj_list     ... bench: 100,625,181.90 ns/iter (+/- 12,718,056.73)
+test graph::conversion::test::read_graph_1_20_adj_list      ... bench:   3,699,509.85 ns/iter (+/- 205,857.13)
+test graph::conversion::test::read_graph_1_2_adj_list       ... bench:     266,778.03 ns/iter (+/- 9,874.01)
+```
+
+## conversion - kostenminimal
+
+```
+test graph::conversion::test::read_kostenminimal1_adj_list       ... bench:       1,030.14 ns/iter (+/- 75.35)
+test graph::conversion::test::read_kostenminimal2_adj_list       ... bench:         824.48 ns/iter (+/- 14.47)
+test graph::conversion::test::read_kostenminimal3_adj_list       ... bench:       1,001.58 ns/iter (+/- 120.20)
+test graph::conversion::test::read_kostenminimal4_adj_list       ... bench:       1,051.00 ns/iter (+/- 101.79)
+test graph::conversion::test::read_kostenminimal_gross1_adj_list ... bench:     146,402.80 ns/iter (+/- 465.58)
+test graph::conversion::test::read_kostenminimal_gross2_adj_list ... bench:     137,940.51 ns/iter (+/- 3,812.12)
+test graph::conversion::test::read_kostenminimal_gross3_adj_list ... bench:     146,598.66 ns/iter (+/- 7,247.43)
+```
+
+new
+
+```
+test graph::conversion::test::read_kostenminimal1_adj_list       ... bench:         941.95 ns/iter (+/- 171.42)
+test graph::conversion::test::read_kostenminimal2_adj_list       ... bench:         781.57 ns/iter (+/- 42.12)
+test graph::conversion::test::read_kostenminimal3_adj_list       ... bench:         915.07 ns/iter (+/- 76.64)
+test graph::conversion::test::read_kostenminimal4_adj_list       ... bench:         922.05 ns/iter (+/- 147.40)
+test graph::conversion::test::read_kostenminimal_gross1_adj_list ... bench:     114,596.27 ns/iter (+/- 1,179.52)
+test graph::conversion::test::read_kostenminimal_gross2_adj_list ... bench:     110,006.09 ns/iter (+/- 708.54)
+test graph::conversion::test::read_kostenminimal_gross3_adj_list ... bench:     120,262.50 ns/iter (+/- 2,095.97)
+```

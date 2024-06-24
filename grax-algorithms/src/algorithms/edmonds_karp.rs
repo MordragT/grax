@@ -1,26 +1,25 @@
+use crate::weight::TotalOrd;
+
 use super::{ford_fulkerson, Bfs};
 
 use grax_core::{
     collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
-    edge::*,
+    edge::{weight::*, *},
     graph::{AdaptEdges, EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     prelude::*,
-    weight::Maximum,
 };
-use grax_flow::{EdgeFlow, FlowBundle};
 use std::{
     collections::HashSet,
     fmt::Debug,
     ops::{AddAssign, Neg, Sub, SubAssign},
 };
 
-pub fn edmonds_karp_adaptor<G1, G2, W1, C>(graph: G1) -> G2
+pub fn edmonds_karp_adaptor<G1, G2, C>(graph: G1) -> G2
 where
     C: Default + Copy + Neg<Output = C>,
-    W1: Clone + Maximum + Default,
-    G1: EdgeCollection<EdgeWeight = W1> + AdaptEdges<G2, FlowBundle<W1, C>> + EdgeIter,
-    G1::EdgeWeight: EdgeCost<Cost = C>,
-    G2: EdgeCollection<EdgeWeight = FlowBundle<W1, C>>,
+    G1: EdgeCollection<EdgeWeight = C> + AdaptEdges<G2, FlowBundle<C>> + EdgeIter,
+    G1::EdgeWeight: Cost<C>,
+    G2: EdgeCollection<EdgeWeight = FlowBundle<C>>,
 {
     let edge_ids = graph.edge_ids().collect::<HashSet<_>>();
 
@@ -31,8 +30,6 @@ where
             let cost = *weight.cost();
 
             let bundle = FlowBundle {
-                cost: cost,
-                weight: weight.clone(),
                 capacity: cost,
                 flow: C::default(),
                 reverse: false,
@@ -42,9 +39,7 @@ where
 
             if !edge_ids.contains(&edge_id.rev()) {
                 let bundle = FlowBundle {
-                    weight: weight.clone(),
                     capacity: cost,
-                    cost: -cost,
                     flow: cost,
                     reverse: true,
                 };
@@ -59,9 +54,9 @@ where
 
 pub fn edmonds_karp<C, G>(graph: &mut G, source: NodeId<G::Key>, sink: NodeId<G::Key>) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + TotalOrd,
     G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
-    G::EdgeWeight: EdgeCost<Cost = C> + EdgeFlow<Flow = C>,
+    G::EdgeWeight: Flow<C> + Capacity<C>,
 {
     ford_fulkerson(graph, source, sink, Bfs)
 }

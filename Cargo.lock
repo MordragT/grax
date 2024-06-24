@@ -235,7 +235,6 @@ version = "0.1.0"
 dependencies = [
  "either",
  "grax-core",
- "grax-flow",
  "grax-impl",
  "itertools 0.13.0",
  "more-asserts",
@@ -254,20 +253,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "grax-flow"
-version = "0.1.0"
-dependencies = [
- "grax-core",
-]
-
-[[package]]
 name = "grax-impl"
 version = "0.1.0"
 dependencies = [
  "bitvec",
  "criterion",
  "grax-core",
- "grax-flow",
+ "itertools 0.13.0",
  "more-asserts",
  "rayon",
  "serde",

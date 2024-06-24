@@ -1,15 +1,13 @@
 use super::{bellman_ford_cycle, edmonds_karp};
-use crate::problems::McfSolver;
+use crate::{problems::McfSolver, weight::TotalOrd};
 
 use either::Either;
 use grax_core::{
     collections::*,
-    edge::{EdgeCost, EdgeRef},
+    edge::{weight::*, *},
     graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
-    node::NodeRef,
-    weight::Sortable,
+    node::{weight::*, *},
 };
-use grax_flow::{BalancedNode, EdgeFlow, FlowBundle, NodeBalance};
 use std::{
     fmt::Debug,
     iter::Sum,
@@ -25,10 +23,8 @@ impl<C, G> McfSolver<C, G> for CycleCanceling {
     }
 }
 
-pub fn cycle_canceling<G, N, W, C>(graph: &mut G) -> Option<C>
+pub fn cycle_canceling<C, G>(graph: &mut G) -> Option<C>
 where
-    N: Default,
-    W: Default + Copy + Debug,
     C: Default
         + Add<C, Output = C>
         + AddAssign<C>
@@ -38,12 +34,12 @@ where
         + Mul<C, Output = C>
         + Neg<Output = C>
         + Copy
+        + Clone
         + PartialOrd
         + Debug
-        + Sortable,
-
-    G: EdgeCollection<EdgeWeight = FlowBundle<W, C>>
-        + NodeCollection<NodeWeight = BalancedNode<N, C>>
+        + TotalOrd,
+    G: EdgeCollection<EdgeWeight = FlowCostBundle<C>>
+        + NodeCollection<NodeWeight = C>
         + EdgeAttribute
         + NodeAttribute
         + EdgeIterAdjacent
@@ -59,34 +55,34 @@ where
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
         if !graph.contains_edge_id(edge_id.rev()) {
-            to_insert.push((edge_id.to(), edge_id.from(), weight.clone().rev()));
+            to_insert.push((edge_id.to(), edge_id.from(), weight.clone().reverse()));
         }
     }
 
-    let source = graph.insert_node(BalancedNode::default());
-    let sink = graph.insert_node(BalancedNode::default());
+    let source = graph.insert_node(C::default());
+    let sink = graph.insert_node(C::default());
 
     for NodeRef { node_id, weight } in graph.iter_nodes() {
         let balance = *weight.balance();
 
         if balance > C::default() {
             // supply
-            let weight = FlowBundle {
+            let weight = FlowCostBundle {
                 capacity: balance,
                 ..Default::default()
             };
 
             to_insert.push((source, node_id, weight.clone()));
-            to_insert.push((node_id, source, weight.rev()));
+            to_insert.push((node_id, source, weight.reverse()));
         } else if balance < C::default() {
             // demand
-            let weight = FlowBundle {
+            let weight = FlowCostBundle {
                 capacity: -balance,
                 ..Default::default()
             };
 
             to_insert.push((node_id, sink, weight.clone()));
-            to_insert.push((sink, node_id, weight.rev()));
+            to_insert.push((sink, node_id, weight.reverse()));
         }
     }
 
@@ -109,10 +105,10 @@ where
     }
 
     let node_ids = graph.node_ids().collect::<Vec<_>>();
-    let start = graph.insert_node(BalancedNode::default());
+    let start = graph.insert_node(C::default());
 
     for node_id in node_ids {
-        graph.insert_edge(start, node_id, FlowBundle::default());
+        graph.insert_edge(start, node_id, FlowCostBundle::default());
     }
 
     let filter = |EdgeRef { edge_id, weight }: EdgeRef<G::Key, G::EdgeWeight>| {
@@ -126,7 +122,7 @@ where
                 let weight = graph.edge(edge_id).unwrap().weight;
                 *weight.capacity() - *weight.flow()
             })
-            .min_by(|a, b| a.sort(b))
+            .min_by(TotalOrd::total_ord)
             .unwrap();
 
         for edge_id in cycle.iter_edges() {

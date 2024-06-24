@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 grax-core = { path = "../grax-core" }
-grax-flow = { path = "../grax-flow" }
 priq = "0.2.0"
 permute = "0.2.1"
 either = "1.8.1"

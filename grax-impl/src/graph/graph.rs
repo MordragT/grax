@@ -514,7 +514,7 @@ impl<
 //         NS: NodeStorage<usize, N>,
 //         ES: EdgeStorage<usize, W>,
 //         N: Debug,
-//         W: EdgeCost<Cost = C>,
+//         W: Cost<C>,
 //         const DI: bool,
 //     > Cost<C> for Graph<NS, ES, N, W, DI>
 // {

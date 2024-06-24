@@ -1,5 +1,5 @@
 use std::{
-    fmt::Debug,
+    fmt::{self, Debug},
     hash::Hash,
     marker::PhantomData,
     ops::{Deref, Index, IndexMut},
@@ -72,6 +72,12 @@ impl<Id: Identifier> Deref for NodeId<Id> {
     }
 }
 
+impl<Id: Identifier> fmt::Display for NodeId<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.0)
+    }
+}
+
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct EdgeId<Id: Identifier> {
     from: NodeId<Id>,
@@ -105,5 +111,11 @@ impl<Id: Identifier> EdgeId<Id> {
             from: *to,
             to: *from,
         }
+    }
+}
+
+impl<Id: Identifier> fmt::Display for EdgeId<Id> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} -> {}", self.from, self.to)
     }
 }

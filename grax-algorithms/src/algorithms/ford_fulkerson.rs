@@ -1,10 +1,11 @@
 use crate::problems::PathFinder;
+use crate::weight::TotalOrd;
 
 use grax_core::collections::GetEdgeMut;
+use grax_core::edge::{weight::*, *};
 use grax_core::prelude::*;
-use grax_core::weight::Sortable;
 use grax_core::{collections::GetEdge, graph::NodeAttribute};
-use grax_flow::EdgeFlow;
+
 use std::{
     fmt::Debug,
     ops::{AddAssign, Sub, SubAssign},
@@ -17,9 +18,9 @@ pub fn ford_fulkerson<C, G>(
     path_finder: impl PathFinder<G>,
 ) -> C
 where
-    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + Sortable,
+    C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + TotalOrd,
     G: GetEdge + GetEdgeMut + Debug + NodeAttribute,
-    G::EdgeWeight: EdgeFlow<Flow = C>,
+    G::EdgeWeight: Flow<C> + Capacity<C>,
 {
     let mut total_flow = C::default();
 
@@ -41,7 +42,7 @@ where
                 let weight = graph.edge(edge_id).unwrap().weight;
                 *weight.capacity() - *weight.flow()
             })
-            .min_by(|a, b| a.sort(b))
+            .min_by(TotalOrd::total_ord)
             .unwrap();
 
         total_flow += bottleneck;

@@ -3,7 +3,7 @@ use crate::util::{Cycle, Distances, Parents};
 
 use either::Either;
 use grax_core::collections::*;
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::*;
 use grax_core::prelude::*;
 use std::fmt::Debug;
@@ -16,7 +16,7 @@ impl<C, G> ShortestPathFinder<C, G> for BellmanFord
 where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     fn shortest_path_tree_where<F>(
         self,
@@ -54,7 +54,7 @@ where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let ShortestPathTree {
         distances,
@@ -79,7 +79,7 @@ where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut parents = Parents::new(graph);
 
@@ -108,7 +108,7 @@ where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeCount + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut parents = Parents::new(graph);
 
@@ -173,7 +173,7 @@ where
     C: Default + Debug + Add<C, Output = C> + PartialOrd + Copy + Sub<C, Output = C>,
     F: Fn(EdgeRef<<G as Keyed>::Key, <G as EdgeCollection>::EdgeWeight>) -> bool,
     G: NodeAttribute + EdgeAttribute + EdgeIterAdjacent + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let mut updated = false;
 

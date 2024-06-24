@@ -2,16 +2,15 @@ use crate::problems::TspCycle;
 use crate::problems::TspSolver;
 use crate::util::Cycle;
 use crate::util::Parents;
+use crate::weight::TotalOrd;
 
 use grax_core::collections::GetEdge;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::EdgeIterAdjacent;
 use grax_core::graph::NodeAttribute;
 use grax_core::prelude::*;
-use grax_core::weight::Maximum;
-use grax_core::weight::Sortable;
 use std::fmt::Debug;
 use std::ops::{Add, AddAssign};
 
@@ -20,9 +19,9 @@ pub struct NearestNeighbor;
 
 impl<C, G> TspSolver<C, G> for NearestNeighbor
 where
-    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + TotalOrd + Debug,
     G: NodeIter + EdgeIterAdjacent + NodeAttribute + GetEdge,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
         nearest_neighbor(graph)
@@ -31,9 +30,9 @@ where
 
 pub fn nearest_neighbor<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + Copy + AddAssign + Add<C, Output = C> + Maximum + Sortable + Debug,
+    C: Default + Copy + AddAssign + Add<C, Output = C> + TotalOrd + Debug,
     G: EdgeIterAdjacent + NodeAttribute + GetEdge + NodeIter,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let start = graph.node_ids().next()?;
     let mut cost = C::default();
@@ -48,7 +47,7 @@ where
         if let Some(EdgeRef { edge_id, weight }) = graph
             .iter_adjacent_edges(from)
             .filter(|edge| !visited.is_visited(edge.edge_id.to()))
-            .min_by(|a, b| a.weight.cost().sort(b.weight.cost()))
+            .min_by(|a, b| a.weight.cost().total_ord(b.weight.cost()))
         {
             let to = edge_id.to();
             parents.insert(from, to);

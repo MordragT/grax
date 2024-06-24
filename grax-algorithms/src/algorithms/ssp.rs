@@ -12,22 +12,64 @@
 // use grax_core::prelude::*;
 // use grax_core::traits::*;
 
-use grax_core::collections::{EdgeCollection, NodeCollection};
-use grax_flow::{BalancedNode, FlowBundle};
+use std::{
+    fmt::Debug,
+    ops::{Neg, Sub},
+};
+
+use grax_core::edge::{weight::*, *};
+use grax_core::{
+    collections::{
+        EdgeCollection, EdgeIter, EdgeIterMut, GetEdgeMut, GetNodeMut, NodeCollection, NodeIter,
+        NodeIterMut,
+    },
+    graph::NodeAttribute,
+    node::{NodeMut, NodeRef},
+};
 
 /// successive shortest path
-pub fn ssp<N, W, C, G>(graph: &G) -> Option<C>
+pub fn ssp<C, G>(graph: &mut G) -> Option<C>
 where
-    G: EdgeCollection<EdgeWeight = FlowBundle<W, C>>
-        + NodeCollection<NodeWeight = BalancedNode<N, C>>,
+    C: PartialOrd + Default + Copy + Debug + Neg<Output = C> + Sub<C, Output = C>,
+    G: EdgeCollection<EdgeWeight = FlowCostBundle<C>>
+        + NodeCollection<NodeWeight = C>
+        + GetNodeMut
+        + GetEdgeMut
+        + EdgeIter
+        + NodeAttribute,
 {
+    let (to_augment, flows): (Vec<_>, Vec<_>) = graph
+        .iter_edges()
+        .filter_map(|EdgeRef { edge_id, weight }| {
+            if *weight.cost() < C::default() {
+                let flow = *weight.capacity();
+                Some((edge_id, flow))
+            } else {
+                None
+            }
+        })
+        .unzip();
+
+    let mut balances = graph.fixed_node_map(C::default());
+
+    for (edge_id, flow) in to_augment.into_iter().zip(flows) {
+        let mut weight = graph.edge_mut(edge_id).unwrap().weight;
+        *weight.flow_mut() = flow;
+
+        let source_id = edge_id.from();
+        let mut source = graph.node_mut(edge_id.from()).unwrap();
+
+        // balances.update_node(source_id, source.weight.clone());
+        // *source.weight.balance_mut() += flow;
+    }
+
     todo!()
 }
 
 // where
 //     N: Default + NodeBalance<Balance = C>,
 //     W: EdgeCapacity<Capacity = C>
-//         + EdgeCost<Cost = C>
+//         + Cost<C>
 //         + Default
 //         + EdgeDirection
 //         + EdgeFlow<Flow = C>,
@@ -110,50 +152,50 @@ mod test {
 
     #[test]
     fn ssp_kostenminimal_1() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
-        let cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        let cost = ssp(&mut graph).unwrap();
         assert_eq!(cost, 3.0);
     }
 
     #[test]
     fn ssp_kostenminimal_2() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
-        let cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        let cost = ssp(&mut graph).unwrap();
         assert_eq!(cost, 0.0);
     }
 
     #[test]
     #[should_panic]
     fn ssp_kostenminimal_3() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
-        let _cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        let _cost = ssp(&mut graph).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn ssp_kostenminimal_4() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
-        let _cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        let _cost = ssp(&mut graph).unwrap();
     }
 
     #[test]
     fn ssp_kostenminimal_gross_1() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
-        let cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        let cost = ssp(&mut graph).unwrap();
         assert_eq!(cost, 1537.0);
     }
 
     #[test]
     fn ssp_kostenminimal_gross_2() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
-        let cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        let cost = ssp(&mut graph).unwrap();
         assert_eq!(cost, 1838.0);
     }
 
     #[test]
     #[should_panic]
     fn ssp_kostenminimal_gross_3() {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
-        let _cost = ssp(&graph).unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        let _cost = ssp(&mut graph).unwrap();
     }
 }

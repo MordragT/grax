@@ -1,10 +1,10 @@
 use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Parents};
+use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::{GetEdge, NodeIter};
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::NodeAttribute;
-use grax_core::weight::{Maximum, Sortable};
 use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::iter::Sum;
 use std::ops::Add;
@@ -14,9 +14,9 @@ pub struct BruteForce;
 
 impl<C, G> TspSolver<C, G> for BruteForce
 where
-    C: Default + Maximum + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + Sortable,
+    C: Default + Bounded + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + TotalOrd,
     G: NodeIter + GetEdge + NodeAttribute + Send + Sync,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
         brute_force(graph)
@@ -25,9 +25,9 @@ where
 
 pub fn brute_force<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + Maximum + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + Sortable,
+    C: Default + Bounded + PartialOrd + Add<C, Output = C> + Copy + Send + Sync + Sum + TotalOrd,
     G: NodeIter + GetEdge + NodeAttribute + Send + Sync,
-    G::EdgeWeight: EdgeCost<Cost = C>,
+    G::EdgeWeight: Cost<C>,
 {
     let start = graph.node_ids().collect::<Vec<_>>();
 
@@ -55,7 +55,7 @@ where
             }
             None
         })
-        .min_by(|a, b| a.0.sort(&b.0))?;
+        .min_by(|a, b| a.0.total_ord(&b.0))?;
 
     if best_cost == C::MAX {
         None

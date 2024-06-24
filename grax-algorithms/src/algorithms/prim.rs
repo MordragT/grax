@@ -1,12 +1,11 @@
 use crate::problems::{Mst, MstBuilder};
 use crate::util::Tree;
+use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::{FixedNodeMap, VisitNodeMap};
 use grax_core::collections::{NodeCount, NodeIter};
-use grax_core::edge::*;
+use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
-use grax_core::weight::Maximum;
-use grax_core::weight::Sortable;
 use orx_priority_queue::DaryHeap;
 use orx_priority_queue::PriorityQueue;
 use std::fmt::Debug;
@@ -17,10 +16,9 @@ pub struct Prim;
 
 impl<C, G> MstBuilder<C, G> for Prim
 where
-    C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
+    C: Default + Bounded + AddAssign + Copy + Debug + TotalOrd + PartialOrd,
     G: NodeCount + NodeIter + EdgeIterAdjacent + EdgeAttribute + NodeAttribute,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedNodeMap<bool>: 'static,
+    G::EdgeWeight: Cost<C>,
 {
     fn mst(self, graph: &G) -> Option<Mst<C, G>> {
         prim(graph)
@@ -29,10 +27,9 @@ where
 
 pub fn prim<C, G>(graph: &G) -> Option<Mst<C, G>>
 where
-    C: Default + Sortable + AddAssign + Copy + Debug + Maximum,
+    C: Default + Bounded + AddAssign + Copy + Debug + TotalOrd + PartialOrd,
     G: NodeCount + NodeIter + EdgeIterAdjacent + EdgeAttribute + NodeAttribute,
-    G::EdgeWeight: EdgeCost<Cost = C>,
-    G::FixedNodeMap<bool>: 'static,
+    G::EdgeWeight: Cost<C>,
 {
     let root = graph.node_ids().next()?;
 
