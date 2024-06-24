@@ -43,7 +43,7 @@ where
     let mut markers = graph.fixed_node_map(counter);
 
     for from in graph.node_ids() {
-        if markers.get(from) == &0 {
+        if markers[from] == 0 {
             counter += 1;
             bfs_marker(graph, from, &mut markers, counter);
         }
@@ -65,10 +65,10 @@ where
     while let Some(from) = queue.pop_front() {
         for edge_id in graph.adjacent_edge_ids(from) {
             let to = edge_id.to();
-            if color.get(to) == &0 {
+            if color[to] == 0 {
                 queue.push_back(to);
-                color.update_node(to, !color.get(from));
-            } else if color.get(to) == color.get(from) {
+                color.update_node(to, !color[from]);
+            } else if color[to] == color[from] {
                 return (false, color);
             }
         }
@@ -218,7 +218,7 @@ pub(crate) fn bfs_marker<G, M>(
     while let Some(from) = queue.pop_front() {
         for edge_id in graph.adjacent_edge_ids(from) {
             let to = edge_id.to();
-            if markers.get(to) == &M::default() {
+            if markers[to] == M::default() {
                 queue.push_back(to);
                 markers.update_node(to, mark);
             }

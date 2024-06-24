@@ -22,6 +22,6 @@ where
     }
 
     pub fn distance(&self, node_id: NodeId<G::Key>) -> Option<&C> {
-        self.0.get(node_id).as_ref()
+        self.0[node_id].as_ref()
     }
 }

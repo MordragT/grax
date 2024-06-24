@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{Index, IndexMut},
+};
 
 use grax_core::{
     collections::{
@@ -37,6 +40,20 @@ impl<V: Debug> NodeCollection for UnstableNodeVec<V> {
 impl<V: Debug> NodeCount for UnstableNodeVec<V> {
     fn node_count(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl<V: Debug> Index<NodeId<usize>> for UnstableNodeVec<V> {
+    type Output = V;
+
+    fn index(&self, index: NodeId<usize>) -> &Self::Output {
+        &self.0[*index]
+    }
+}
+
+impl<V: Debug> IndexMut<NodeId<usize>> for UnstableNodeVec<V> {
+    fn index_mut(&mut self, index: NodeId<usize>) -> &mut Self::Output {
+        &mut self.0[*index]
     }
 }
 

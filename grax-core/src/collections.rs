@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{Index, IndexMut},
+};
 
 use crate::{
     edge::{Edge, EdgeMut, EdgeRef},
@@ -37,6 +40,46 @@ pub trait EdgeCount {
     fn edges_empty(&self) -> bool {
         self.edge_count() == 0
     }
+}
+
+pub trait IndexNode:
+    NodeCollection + Keyed + Index<NodeId<Self::Key>, Output = Self::NodeWeight>
+{
+}
+
+impl<T: NodeCollection + Keyed + Index<NodeId<Self::Key>, Output = Self::NodeWeight>> IndexNode
+    for T
+{
+}
+
+pub trait IndexNodeMut:
+    NodeCollection + Keyed + IndexMut<NodeId<Self::Key>, Output = Self::NodeWeight>
+{
+}
+
+impl<T: NodeCollection + Keyed + IndexMut<NodeId<Self::Key>, Output = Self::NodeWeight>>
+    IndexNodeMut for T
+{
+}
+
+pub trait IndexEdge:
+    EdgeCollection + Keyed + Index<EdgeId<Self::Key>, Output = Self::EdgeWeight>
+{
+}
+
+impl<T: EdgeCollection + Keyed + Index<EdgeId<Self::Key>, Output = Self::EdgeWeight>> IndexEdge
+    for T
+{
+}
+
+pub trait IndexEdgeMut:
+    EdgeCollection + Keyed + IndexMut<EdgeId<Self::Key>, Output = Self::EdgeWeight>
+{
+}
+
+impl<T: EdgeCollection + Keyed + IndexMut<EdgeId<Self::Key>, Output = Self::EdgeWeight>>
+    IndexEdgeMut for T
+{
 }
 
 pub trait GetNode: NodeCollection + Keyed {
@@ -237,18 +280,20 @@ pub trait FixedNodeMap<K: Identifier, V>:
     + NodeCount
     + GetNode
     + GetNodeMut
+    + IndexNode
+    + IndexNodeMut
     + NodeIter
     + NodeIterMut
     + Debug
     + Clone
 {
-    fn get(&self, node_id: NodeId<K>) -> &V {
-        self.node(node_id).map(|node| node.weight).unwrap()
-    }
+    // fn get(&self, node_id: NodeId<K>) -> &V {
+    //     self.node(node_id).map(|node| node.weight).unwrap()
+    // }
 
-    fn get_mut(&mut self, node_id: NodeId<K>) -> &mut V {
-        self.node_mut(node_id).map(|node| node.weight).unwrap()
-    }
+    // fn get_mut(&mut self, node_id: NodeId<K>) -> &mut V {
+    //     self.node_mut(node_id).map(|node| node.weight).unwrap()
+    // }
 }
 
 pub trait VisitNodeMap<K: Identifier>: Keyed<Key = K> {
@@ -279,7 +324,7 @@ impl<K: Identifier, T: FixedNodeMap<K, bool>> VisitNodeMap<K> for T {
         self.update_node(node_id, false);
     }
     fn is_visited(&self, node_id: NodeId<K>) -> bool {
-        *self.get(node_id)
+        self[node_id]
     }
     fn all_visited(&self) -> bool {
         self.iter_nodes().all(|node| *node.weight)
@@ -316,18 +361,20 @@ pub trait FixedEdgeMap<K: Identifier, V>:
     + EdgeCount
     + GetEdge
     + GetEdgeMut
+    + IndexEdge
+    + IndexEdgeMut
     + EdgeIter
     + EdgeIterMut
     + Clone
     + Debug
 {
-    fn get(&self, edge_id: EdgeId<K>) -> &V {
-        self.edge(edge_id).map(|edge| edge.weight).unwrap()
-    }
+    // fn get(&self, edge_id: EdgeId<K>) -> &V {
+    //     self.edge(edge_id).map(|edge| edge.weight).unwrap()
+    // }
 
-    fn get_mut(&mut self, edge_id: EdgeId<K>) -> &mut V {
-        self.edge_mut(edge_id).map(|edge| edge.weight).unwrap()
-    }
+    // fn get_mut(&mut self, edge_id: EdgeId<K>) -> &mut V {
+    //     self.edge_mut(edge_id).map(|edge| edge.weight).unwrap()
+    // }
 }
 
 pub trait VisitEdgeMap<K: Identifier>: Keyed<Key = K> {
@@ -357,7 +404,7 @@ impl<K: Identifier, T: FixedEdgeMap<K, bool>> VisitEdgeMap<K> for T {
         self.update_edge(edge_id, false);
     }
     fn is_visited(&self, edge_id: EdgeId<K>) -> bool {
-        *self.get(edge_id)
+        self[edge_id]
     }
     fn all_visited(&self) -> bool {
         self.iter_edges().all(|edge| *edge.weight)

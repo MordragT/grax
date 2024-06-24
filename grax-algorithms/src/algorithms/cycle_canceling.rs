@@ -48,7 +48,8 @@ where
         + EdgeIter
         + NodeIter
         + GetEdge
-        + GetEdgeMut
+        + IndexEdge
+        + IndexEdgeMut
         + NodeCount,
 {
     let mut to_insert = Vec::new();
@@ -119,18 +120,15 @@ where
         let bottleneck = cycle
             .iter_edges()
             .map(|edge_id| {
-                let weight = graph.edge(edge_id).unwrap().weight;
+                let weight = &graph[edge_id];
                 *weight.capacity() - *weight.flow()
             })
             .min_by(TotalOrd::total_ord)
             .unwrap();
 
         for edge_id in cycle.iter_edges() {
-            let weight = graph.edge_mut(edge_id).unwrap().weight;
-            *weight.flow_mut() += bottleneck;
-
-            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
-            *weight_rev.flow_mut() -= bottleneck;
+            *graph[edge_id].flow_mut() += bottleneck;
+            *graph[edge_id.rev()].flow_mut() -= bottleneck;
         }
     }
 

@@ -1,10 +1,6 @@
 use crate::util::Parents;
 
-use grax_core::{
-    collections::{FixedNodeMap, GetNodeMut},
-    graph::NodeAttribute,
-    prelude::NodeId,
-};
+use grax_core::{collections::GetNodeMut, graph::NodeAttribute, prelude::NodeId};
 use std::ops::{Add, AddAssign, Deref, DerefMut};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -58,7 +54,7 @@ impl<G: NodeAttribute> UnionFind<G> {
     }
 
     pub fn rank(&self, node_id: NodeId<G::Key>) -> u32 {
-        self.rank.get(node_id).0
+        self.rank[node_id].0
     }
 
     pub fn find(&mut self, needle: NodeId<G::Key>) -> NodeId<G::Key> {

@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::ops::{Index, IndexMut};
 
 use grax_core::{collections::*, edge::*, graph::*, node::*, prelude::*};
 use serde::{Deserialize, Serialize};
@@ -163,6 +164,42 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 {
     fn edge_count(&self) -> usize {
         self.edges.edge_count()
+    }
+}
+
+impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
+    Index<NodeId<usize>> for Graph<NS, ES, N, W, DI>
+{
+    type Output = N;
+
+    fn index(&self, index: NodeId<usize>) -> &Self::Output {
+        &self.nodes[index]
+    }
+}
+
+impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
+    IndexMut<NodeId<usize>> for Graph<NS, ES, N, W, DI>
+{
+    fn index_mut(&mut self, index: NodeId<usize>) -> &mut Self::Output {
+        &mut self.nodes[index]
+    }
+}
+
+impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
+    Index<EdgeId<usize>> for Graph<NS, ES, N, W, DI>
+{
+    type Output = W;
+
+    fn index(&self, index: EdgeId<usize>) -> &Self::Output {
+        &self.edges[index]
+    }
+}
+
+impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
+    IndexMut<EdgeId<usize>> for Graph<NS, ES, N, W, DI>
+{
+    fn index_mut(&mut self, index: EdgeId<usize>) -> &mut Self::Output {
+        &mut self.edges[index]
     }
 }
 

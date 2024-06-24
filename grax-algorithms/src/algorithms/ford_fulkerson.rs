@@ -1,10 +1,10 @@
 use crate::problems::PathFinder;
 use crate::weight::TotalOrd;
 
-use grax_core::collections::GetEdgeMut;
+use grax_core::collections::{IndexEdge, IndexEdgeMut};
 use grax_core::edge::{weight::*, *};
+use grax_core::graph::NodeAttribute;
 use grax_core::prelude::*;
-use grax_core::{collections::GetEdge, graph::NodeAttribute};
 
 use std::{
     fmt::Debug,
@@ -19,7 +19,7 @@ pub fn ford_fulkerson<C, G>(
 ) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + TotalOrd,
-    G: GetEdge + GetEdgeMut + Debug + NodeAttribute,
+    G: IndexEdge + IndexEdgeMut + Debug + NodeAttribute,
     G::EdgeWeight: Flow<C> + Capacity<C>,
 {
     let mut total_flow = C::default();
@@ -39,7 +39,7 @@ where
         let bottleneck = parents
             .iter_edges_to(source, sink)
             .map(|edge_id| {
-                let weight = graph.edge(edge_id).unwrap().weight;
+                let weight = &graph[edge_id];
                 *weight.capacity() - *weight.flow()
             })
             .min_by(TotalOrd::total_ord)
@@ -48,11 +48,8 @@ where
         total_flow += bottleneck;
 
         for edge_id in parents.iter_edges_to(source, sink) {
-            let weight = graph.edge_mut(edge_id).unwrap().weight;
-            *weight.flow_mut() += bottleneck;
-
-            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
-            *weight_rev.flow_mut() -= bottleneck;
+            *graph[edge_id].flow_mut() += bottleneck;
+            *graph[edge_id.rev()].flow_mut() -= bottleneck;
         }
     }
 

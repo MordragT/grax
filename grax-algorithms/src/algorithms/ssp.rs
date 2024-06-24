@@ -6,8 +6,8 @@ use std::{
 
 use grax_core::{
     collections::{
-        EdgeCollection, EdgeIter, GetEdge, GetEdgeMut, GetNode, GetNodeMut, InsertEdge,
-        NodeCollection, NodeCount, NodeIter, NodeIterMut,
+        EdgeCollection, EdgeIter, GetEdge, GetNode, GetNodeMut, IndexEdge, IndexEdgeMut, IndexNode,
+        IndexNodeMut, InsertEdge, NodeCollection, NodeCount, NodeIter, NodeIterMut,
     },
     edge::{weight::*, *},
     graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
@@ -35,9 +35,10 @@ where
     G: EdgeCollection<EdgeWeight = FlowCostBundle<C>>
         + NodeCollection<NodeWeight = C>
         + InsertEdge
-        + GetNodeMut
-        + GetEdgeMut
-        + GetNode
+        + IndexNode
+        + IndexNodeMut
+        + IndexEdge
+        + IndexEdgeMut
         + GetEdge
         + EdgeIter
         + NodeIter
@@ -67,14 +68,9 @@ where
         .collect::<Vec<_>>();
 
     for (edge_id, flow) in to_augment {
-        let weight = graph.edge_mut(edge_id).unwrap().weight;
-        *weight.flow_mut() += flow;
-
-        let source = graph.node_mut(edge_id.from()).unwrap();
-        *source.weight.balance_mut() += flow;
-
-        let sink = graph.node_mut(edge_id.to()).unwrap();
-        *sink.weight.balance_mut() -= flow;
+        *graph[edge_id].flow_mut() += flow;
+        *graph[edge_id.from()].balance_mut() += flow;
+        *graph[edge_id.to()].balance_mut() -= flow;
     }
 
     let back_edges = graph
@@ -139,38 +135,29 @@ where
             None
         })?;
 
-        let s_delta =
-            *balances.node(source).unwrap().weight - *graph.node(source).unwrap().weight.balance();
-        assert_gt!(s_delta, C::default());
-        let t_delta =
-            *graph.node(sink).unwrap().weight.balance() - *balances.node(sink).unwrap().weight;
-        assert_gt!(t_delta, C::default());
+        let s_delta = balances[source] - *graph[source].balance();
+        let t_delta = *graph[sink].balance() - balances[sink];
 
-        let balances_min = [s_delta, t_delta];
+        assert_gt!(s_delta, C::default());
+        assert_gt!(t_delta, C::default());
 
         let gamma = parents
             .iter_edges_to(source, sink)
             .map(|edge_id| {
-                let weight = graph.edge(edge_id).unwrap().weight;
+                let weight = &graph[edge_id];
                 *weight.capacity() - *weight.flow()
             })
-            .chain(balances_min)
+            .chain([s_delta, t_delta])
             .min_by(TotalOrd::total_ord)
             .unwrap();
 
         for edge_id in parents.iter_edges_to(source, sink) {
-            let weight = graph.edge_mut(edge_id).unwrap().weight;
-            *weight.flow_mut() += gamma;
-
-            let weight_rev = graph.edge_mut(edge_id.rev()).unwrap().weight;
-            *weight_rev.flow_mut() -= gamma;
+            *graph[edge_id].flow_mut() += gamma;
+            *graph[edge_id.rev()].flow_mut() -= gamma;
         }
 
-        let source_weight = graph.node_mut(source).unwrap().weight;
-        *source_weight.balance_mut() += gamma;
-
-        let sink_weight = graph.node_mut(sink).unwrap().weight;
-        *sink_weight.balance_mut() -= gamma;
+        *graph[source].balance_mut() += gamma;
+        *graph[sink].balance_mut() -= gamma;
     }
 }
 

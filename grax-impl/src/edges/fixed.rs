@@ -1,4 +1,7 @@
-use std::{fmt::Debug, ops::Rem};
+use std::{
+    fmt::Debug,
+    ops::{Index, IndexMut, Rem},
+};
 
 use grax_core::{
     collections::{
@@ -36,6 +39,19 @@ impl<V: Debug> EdgeCollection for FixedEdgeVec<V> {
 impl<V: Debug> EdgeCount for FixedEdgeVec<V> {
     fn edge_count(&self) -> usize {
         self.vec.len()
+    }
+}
+impl<V: Debug> Index<EdgeId<usize>> for FixedEdgeVec<V> {
+    type Output = V;
+
+    fn index(&self, index: EdgeId<usize>) -> &Self::Output {
+        self.edge(index).unwrap().weight
+    }
+}
+
+impl<V: Debug> IndexMut<EdgeId<usize>> for FixedEdgeVec<V> {
+    fn index_mut(&mut self, index: EdgeId<usize>) -> &mut Self::Output {
+        self.edge_mut(index).unwrap().weight
     }
 }
 

@@ -2,7 +2,7 @@ use crate::problems::{Mst, MstBuilder};
 use crate::util::Tree;
 use crate::weight::{Bounded, TotalOrd};
 
-use grax_core::collections::{FixedNodeMap, VisitNodeMap};
+use grax_core::collections::VisitNodeMap;
 use grax_core::collections::{NodeCount, NodeIter};
 use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
@@ -51,11 +51,11 @@ where
         for EdgeRef { edge_id, weight } in graph.iter_adjacent_edges(from) {
             let to = edge_id.to();
             if !visited.is_visited(to) {
-                let edge_cost = *weight.cost();
-                let cost = costs.get_mut(to);
-                if *cost > edge_cost {
-                    *cost = edge_cost;
-                    priority_queue.push(to, edge_cost);
+                let cost = *weight.cost();
+
+                if costs[to] > cost {
+                    costs[to] = cost;
+                    priority_queue.push(to, cost);
                 }
             }
         }

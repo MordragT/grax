@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{Index, IndexMut},
+};
 
 use grax_core::{
     collections::{
@@ -43,6 +46,20 @@ impl<W: Debug> EdgeCount for AdjacencyList<W> {
             akku
         });
         count
+    }
+}
+
+impl<W: Debug> Index<EdgeId<usize>> for AdjacencyList<W> {
+    type Output = W;
+
+    fn index(&self, index: EdgeId<usize>) -> &Self::Output {
+        self.edge(index).unwrap().weight
+    }
+}
+
+impl<W: Debug> IndexMut<EdgeId<usize>> for AdjacencyList<W> {
+    fn index_mut(&mut self, index: EdgeId<usize>) -> &mut Self::Output {
+        self.edge_mut(index).unwrap().weight
     }
 }
 

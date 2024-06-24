@@ -3,7 +3,6 @@ use crate::problems::PathFinder;
 use crate::problems::PathTree;
 use crate::util::Parents;
 
-use grax_core::collections::FixedNodeMap;
 use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
@@ -49,7 +48,7 @@ where
     let mut markers = graph.fixed_node_map(counter);
 
     for from in graph.node_ids() {
-        if markers.get(from) == &0 {
+        if markers[from] == 0 {
             counter += 1;
             dfs_marker(graph, from, &mut markers, counter);
         }
@@ -201,7 +200,7 @@ pub(crate) fn dfs_marker<'a, G, M>(
     while let Some(from) = stack.pop() {
         for edge_id in graph.adjacent_edge_ids(from) {
             let to = edge_id.to();
-            if markers.get(to) == &M::default() {
+            if markers[to] == M::default() {
                 stack.push(to);
                 markers.update_node(to, mark);
             }

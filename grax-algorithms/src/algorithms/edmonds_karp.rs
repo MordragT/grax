@@ -3,7 +3,7 @@ use crate::weight::TotalOrd;
 use super::{ford_fulkerson, Bfs};
 
 use grax_core::{
-    collections::{EdgeCollection, EdgeIter, GetEdge, GetEdgeMut},
+    collections::{EdgeCollection, EdgeIter, IndexEdge, IndexEdgeMut},
     edge::{weight::*, *},
     graph::{AdaptEdges, EdgeAttribute, EdgeIterAdjacent, NodeAttribute},
     prelude::*,
@@ -55,7 +55,7 @@ where
 pub fn edmonds_karp<C, G>(graph: &mut G, source: NodeId<G::Key>, sink: NodeId<G::Key>) -> C
 where
     C: Default + PartialOrd + Copy + AddAssign + SubAssign + Sub<C, Output = C> + Debug + TotalOrd,
-    G: GetEdge + GetEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
+    G: IndexEdge + IndexEdgeMut + EdgeAttribute + NodeAttribute + EdgeIterAdjacent,
     G::EdgeWeight: Flow<C> + Capacity<C>,
 {
     ford_fulkerson(graph, source, sink, Bfs)
