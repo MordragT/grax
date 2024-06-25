@@ -163,56 +163,136 @@ where
 
 #[cfg(test)]
 mod test {
+    extern crate test;
+
     use super::ssp;
     use crate::test::bgraph;
     use grax_impl::*;
+    use test::Bencher;
 
-    #[test]
-    fn ssp_kostenminimal_1() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
-        let cost = ssp(&mut graph).unwrap();
-        assert_eq!(cost, 3.0);
+    #[bench]
+    fn ssp_kostenminimal_1_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 3.0);
+        });
     }
 
-    #[test]
-    fn ssp_kostenminimal_2() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
-        let cost = ssp(&mut graph).unwrap();
-        assert_eq!(cost, 0.0);
+    #[bench]
+    fn ssp_kostenminimal_2_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 0.0);
+        })
     }
 
-    #[test]
-    fn ssp_kostenminimal_3() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
-        let cost = ssp(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn ssp_kostenminimal_3_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 
-    #[test]
-    fn ssp_kostenminimal_4() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
-        let cost = ssp(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn ssp_kostenminimal_4_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 
-    #[test]
-    fn ssp_kostenminimal_gross_1() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
-        let cost = ssp(&mut graph).unwrap();
-        assert_eq!(cost, 1537.0);
+    #[bench]
+    fn ssp_kostenminimal_gross_1_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1537.0);
+        })
     }
 
-    #[test]
-    fn ssp_kostenminimal_gross_2() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
-        let cost = ssp(&mut graph).unwrap();
-        assert_eq!(cost, 1838.0);
+    #[bench]
+    fn ssp_kostenminimal_gross_2_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1838.0);
+        })
     }
 
-    #[test]
-    fn ssp_kostenminimal_gross_3() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
-        let cost = ssp(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn ssp_kostenminimal_gross_3_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_1_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 3.0);
+        });
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_2_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 0.0);
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_3_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_4_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_gross_1_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1537.0);
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_gross_2_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1838.0);
+        })
+    }
+
+    #[bench]
+    fn ssp_kostenminimal_gross_3_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        b.iter(|| {
+            let cost = ssp(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 }

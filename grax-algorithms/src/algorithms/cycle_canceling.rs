@@ -52,6 +52,7 @@ where
         + IndexEdgeMut
         + NodeCount,
 {
+    dbg!(&graph);
     let mut to_insert = Vec::new();
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
@@ -149,56 +150,136 @@ where
 
 #[cfg(test)]
 mod test {
+    extern crate test;
+
     use super::cycle_canceling;
     use crate::test::bgraph;
     use grax_impl::*;
+    use test::Bencher;
 
-    #[test]
-    fn cycle_canceling_kostenminimal_1() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
-        let cost = cycle_canceling(&mut graph).unwrap();
-        assert_eq!(cost, 3.0);
+    #[bench]
+    fn cycle_canceling_kostenminimal_1_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 3.0);
+        });
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_2() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
-        let cost = cycle_canceling(&mut graph).unwrap();
-        assert_eq!(cost, 0.0);
+    #[bench]
+    fn cycle_canceling_kostenminimal_2_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 0.0);
+        })
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_3() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn cycle_canceling_kostenminimal_3_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_4() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn cycle_canceling_kostenminimal_4_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_gross_1() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
-        let cost = cycle_canceling(&mut graph).unwrap();
-        assert_eq!(cost, 1537.0);
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_1_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1537.0);
+        })
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_gross_2() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
-        let cost = cycle_canceling(&mut graph).unwrap();
-        assert_eq!(cost, 1838.0);
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_2_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1838.0);
+        })
     }
 
-    #[test]
-    fn cycle_canceling_kostenminimal_gross_3() {
-        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
-        let cost = cycle_canceling(&mut graph);
-        assert!(cost.is_none());
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_3_adj_list(b: &mut Bencher) {
+        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_1_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 3.0);
+        });
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_2_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 0.0);
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_3_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_4_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_1_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1537.0);
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_2_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            assert_eq!(cost, 1838.0);
+        })
+    }
+
+    #[bench]
+    fn cycle_canceling_kostenminimal_gross_3_csr_mat(b: &mut Bencher) {
+        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        b.iter(|| {
+            let cost = cycle_canceling(&mut graph.clone());
+            assert!(cost.is_none());
+        })
     }
 }

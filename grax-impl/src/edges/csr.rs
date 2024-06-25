@@ -11,7 +11,9 @@ use grax_core::{
     edge::{Edge, EdgeMut, EdgeRef},
     graph::{EdgeIterAdjacent, EdgeIterAdjacentMut},
     index::{EdgeId, NodeId},
+    node,
 };
+use more_asserts::assert_lt;
 use rayon::slice::ParallelSliceMut;
 use serde::{Deserialize, Serialize};
 
@@ -248,7 +250,7 @@ impl<W: Debug> InsertEdge for CsrMatrix<W> {
         to: NodeId<Self::Key>,
         weight: Self::EdgeWeight,
     ) -> EdgeId<Self::Key> {
-        assert!(*from < self.row_offsets.len());
+        assert_lt!(*from, self.row_offsets.len());
 
         let edge_id = EdgeId::new_unchecked(from, to);
         let edge = Edge::new(edge_id, weight);
@@ -383,7 +385,7 @@ impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
     }
 
     fn with_edges(
-        _: usize,
+        node_count: usize,
         _: usize,
         edges: impl IntoIterator<Item = (NodeId<usize>, NodeId<usize>, W)>,
     ) -> Self {
@@ -415,6 +417,16 @@ impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
                     break;
                 }
             }
+
+            // allocate for nodes currently without edges
+            for _ in row_count..node_count {
+                row_offsets.push(RowOffset {
+                    start: edges.len(),
+                    end: edges.len(),
+                })
+            }
+        } else {
+            todo!()
         }
 
         Self { row_offsets, edges }
