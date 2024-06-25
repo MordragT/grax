@@ -16,7 +16,7 @@ pub struct BranchBound;
 impl<C, G> TspSolver<C, G> for BranchBound
 where
     C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + IndexEdge,
     G::EdgeWeight: Cost<C>,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
@@ -29,7 +29,7 @@ where
 pub fn branch_bound<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + IndexEdge,
     G::EdgeWeight: Cost<C>,
     G::FixedNodeMap<bool>: Clone,
 {
@@ -65,11 +65,7 @@ where
                 parents.insert(from, to);
 
                 if visited.all_visited() {
-                    cost += *graph
-                        .edge(EdgeId::new_unchecked(to, start))
-                        .unwrap()
-                        .weight
-                        .cost();
+                    cost += *graph[EdgeId::new_unchecked(to, start)].cost();
 
                     if cost < best_cost {
                         best_cost = cost;
@@ -96,7 +92,7 @@ where
 pub fn branch_bound_rec<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
-    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + GetEdge,
+    G: NodeIterAdjacent + EdgeIterAdjacent + NodeAttribute + NodeIter + NodeCount + IndexEdge,
     G::EdgeWeight: Cost<C>,
 {
     let mut best_cost = nearest_neighbor(graph)
@@ -138,15 +134,11 @@ pub(crate) fn _branch_bound_rec<C, G>(
     visited: &mut G::FixedNodeMap<bool>,
 ) where
     C: Debug + Copy + Default + PartialOrd + AddAssign<C> + Add<C, Output = C> + TotalOrd + Bounded,
-    G: EdgeIterAdjacent + NodeAttribute + NodeCount + GetEdge,
+    G: EdgeIterAdjacent + NodeAttribute + NodeCount + IndexEdge,
     G::EdgeWeight: Cost<C>,
 {
     if visited.all_visited() {
-        cost += *graph
-            .edge(EdgeId::new_unchecked(from, start))
-            .unwrap()
-            .weight
-            .cost();
+        cost += *graph[EdgeId::new_unchecked(from, start)].cost();
 
         if cost < *best_cost {
             *best_cost = cost;

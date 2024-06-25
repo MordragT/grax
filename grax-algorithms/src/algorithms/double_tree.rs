@@ -3,7 +3,7 @@ use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Tree};
 use crate::weight::{Bounded, TotalOrd};
 
-use grax_core::collections::{EdgeIter, GetEdge, NodeCount, NodeIter};
+use grax_core::collections::{EdgeIter, GetEdge, IndexEdge, NodeCount, NodeIter};
 use grax_core::edge::weight::*;
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use std::fmt::Debug;
@@ -16,7 +16,7 @@ pub struct DoubleTree;
 impl<C, G> TspSolver<C, G> for DoubleTree
 where
     C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
-    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + GetEdge + NodeCount,
+    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + IndexEdge,
     G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
@@ -27,7 +27,7 @@ where
 pub fn double_tree<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
-    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + GetEdge + NodeCount,
+    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + IndexEdge,
     G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
     let Tree { root, edges } = kruskal(graph)?.tree;
@@ -36,7 +36,7 @@ where
     let cost = path
         .parents
         .edge_ids()
-        .map(|edge_id| *graph.edge(edge_id).unwrap().weight.cost())
+        .map(|edge_id| *graph[edge_id].cost())
         .sum();
 
     Some(TspCycle {

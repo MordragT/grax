@@ -4,7 +4,7 @@ use crate::util::Cycle;
 use crate::util::Parents;
 use crate::weight::TotalOrd;
 
-use grax_core::collections::GetEdge;
+use grax_core::collections::IndexEdge;
 use grax_core::collections::NodeIter;
 use grax_core::collections::VisitNodeMap;
 use grax_core::edge::{weight::*, *};
@@ -20,7 +20,7 @@ pub struct NearestNeighbor;
 impl<C, G> TspSolver<C, G> for NearestNeighbor
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + TotalOrd + Debug,
-    G: NodeIter + EdgeIterAdjacent + NodeAttribute + GetEdge,
+    G: NodeIter + EdgeIterAdjacent + NodeAttribute + IndexEdge,
     G::EdgeWeight: Cost<C>,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
@@ -31,7 +31,7 @@ where
 pub fn nearest_neighbor<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
     C: Default + Copy + AddAssign + Add<C, Output = C> + TotalOrd + Debug,
-    G: EdgeIterAdjacent + NodeAttribute + GetEdge + NodeIter,
+    G: EdgeIterAdjacent + NodeAttribute + IndexEdge + NodeIter,
     G::EdgeWeight: Cost<C>,
 {
     let start = graph.node_ids().next()?;
@@ -58,8 +58,7 @@ where
             // compute cost from last node to start node
 
             parents.insert(from, start);
-            let edge_id = EdgeId::new_unchecked(from, start);
-            cost += *graph.edge(edge_id).unwrap().weight.cost();
+            cost += *graph[EdgeId::new_unchecked(from, start)].cost();
             break;
         }
     }

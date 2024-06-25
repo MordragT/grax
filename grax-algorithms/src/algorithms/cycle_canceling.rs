@@ -52,7 +52,6 @@ where
         + IndexEdgeMut
         + NodeCount,
 {
-    dbg!(&graph);
     let mut to_insert = Vec::new();
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
