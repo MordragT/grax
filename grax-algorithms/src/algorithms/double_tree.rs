@@ -1,9 +1,9 @@
-use super::{dfs_where, kruskal};
+use super::{dfs_where, prim};
 use crate::problems::{TspCycle, TspSolver};
 use crate::util::{Cycle, Tree};
 use crate::weight::{Bounded, TotalOrd};
 
-use grax_core::collections::{EdgeIter, GetEdge, IndexEdge, NodeCount, NodeIter};
+use grax_core::collections::{EdgeIter, IndexEdge, NodeCount, NodeIter};
 use grax_core::edge::weight::*;
 use grax_core::graph::{EdgeAttribute, EdgeIterAdjacent, NodeAttribute};
 use std::fmt::Debug;
@@ -15,8 +15,14 @@ pub struct DoubleTree;
 
 impl<C, G> TspSolver<C, G> for DoubleTree
 where
-    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
-    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + IndexEdge,
+    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C> + PartialOrd,
+    G: NodeAttribute
+        + EdgeAttribute
+        + NodeIter
+        + EdgeIter
+        + EdgeIterAdjacent
+        + IndexEdge
+        + NodeCount,
     G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
     fn solve(graph: &G) -> Option<TspCycle<C, G>> {
@@ -26,13 +32,19 @@ where
 
 pub fn double_tree<C, G>(graph: &G) -> Option<TspCycle<C, G>>
 where
-    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C>,
-    G: NodeAttribute + EdgeAttribute + NodeIter + EdgeIter + EdgeIterAdjacent + IndexEdge,
+    C: Default + TotalOrd + Copy + AddAssign + Debug + Bounded + Sum<C> + PartialOrd,
+    G: NodeAttribute
+        + EdgeAttribute
+        + NodeIter
+        + EdgeIter
+        + EdgeIterAdjacent
+        + IndexEdge
+        + NodeCount,
     G::EdgeWeight: Cost<C> + Send + Sync + Clone,
 {
-    let Tree { root, edges } = kruskal(graph)?.tree;
+    let Tree { root, parents } = prim(graph)?.tree;
 
-    let path = dfs_where(graph, root, |edge| edges.contains_edge_id(edge.edge_id));
+    let path = dfs_where(graph, root, |edge| parents.contains_edge_id(edge.edge_id));
     let cost = path
         .parents
         .edge_ids()

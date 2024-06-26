@@ -3,7 +3,7 @@ use crate::problems::{Mst, MstBuilder};
 use crate::util::Tree;
 use crate::weight::TotalOrd;
 
-use grax_core::collections::{EdgeIter, NodeIter, VisitEdgeMap};
+use grax_core::collections::{EdgeIter, NodeIter};
 use grax_core::edge::{weight::*, *};
 use grax_core::graph::{EdgeAttribute, NodeAttribute};
 use rayon::slice::ParallelSliceMut;
@@ -41,7 +41,6 @@ where
 
     let mut union_find = UnionFind::new(graph);
 
-    let mut edges = graph.visit_edge_map();
     let mut total_cost = C::default();
 
     for Edge { edge_id, weight } in priority_queue {
@@ -49,17 +48,20 @@ where
         let to = edge_id.to();
 
         if union_find.find(from) == union_find.find(to) {
-            edges.visit(edge_id);
             continue;
         }
 
         root = union_find.union(from, to);
-        edges.visit(edge_id);
         total_cost += *weight.cost();
     }
 
+    let tree = Tree {
+        root,
+        parents: union_find.parents,
+    };
+
     Some(Mst {
-        tree: Tree { root, edges },
+        tree,
         cost: total_cost,
     })
 }

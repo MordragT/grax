@@ -1,8 +1,4 @@
-use grax_core::{
-    collections::{FixedNodeMap, GetNodeMut},
-    graph::NodeAttribute,
-    prelude::NodeId,
-};
+use grax_core::{collections::GetNodeMut, graph::NodeAttribute, prelude::NodeId};
 use std::fmt::Debug;
 
 #[derive(Debug, Clone)]

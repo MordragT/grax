@@ -1,10 +1,10 @@
-use grax_core::graph::EdgeAttribute;
+use grax_core::graph::NodeAttribute;
 
 use crate::util::Tree;
 
 pub trait MstBuilder<C, G>: Sized + Copy
 where
-    G: EdgeAttribute,
+    G: NodeAttribute,
 {
     /// Constructs a minimal spanning tree from a graph
     /// Returns none if such tree cannot be created
@@ -14,7 +14,7 @@ where
 #[derive(Debug, Clone)]
 pub struct Mst<C, G>
 where
-    G: EdgeAttribute,
+    G: NodeAttribute,
 {
     pub tree: Tree<G>,
     pub cost: C,

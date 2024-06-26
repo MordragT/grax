@@ -181,6 +181,23 @@ test algorithms::double_tree::test::double_tree_k_12e_csr_graph          ... ben
 test algorithms::double_tree::test::double_tree_k_12e_dense_mat          ... bench:       8,506 ns/iter (+/- 355)
 ```
 
+new3
+
+```
+test algorithms::double_tree::test::double_tree_k_10_adj_list                          ... bench:       1,035.53 ns/iter (+/- 114.45)
+test algorithms::double_tree::test::double_tree_k_10_csr_graph                         ... bench:       1,099.60 ns/iter (+/- 81.25)
+test algorithms::double_tree::test::double_tree_k_10_dense_mat                         ... bench:       1,140.26 ns/iter (+/- 63.33)
+test algorithms::double_tree::test::double_tree_k_10e_adj_list                         ... bench:       1,209.61 ns/iter (+/- 76.63)
+test algorithms::double_tree::test::double_tree_k_10e_csr_graph                        ... bench:       1,225.16 ns/iter (+/- 19.09)
+test algorithms::double_tree::test::double_tree_k_10e_dense_mat                        ... bench:       1,249.28 ns/iter (+/- 26.54)
+test algorithms::double_tree::test::double_tree_k_12_adj_list                          ... bench:       1,429.42 ns/iter (+/- 28.55)
+test algorithms::double_tree::test::double_tree_k_12_csr_graph                         ... bench:       1,431.47 ns/iter (+/- 27.52)
+test algorithms::double_tree::test::double_tree_k_12_dense_mat                         ... bench:       1,449.07 ns/iter (+/- 58.15)
+test algorithms::double_tree::test::double_tree_k_12e_adj_list                         ... bench:       1,626.03 ns/iter (+/- 37.37)
+test algorithms::double_tree::test::double_tree_k_12e_csr_graph                        ... bench:       1,701.27 ns/iter (+/- 117.28)
+test algorithms::double_tree::test::double_tree_k_12e_dense_mat                        ... bench:       1,801.86 ns/iter (+/- 43.01)
+```
+
 ### brute force
 
 initial
@@ -246,6 +263,28 @@ test kruskal::test::kruskal_graph_1_2_adj_list               ... bench:     530,
 test kruskal::test::kruskal_graph_1_2_csr_mat                ... bench:     583,454 ns/iter (+/- 216,204)
 test kruskal::test::kruskal_graph_1_2_dense_mat              ... bench:   1,528,706 ns/iter (+/- 717,982)
 test kruskal::test::kruskal_graph_1_2_hash_graph             ... bench:     513,760 ns/iter (+/- 284,874)
+```
+
+```
+test algorithms::kruskal::test::kruskal_graph_10_200_adj_list                          ... bench:  13,225,359.80 ns/iter (+/- 1,121,458.41)
+test algorithms::kruskal::test::kruskal_graph_10_200_csr_mat                           ... bench:  11,713,229.90 ns/iter (+/- 1,260,647.80)
+test algorithms::kruskal::test::kruskal_graph_10_200_hash_graph                        ... bench:  12,365,528.20 ns/iter (+/- 1,210,861.34)
+test algorithms::kruskal::test::kruskal_graph_10_20_adj_list                           ... bench:   1,278,225.95 ns/iter (+/- 162,393.49)
+test algorithms::kruskal::test::kruskal_graph_10_20_csr_mat                            ... bench:   1,170,375.07 ns/iter (+/- 126,650.31)
+test algorithms::kruskal::test::kruskal_graph_10_20_dense_mat                          ... bench:  39,900,054.50 ns/iter (+/- 2,514,839.47)
+test algorithms::kruskal::test::kruskal_graph_10_20_hash_graph                         ... bench:   1,283,500.62 ns/iter (+/- 166,290.46)
+test algorithms::kruskal::test::kruskal_graph_1_200_adj_list                           ... bench:  11,617,564.70 ns/iter (+/- 1,179,706.33)
+test algorithms::kruskal::test::kruskal_graph_1_200_csr_mat                            ... bench:  10,420,309.50 ns/iter (+/- 895,223.22)
+test algorithms::kruskal::test::kruskal_graph_1_200_dense_mat                          ... bench:  14,517,431.70 ns/iter (+/- 924,187.63)
+test algorithms::kruskal::test::kruskal_graph_1_200_hash_graph                         ... bench:  11,707,997.30 ns/iter (+/- 1,163,563.51)
+test algorithms::kruskal::test::kruskal_graph_1_20_adj_list                            ... bench:   1,071,045.70 ns/iter (+/- 263,192.13)
+test algorithms::kruskal::test::kruskal_graph_1_20_csr_mat                             ... bench:   1,050,693.17 ns/iter (+/- 106,831.60)
+test algorithms::kruskal::test::kruskal_graph_1_20_dense_mat                           ... bench:   3,327,487.90 ns/iter (+/- 194,596.88)
+test algorithms::kruskal::test::kruskal_graph_1_20_hash_graph                          ... bench:   1,065,199.02 ns/iter (+/- 35,209.53)
+test algorithms::kruskal::test::kruskal_graph_1_2_adj_list                             ... bench:     137,670.22 ns/iter (+/- 8,884.02)
+test algorithms::kruskal::test::kruskal_graph_1_2_csr_mat                              ... bench:     126,646.11 ns/iter (+/- 11,951.51)
+test algorithms::kruskal::test::kruskal_graph_1_2_dense_mat                            ... bench:     581,181.50 ns/iter (+/- 23,808.29)
+test algorithms::kruskal::test::kruskal_graph_1_2_hash_graph                           ... bench:     147,218.03 ns/iter (+/- 27,481.81)
 ```
 
 ### prim

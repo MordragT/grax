@@ -27,8 +27,8 @@ impl Add<Rank> for Rank {
 
 #[derive(Debug)]
 pub struct UnionFind<G: NodeAttribute> {
-    parents: Parents<G>,
-    rank: G::FixedNodeMap<Rank>,
+    pub(crate) parents: Parents<G>,
+    pub(crate) rank: G::FixedNodeMap<Rank>,
 }
 
 impl<G: NodeAttribute> Deref for UnionFind<G> {
@@ -58,13 +58,11 @@ impl<G: NodeAttribute> UnionFind<G> {
     }
 
     pub fn find(&mut self, needle: NodeId<G::Key>) -> NodeId<G::Key> {
-        let mut path = Vec::new();
+        // let mut path = Vec::new();
         let mut node = needle;
 
-        while let Some(from) = self.parent(node)
-            && from != node
-        {
-            path.push(node);
+        while let Some(from) = self.parent(node) {
+            // path.push(node);
             node = from;
         }
 
@@ -73,9 +71,12 @@ impl<G: NodeAttribute> UnionFind<G> {
         // performance might degrade as find must traverse
         // more parents in the former loop
         // this allows to skip intermediate nodes and improves the performance
-        for to in path {
-            self.insert(node, to);
-        }
+        // for to in path {
+        //     self.insert(node, to);
+        // }
+        // disabled because benchmarks showed that overhead of allocation seems to
+        // outweigh benefits of path compression
+        // also this allows kruskal to reuse the parents struct from union find
         node
     }
 

@@ -1,5 +1,5 @@
 use crate::problems::{Mst, MstBuilder};
-use crate::util::Tree;
+use crate::util::{Parents, Tree};
 use crate::weight::{Bounded, TotalOrd};
 
 use grax_core::collections::VisitNodeMap;
@@ -38,6 +38,7 @@ where
     priority_queue.push(root, C::default());
 
     // einfach mit W::max init
+    let mut parents = Parents::new(graph);
     let mut costs = graph.fixed_node_map(C::MAX);
     let mut total_cost = C::default();
 
@@ -55,16 +56,14 @@ where
 
                 if costs[to] > cost {
                     costs[to] = cost;
+                    parents.insert(from, to);
                     priority_queue.push(to, cost);
                 }
             }
         }
     }
 
-    let tree = Tree {
-        root,
-        edges: graph.visit_edge_map(),
-    };
+    let tree = Tree { root, parents };
 
     Some(Mst {
         tree,
