@@ -150,6 +150,25 @@ impl<W: Debug> RemoveEdge for AdjacencyMatrix<W> {
             None
         }
     }
+
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>) {
+        for row in &mut self.edges {
+            row.remove(*node_id);
+        }
+    }
+
+    fn remove_outbound(&mut self, node_id: NodeId<Self::Key>) {
+        self.edges[*node_id].clear();
+    }
+
+    fn retain_edges<F>(&mut self, mut visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool,
+    {
+        for row in &mut self.edges {
+            row.retain(|edge| visit(edge.into()))
+        }
+    }
 }
 
 impl<W: Debug> EdgeIter for AdjacencyMatrix<W> {
@@ -255,14 +274,6 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for AdjacencyMatrix<W> {
         }
 
         self.edges.resize(size, StableVec::with_capacity(size));
-    }
-
-    fn remove_node(&mut self, node_id: NodeId<Self::Key>) {
-        self.edges[*node_id].clear();
-
-        for row in &mut self.edges {
-            row.remove(*node_id);
-        }
     }
 }
 

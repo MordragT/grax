@@ -213,6 +213,33 @@ impl<W: Debug> RemoveEdge for AdjacencyList<W> {
             None
         }
     }
+
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>) {
+        let mut to_remove = self
+            .edge_ids()
+            .filter(|edge_id| edge_id.to() == node_id)
+            .collect::<Vec<_>>();
+
+        to_remove.sort_unstable();
+
+        for edge_id in to_remove {
+            // self.edges[*edge_id.from()].remove(*edge_id.to());
+            self.remove_edge(edge_id);
+        }
+    }
+
+    fn remove_outbound(&mut self, node_id: NodeId<Self::Key>) {
+        self.edges[*node_id].clear()
+    }
+
+    fn retain_edges<F>(&mut self, mut visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool,
+    {
+        for row in &mut self.edges {
+            row.retain(|edge| visit(edge.into()))
+        }
+    }
 }
 
 impl<W: Debug> IntoIterator for AdjacencyList<W> {
@@ -257,15 +284,6 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for AdjacencyList<W> {
     fn allocate(&mut self, additional: usize) {
         let size = self.edges.len() + additional;
         self.edges.resize_with(size, || Vec::new());
-    }
-
-    fn remove_node(&mut self, node_id: NodeId<usize>) {
-        self.edges[*node_id].clear();
-
-        // for row in &mut self.edges {
-        //     row.remove(node_id.raw());
-        // }
-        todo!()
     }
 }
 

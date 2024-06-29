@@ -1,5 +1,8 @@
-use crate::problems::{ShortestPath, ShortestPathFinder, ShortestPathTree};
-use crate::util::{Cycle, Distances, Parents};
+use super::ShortestPathFinder;
+use crate::{
+    cycle::Cycle, distances::Distances, parents::Parents, path::ShortestPath,
+    tree::ShortestPathTree,
+};
 
 use either::Either;
 use grax_core::collections::*;

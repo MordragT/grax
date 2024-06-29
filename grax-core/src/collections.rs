@@ -201,11 +201,18 @@ pub trait InsertEdge: EdgeCollection + Keyed {
     }
 }
 
+// TODO create something like remove_outcoming and remove_incoming for edges,
+// so that remove_node is only responsible for removing the node weight but not the edges
+
 pub trait RemoveNode: NodeCollection + Keyed {
+    /// Does only remove the node weight and not the edges
     fn remove_node(
         &mut self,
         node_id: NodeId<Self::Key>,
     ) -> Option<Node<Self::Key, Self::NodeWeight>>;
+    fn retain_nodes<F>(&mut self, visit: F)
+    where
+        F: FnMut(NodeRef<Self::Key, Self::NodeWeight>) -> bool;
 }
 
 pub trait RemoveEdge: EdgeCollection + Keyed {
@@ -213,6 +220,12 @@ pub trait RemoveEdge: EdgeCollection + Keyed {
         &mut self,
         edge_id: EdgeId<Self::Key>,
     ) -> Option<Edge<Self::Key, Self::EdgeWeight>>;
+
+    fn remove_outbound(&mut self, node_id: NodeId<Self::Key>);
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>);
+    fn retain_edges<F>(&mut self, visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool;
 }
 
 // pub trait RetainNodes: NodeCollection + Keyed {

@@ -1,5 +1,6 @@
-use grax_core::{collections::GetNodeMut, graph::NodeAttribute, prelude::NodeId};
 use std::fmt::Debug;
+
+use grax_core::{collections::GetNodeMut, graph::NodeAttribute, index::NodeId};
 
 #[derive(Debug, Clone)]
 pub struct Distances<C: Clone + Debug, G: NodeAttribute>(G::FixedNodeMap<Option<C>>);

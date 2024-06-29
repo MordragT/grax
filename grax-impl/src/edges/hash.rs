@@ -122,6 +122,40 @@ impl<W: Debug> RemoveEdge for HashStorage<W> {
             .remove(&edge_id)
             .map(|weight| Edge::new(edge_id, weight))
     }
+
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>) {
+        let to_remove = self
+            .0
+            .keys()
+            .filter(|edge_id| edge_id.to() == node_id)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        for edge_id in to_remove {
+            self.remove_edge(edge_id);
+        }
+    }
+
+    fn remove_outbound(&mut self, node_id: NodeId<Self::Key>) {
+        let to_remove = self
+            .0
+            .keys()
+            .filter(|edge_id| edge_id.from() == node_id)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        for edge_id in to_remove {
+            self.remove_edge(edge_id);
+        }
+    }
+
+    fn retain_edges<F>(&mut self, mut visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool,
+    {
+        self.0
+            .retain(|&edge_id, weight| visit(EdgeRef { edge_id, weight }))
+    }
 }
 
 impl<W: Debug> EdgeIter for HashStorage<W> {
@@ -240,19 +274,6 @@ impl<W: Debug + Clone> EdgeStorage<usize, W> for HashStorage<W> {
     }
 
     fn allocate(&mut self, _: usize) {}
-
-    fn remove_node(&mut self, node_id: NodeId<Self::Key>) {
-        let to_remove = self
-            .0
-            .keys()
-            .filter(|edge_id| edge_id.contains(node_id))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        for edge_id in to_remove {
-            self.0.remove(&edge_id);
-        }
-    }
 }
 
 #[cfg(test)]

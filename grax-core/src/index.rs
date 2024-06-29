@@ -105,7 +105,7 @@ impl<Id: Identifier> EdgeId<Id> {
         (*self.from, *self.to)
     }
 
-    pub fn rev(&self) -> EdgeId<Id> {
+    pub fn reverse(&self) -> EdgeId<Id> {
         let Self { from, to } = self;
         Self {
             from: *to,

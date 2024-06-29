@@ -1,5 +1,8 @@
-use super::{bellman_ford_cycle, edmonds_karp};
-use crate::{problems::McfSolver, weight::TotalOrd};
+use super::{
+    bellman_ford_cycle, min_residual_capacity, sum_cost_flow, Bfs, McfSolver, _ford_fulkerson,
+    empty_flow,
+};
+use crate::weight::TotalOrd;
 
 use either::Either;
 use grax_core::{
@@ -17,9 +20,40 @@ use std::{
 #[derive(Debug, Clone, Copy)]
 pub struct CycleCanceling;
 
-impl<C, G> McfSolver<C, G> for CycleCanceling {
-    fn solve(_: &G) -> Option<C> {
-        todo!()
+impl<C, G> McfSolver<C, G> for CycleCanceling
+where
+    C: Default
+        + Add<C, Output = C>
+        + AddAssign<C>
+        + Sum
+        + Sub<C, Output = C>
+        + SubAssign<C>
+        + Mul<C, Output = C>
+        + Neg<Output = C>
+        + Copy
+        + Clone
+        + PartialOrd
+        + Debug
+        + TotalOrd,
+    G: EdgeCollection<EdgeWeight = FlowCostBundle<C>>
+        + NodeCollection<NodeWeight = C>
+        + EdgeAttribute
+        + NodeAttribute
+        + EdgeIterAdjacent
+        + InsertEdge
+        + InsertNode
+        + RemoveNode
+        + RemoveEdge
+        + EdgeIter
+        + EdgeIterMut
+        + NodeIter
+        + GetEdge
+        + IndexEdge
+        + IndexEdgeMut
+        + NodeCount,
+{
+    fn solve(graph: &mut G) -> Option<C> {
+        cycle_canceling(graph)
     }
 }
 
@@ -45,7 +79,10 @@ where
         + EdgeIterAdjacent
         + InsertEdge
         + InsertNode
+        + RemoveNode
+        + RemoveEdge
         + EdgeIter
+        + EdgeIterMut
         + NodeIter
         + GetEdge
         + IndexEdge
@@ -55,8 +92,8 @@ where
     let mut to_insert = Vec::new();
 
     for EdgeRef { edge_id, weight } in graph.iter_edges() {
-        if !graph.contains_edge_id(edge_id.rev()) {
-            to_insert.push((edge_id.to(), edge_id.from(), weight.clone().reverse()));
+        if !graph.contains_edge_id(edge_id.reverse()) {
+            to_insert.push((edge_id.to(), edge_id.from(), weight.reverse()));
         }
     }
 
@@ -89,7 +126,7 @@ where
 
     graph.extend_edges(to_insert);
 
-    if edmonds_karp(graph, source, sink)
+    if _ford_fulkerson(graph, source, sink, Bfs)
         != graph
             .iter_nodes()
             .filter_map(|node| {
@@ -102,6 +139,13 @@ where
             })
             .sum()
     {
+        graph.remove_node(sink);
+        graph.remove_node(source);
+
+        graph.retain_edges(|EdgeRef { edge_id, weight }| {
+            !weight.is_reverse() && !edge_id.contains(sink) && !edge_id.contains(source)
+        });
+        empty_flow(graph);
         return None;
     }
 
@@ -109,40 +153,38 @@ where
     let start = graph.insert_node(C::default());
 
     for node_id in node_ids {
+        // let edge_id = graph.insert_edge(start, node_id, FlowCostBundle::default());
+        // to_remove.push(edge_id);
         graph.insert_edge(start, node_id, FlowCostBundle::default());
     }
 
-    let filter = |EdgeRef { edge_id, weight }: EdgeRef<G::Key, G::EdgeWeight>| {
-        edge_id.contains(start) || (*weight.capacity() - *weight.flow()) > C::default()
+    let filter = |edge: EdgeRef<_, FlowCostBundle<C>>| {
+        edge.edge_id.contains(start) || edge.weight.residual_capacity() > C::default()
     };
 
     while let Either::Right(cycle) = bellman_ford_cycle(graph, start, filter) {
-        let bottleneck = cycle
-            .iter_edges()
-            .map(|edge_id| {
-                let weight = &graph[edge_id];
-                *weight.capacity() - *weight.flow()
-            })
-            .min_by(TotalOrd::total_ord)
-            .unwrap();
+        let gamma = min_residual_capacity(graph, cycle.iter_edges()).unwrap();
 
         for edge_id in cycle.iter_edges() {
-            *graph[edge_id].flow_mut() += bottleneck;
-            *graph[edge_id.rev()].flow_mut() -= bottleneck;
+            *graph[edge_id].flow_mut() += gamma;
+            *graph[edge_id.reverse()].flow_mut() -= gamma;
         }
     }
 
-    let cost = graph
-        .iter_edges()
-        .filter_map(|edge| {
-            let weight = edge.weight;
-            if !weight.is_reverse() {
-                Some(*weight.flow() * *weight.cost())
-            } else {
-                None
-            }
-        })
-        .sum();
+    let cost = sum_cost_flow(graph);
+
+    graph.retain_edges(|EdgeRef { edge_id, weight }| {
+        !weight.is_reverse()
+            && !edge_id.contains(start)
+            && !edge_id.contains(sink)
+            && !edge_id.contains(source)
+    });
+
+    // order is important as underlying graph may or may not have stable node indices
+    // so that removal of nodes might shift all nodes
+    graph.remove_node(start);
+    graph.remove_node(sink);
+    graph.remove_node(source);
 
     Some(cost)
 }
@@ -152,132 +194,158 @@ mod test {
     extern crate test;
 
     use super::cycle_canceling;
+    use crate::algorithms::empty_flow;
     use crate::test::bgraph;
     use grax_impl::*;
     use test::Bencher;
 
+    // #[test]
+    // fn cycle_canceling_cleanup() {
+    //     use crate::prelude::ssp;
+
+    //     let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+
+    //     let mut cc_graph = graph.clone();
+    //     let cost = cycle_canceling(&mut cc_graph).unwrap();
+    //     assert_eq!(cost, 3.0);
+
+    //     let mut ssp_graph = graph.clone();
+    //     let cost = ssp(&mut ssp_graph).unwrap();
+    //     assert_eq!(cost, 3.0);
+
+    //     assert_eq!(cc_graph, ssp_graph);
+    // }
+
     #[bench]
     fn cycle_canceling_kostenminimal_1_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 3.0);
+            empty_flow(&mut graph);
         });
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_2_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 0.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_3_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_4_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_1_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 1537.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_2_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 1838.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_3_adj_list(b: &mut Bencher) {
-        let graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        let mut graph: AdjGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_1_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal1.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 3.0);
+            empty_flow(&mut graph);
         });
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_2_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal2.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 0.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_3_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal3.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_4_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal4.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_1_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross1.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 1537.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_2_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross2.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone()).unwrap();
+            let cost = cycle_canceling(&mut graph).unwrap();
             assert_eq!(cost, 1838.0);
+            empty_flow(&mut graph);
         })
     }
 
     #[bench]
     fn cycle_canceling_kostenminimal_gross_3_csr_mat(b: &mut Bencher) {
-        let graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
+        let mut graph: CsrGraph<_, _, true> = bgraph("../data/Kostenminimal_gross3.txt").unwrap();
         b.iter(|| {
-            let cost = cycle_canceling(&mut graph.clone());
+            let cost = cycle_canceling(&mut graph);
             assert!(cost.is_none());
         })
     }

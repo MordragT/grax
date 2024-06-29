@@ -1,7 +1,9 @@
-use super::{dfs_where, prim};
-use crate::problems::{TspCycle, TspSolver};
-use crate::util::{Cycle, Tree};
-use crate::weight::{Bounded, TotalOrd};
+use super::{dfs_where, prim, TspSolver};
+use crate::{
+    cycle::{Cycle, TspCycle},
+    tree::Tree,
+    weight::{Bounded, TotalOrd},
+};
 
 use grax_core::collections::{EdgeIter, IndexEdge, NodeCount, NodeIter};
 use grax_core::edge::weight::*;

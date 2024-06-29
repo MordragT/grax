@@ -1,6 +1,7 @@
-use crate::problems::{ShortestPath, ShortestPathTree};
-use crate::util::{Distances, Parents};
-use crate::weight::TotalOrd;
+use crate::{
+    distances::Distances, parents::Parents, path::ShortestPath, tree::ShortestPathTree,
+    weight::TotalOrd,
+};
 
 use grax_core::collections::NodeCount;
 use grax_core::edge::{weight::*, *};

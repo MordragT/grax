@@ -1,12 +1,10 @@
-use std::fmt::Debug;
-
 use grax_core::{
     graph::NodeAttribute,
     index::{EdgeId, NodeId},
 };
 use itertools::Itertools;
 
-use super::Parents;
+use crate::parents::Parents;
 
 #[derive(Debug, Clone)]
 pub struct Cycle<G>
@@ -36,4 +34,12 @@ where
     pub fn is_empty(&self) -> bool {
         self.parents.is_empty()
     }
+}
+
+pub struct TspCycle<C, G>
+where
+    G: NodeAttribute,
+{
+    pub cost: C,
+    pub cycle: Cycle<G>,
 }

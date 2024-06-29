@@ -16,8 +16,24 @@ pub trait Cost<T> {
 }
 
 pub trait Reverse {
-    fn reverse(self) -> Self;
+    fn reverse(&self) -> Self;
     fn is_reverse(&self) -> bool;
+}
+
+pub trait ResidualCapacity<T>: Flow<T> + Capacity<T>
+where
+    T: Copy + Sub<T, Output = T>,
+{
+    fn residual_capacity(&self) -> T {
+        *self.capacity() - *self.flow()
+    }
+}
+
+impl<T, C> ResidualCapacity<C> for T
+where
+    C: Copy + Sub<C, Output = C>,
+    T: Flow<C> + Capacity<C>,
+{
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
@@ -55,7 +71,7 @@ where
         self.reverse
     }
 
-    fn reverse(self) -> Self {
+    fn reverse(&self) -> Self {
         let Self {
             capacity,
             flow,
@@ -63,8 +79,8 @@ where
         } = self;
 
         Self {
-            flow: capacity.clone() - flow,
-            capacity,
+            flow: capacity.clone() - flow.clone(),
+            capacity: capacity.clone(),
             reverse: !reverse,
         }
     }
@@ -116,7 +132,7 @@ where
         self.reverse
     }
 
-    fn reverse(self) -> Self {
+    fn reverse(&self) -> Self {
         let Self {
             cost,
             capacity,
@@ -125,9 +141,9 @@ where
         } = self;
 
         Self {
-            cost: -cost,
-            flow: capacity.clone() - flow,
-            capacity,
+            cost: -cost.clone(),
+            flow: capacity.clone() - flow.clone(),
+            capacity: capacity.clone(),
             reverse: !reverse,
         }
     }

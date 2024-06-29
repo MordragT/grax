@@ -135,6 +135,31 @@ test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_adj_list         ... ben
 test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_csr_mat          ... bench:   4,371,949 ns/iter (+/- 210,311)
 test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_dense_mat        ... bench:  25,006,617 ns/iter (+/- 1,277,626)
 ```
+with removal of edges (for edge: remove(edge))
+```
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_adj_list                      ... bench:       2,068.45 ns/iter (+/- 30.34)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_csr_mat                       ... bench:       3,143.25 ns/iter (+/- 49.43)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_dense_mat                     ... bench:       2,659.49 ns/iter (+/- 444.02)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_adj_list                       ... bench:       1,103.93 ns/iter (+/- 39.66)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_csr_mat                        ... bench:       1,350.02 ns/iter (+/- 224.51)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_dense_mat                      ... bench:       1,160.73 ns/iter (+/- 25.22)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_adj_list                       ... bench:     487,561.20 ns/iter (+/- 38,233.24)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_csr_mat                        ... bench:   7,132,653.00 ns/iter (+/- 177,331.23)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_dense_mat                      ... bench:   6,929,707.60 ns/iter (+/- 106,876.62)
+```
+
+with removal v2 (retain_edges(...))
+```
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_adj_list                      ... bench:       1,978.03 ns/iter (+/- 132.65)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_csr_mat                       ... bench:       2,336.36 ns/iter (+/- 39.71)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss2_dense_mat                     ... bench:       2,555.22 ns/iter (+/- 24.92)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_adj_list                       ... bench:       1,035.72 ns/iter (+/- 18.36)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_csr_mat                        ... bench:       1,031.52 ns/iter (+/- 31.36)
+test algorithms::edmonds_karp::test::edmonds_karp_fluss_dense_mat                      ... bench:       1,020.38 ns/iter (+/- 11.95)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_adj_list                       ... bench:     474,722.90 ns/iter (+/- 13,597.60)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_csr_mat                        ... bench:   3,651,288.90 ns/iter (+/- 92,733.51)
+test algorithms::edmonds_karp::test::edmonds_karp_g_1_2_dense_mat                      ... bench:   7,128,246.00 ns/iter (+/- 283,441.94)
+```
 
 ### double tree
 
@@ -426,4 +451,97 @@ test graph::conversion::test::read_kostenminimal4_adj_list       ... bench:     
 test graph::conversion::test::read_kostenminimal_gross1_adj_list ... bench:     114,596.27 ns/iter (+/- 1,179.52)
 test graph::conversion::test::read_kostenminimal_gross2_adj_list ... bench:     110,006.09 ns/iter (+/- 708.54)
 test graph::conversion::test::read_kostenminimal_gross3_adj_list ... bench:     120,262.50 ns/iter (+/- 2,095.97)
+```
+
+## cycle canceling
+
+with cloning
+```
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_adj_list       ... bench:       2,354.07 ns/iter (+/- 52.73)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_csr_mat        ... bench:       2,398.11 ns/iter (+/- 29.08)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_adj_list       ... bench:       1,892.81 ns/iter (+/- 57.56)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_csr_mat        ... bench:       1,828.13 ns/iter (+/- 140.01)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_adj_list       ... bench:       1,549.56 ns/iter (+/- 46.75)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_csr_mat        ... bench:       1,521.74 ns/iter (+/- 84.66)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_adj_list       ... bench:       1,531.30 ns/iter (+/- 20.50)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_csr_mat        ... bench:       1,488.24 ns/iter (+/- 15.38)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_adj_list ... bench:  87,105,197.20 ns/iter (+/- 4,559,551.99)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_csr_mat  ... bench:  57,721,979.00 ns/iter (+/- 241,936.05)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_adj_list ... bench:  85,749,215.60 ns/iter (+/- 3,545,354.46)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_csr_mat  ... bench:  57,513,056.30 ns/iter (+/- 648,395.39)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_3_adj_list ... bench:   1,047,820.60 ns/iter (+/- 31,695.75)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_3_csr_mat  ... bench:   1,692,701.60 ns/iter (+/- 36,106.01)
+```
+
+
+with edge/node removal
+```
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_adj_list       ... bench:     322,237.06 ns/iter (+/- 295,705.44)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_csr_mat        ... bench:   1,132,159.79 ns/iter (+/- 1,477,045.85)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_adj_list       ... bench:     103,736.48 ns/iter (+/- 128,801.64)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_csr_mat        ... bench:   1,049,921.16 ns/iter (+/- 1,334,906.63)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_adj_list       ... bench:      62,211.26 ns/iter (+/- 76,319.87)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_csr_mat        ... bench:   1,016,040.32 ns/iter (+/- 1,278,921.84)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_adj_list       ... bench:      62,624.09 ns/iter (+/- 75,910.27)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_csr_mat        ... bench:     919,933.53 ns/iter (+/- 1,144,910.53)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_adj_list ... bench:  92,822,782.10 ns/iter (+/- 1,202,440.55)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_csr_mat  ... bench:  58,409,330.90 ns/iter (+/- 2,094,027.86)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_adj_list ... bench:  92,575,892.90 ns/iter (+/- 942,580.34)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_csr_mat  ... bench:  57,939,606.50 ns/iter
+```
+
+new2
+```
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_adj_list       ... bench:     224,821.35 ns/iter (+/- 292,190.19)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_1_csr_mat        ... bench:     371,503.32 ns/iter (+/- 463,308.02)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_adj_list       ... bench:     256,107.19 ns/iter (+/- 322,415.04)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_2_csr_mat        ... bench:     369,553.42 ns/iter (+/- 466,323.74)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_adj_list       ... bench:     263,063.40 ns/iter (+/- 328,194.88)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_3_csr_mat        ... bench:     370,750.43 ns/iter (+/- 456,099.30)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_adj_list       ... bench:     209,457.27 ns/iter (+/- 263,603.31)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_4_csr_mat        ... bench:     347,611.80 ns/iter (+/- 439,373.26)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_adj_list ... bench:  52,658,066.90 ns/iter (+/- 7,771,818.09)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_1_csr_mat  ... bench:  58,957,740.00 ns/iter (+/- 2,324,129.07)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_adj_list ... bench:  53,498,469.00 ns/iter (+/- 7,899,191.58)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_2_csr_mat  ... bench:  57,840,720.60 ns/iter (+/- 1,373,452.70)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_3_adj_list ... bench:     934,554.00 ns/iter (+/- 12,113.11)
+test algorithms::cycle_canceling::test::cycle_canceling_kostenminimal_gross_3_csr_mat  ... bench:   1,886,071.00 ns/iter (+/- 192,009.21)
+```
+
+## ssp
+
+with cloning
+```
+test algorithms::ssp::test::ssp_kostenminimal_1_adj_list                               ... bench:       1,638.47 ns/iter (+/- 33.68)
+test algorithms::ssp::test::ssp_kostenminimal_1_csr_mat                                ... bench:       1,517.93 ns/iter (+/- 55.33)
+test algorithms::ssp::test::ssp_kostenminimal_2_adj_list                               ... bench:         984.95 ns/iter (+/- 22.08)
+test algorithms::ssp::test::ssp_kostenminimal_2_csr_mat                                ... bench:         790.70 ns/iter (+/- 20.64)
+test algorithms::ssp::test::ssp_kostenminimal_3_adj_list                               ... bench:       1,699.08 ns/iter (+/- 56.85)
+test algorithms::ssp::test::ssp_kostenminimal_3_csr_mat                                ... bench:       1,522.43 ns/iter (+/- 44.60)
+test algorithms::ssp::test::ssp_kostenminimal_4_adj_list                               ... bench:       1,828.30 ns/iter (+/- 59.28)
+test algorithms::ssp::test::ssp_kostenminimal_4_csr_mat                                ... bench:       1,611.78 ns/iter (+/- 46.54)
+test algorithms::ssp::test::ssp_kostenminimal_gross_1_adj_list                         ... bench:  24,890,719.00 ns/iter (+/- 335,391.95)
+test algorithms::ssp::test::ssp_kostenminimal_gross_1_csr_mat                          ... bench:  19,516,387.80 ns/iter (+/- 1,828,830.83)
+test algorithms::ssp::test::ssp_kostenminimal_gross_2_adj_list                         ... bench:  25,719,664.70 ns/iter (+/- 182,623.42)
+test algorithms::ssp::test::ssp_kostenminimal_gross_2_csr_mat                          ... bench:  20,009,433.00 ns/iter (+/- 2,611,144.90)
+test algorithms::ssp::test::ssp_kostenminimal_gross_3_adj_list                         ... bench:  58,108,510.30 ns/iter (+/- 532,777.48)
+test algorithms::ssp::test::ssp_kostenminimal_gross_3_csr_mat                          ... bench:  45,659,820.90 ns/iter (+/- 3,793,378.10)
+```
+
+with edge removal
+```
+test algorithms::ssp::test::ssp_kostenminimal_1_adj_list                               ... bench:       1,722.61 ns/iter (+/- 579.70)
+test algorithms::ssp::test::ssp_kostenminimal_1_csr_mat                                ... bench:       1,731.20 ns/iter (+/- 177.46)
+test algorithms::ssp::test::ssp_kostenminimal_2_adj_list                               ... bench:         756.75 ns/iter (+/- 58.46)
+test algorithms::ssp::test::ssp_kostenminimal_2_csr_mat                                ... bench:         829.62 ns/iter (+/- 19.83)
+test algorithms::ssp::test::ssp_kostenminimal_3_adj_list                               ... bench:       1,656.48 ns/iter (+/- 74.39)
+test algorithms::ssp::test::ssp_kostenminimal_3_csr_mat                                ... bench:       1,748.56 ns/iter (+/- 199.55)
+test algorithms::ssp::test::ssp_kostenminimal_4_adj_list                               ... bench:       1,746.21 ns/iter (+/- 85.01)
+test algorithms::ssp::test::ssp_kostenminimal_4_csr_mat                                ... bench:       1,819.42 ns/iter (+/- 69.77)
+test algorithms::ssp::test::ssp_kostenminimal_gross_1_adj_list                         ... bench:  17,916,739.50 ns/iter (+/- 335,550.20)
+test algorithms::ssp::test::ssp_kostenminimal_gross_1_csr_mat                          ... bench:  23,220,633.70 ns/iter (+/- 669,892.92)
+test algorithms::ssp::test::ssp_kostenminimal_gross_2_adj_list                         ... bench:  18,433,344.50 ns/iter (+/- 1,409,764.53)
+test algorithms::ssp::test::ssp_kostenminimal_gross_2_csr_mat                          ... bench:  24,046,658.40 ns/iter (+/- 757,248.16)
+test algorithms::ssp::test::ssp_kostenminimal_gross_3_adj_list                         ... bench:  42,696,112.30 ns/iter (+/- 802,340.55)
+test algorithms::ssp::test::ssp_kostenminimal_gross_3_csr_mat                          ... bench:  53,162,328.80 ns/iter (+/- 568,786.09)
 ```

@@ -131,6 +131,13 @@ impl<V: Debug> RemoveNode for UnstableNodeVec<V> {
             None
         }
     }
+
+    fn retain_nodes<F>(&mut self, visit: F)
+    where
+        F: FnMut(NodeRef<Self::Key, Self::NodeWeight>) -> bool,
+    {
+        todo!()
+    }
 }
 
 impl<V: Debug + Clone> NodeMap<usize, V> for UnstableNodeVec<V> {}

@@ -127,6 +127,15 @@ impl<V: Debug> RemoveNode for StableNodeVec<V> {
             .remove(*node_id)
             .map(|weight| Node::new(node_id, weight))
     }
+
+    fn retain_nodes<F>(&mut self, mut visit: F)
+    where
+        F: FnMut(NodeRef<Self::Key, Self::NodeWeight>) -> bool,
+    {
+        // self.0.retain(|weight|)
+        // self.0.retain_indices(|id| visit(NodeId::new_unchecked(id)))
+        todo!()
+    }
 }
 
 impl<V: Debug + Clone> NodeMap<usize, V> for StableNodeVec<V> {}

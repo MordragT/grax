@@ -1,7 +1,5 @@
-use crate::problems::Path;
-use crate::problems::PathFinder;
-use crate::problems::PathTree;
-use crate::util::Parents;
+use super::PathFinder;
+use crate::{parents::Parents, path::Path, tree::PathTree};
 
 use grax_core::collections::GetNodeMut;
 use grax_core::collections::NodeIter;

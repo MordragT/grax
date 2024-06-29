@@ -1,4 +1,4 @@
-use crate::util::Parents;
+use crate::parents::Parents;
 
 use grax_core::{collections::GetNodeMut, graph::NodeAttribute, prelude::NodeId};
 use std::ops::{Add, AddAssign, Deref, DerefMut};

@@ -1,8 +1,9 @@
-use crate::problems::TspCycle;
-use crate::problems::TspSolver;
-use crate::util::Cycle;
-use crate::util::Parents;
-use crate::weight::TotalOrd;
+use super::TspSolver;
+use crate::{
+    cycle::{Cycle, TspCycle},
+    parents::Parents,
+    weight::TotalOrd,
+};
 
 use grax_core::collections::IndexEdge;
 use grax_core::collections::NodeIter;

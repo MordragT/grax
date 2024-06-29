@@ -1,6 +1,7 @@
 use std::{
     fmt::Debug,
     ops::{Index, IndexMut},
+    vec::Drain,
 };
 
 use grax_core::{
@@ -11,7 +12,6 @@ use grax_core::{
     edge::{Edge, EdgeMut, EdgeRef},
     graph::{EdgeIterAdjacent, EdgeIterAdjacentMut},
     index::{EdgeId, NodeId},
-    node,
 };
 use more_asserts::assert_lt;
 use rayon::slice::ParallelSliceMut;
@@ -84,7 +84,7 @@ impl<'a, W: 'a> Iterator for CsrMatrixIterMut<'a, W> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 struct RowOffset {
     start: usize,
     end: usize,
@@ -306,6 +306,64 @@ impl<W: Debug> RemoveEdge for CsrMatrix<W> {
             None
         }
     }
+
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>) {
+        let to_remove = self
+            .edge_ids()
+            .filter(|edge_id| edge_id.to() == node_id)
+            .collect::<Vec<_>>();
+
+        for edge_id in to_remove {
+            self.remove_edge(edge_id);
+        }
+    }
+
+    fn remove_outbound<'a>(&'a mut self, node_id: NodeId<Self::Key>) {
+        if let Some(&offset) = self.row_offsets.get(*node_id) {
+            let removed = offset.end - offset.start;
+
+            self.row_offsets[*node_id].end -= removed;
+
+            for offset in &mut self.row_offsets[*node_id + 1..] {
+                offset.start -= removed;
+                offset.end -= removed;
+            }
+            self.edges.drain(offset.start..offset.end);
+        }
+    }
+
+    fn retain_edges<F>(&mut self, mut visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool,
+    {
+        self.edges.retain(|edge| visit(edge.into()));
+        self.row_offsets.fill(RowOffset {
+            start: self.edges.len(),
+            end: self.edges.len(),
+        });
+
+        if let Some(last) = self.edges.last() {
+            let row_count = *last.from() + 1;
+            let mut start = 0;
+
+            for row in 0..row_count {
+                if let Some(pos) = self.edges[start..]
+                    .iter()
+                    .position(|edge| *edge.from() != row)
+                {
+                    self.row_offsets[row] = RowOffset {
+                        start,
+                        end: start + pos,
+                    };
+                    start += pos;
+                } else {
+                    assert_eq!(row, row_count - 1);
+                    self.row_offsets[row].start = start;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 impl<W: Debug> EdgeIter for CsrMatrix<W> {
@@ -395,7 +453,13 @@ impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
             .collect::<Vec<_>>();
         edges.par_sort_unstable_by(|a, b| a.from().cmp(&b.from()).then(a.to().cmp(&b.to())));
 
-        let mut row_offsets = Vec::new();
+        let mut row_offsets = vec![
+            RowOffset {
+                start: edges.len(),
+                end: edges.len()
+            };
+            node_count
+        ];
 
         if let Some(last) = edges.last() {
             let row_count = *last.from() + 1;
@@ -403,30 +467,17 @@ impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
 
             for row in 0..row_count {
                 if let Some(pos) = edges[start..].iter().position(|edge| *edge.from() != row) {
-                    row_offsets.push(RowOffset {
+                    row_offsets[row] = RowOffset {
                         start,
                         end: start + pos,
-                    });
+                    };
                     start += pos;
                 } else {
                     assert_eq!(row, row_count - 1);
-                    row_offsets.push(RowOffset {
-                        start,
-                        end: edges.len(),
-                    });
+                    row_offsets[row].start = start;
                     break;
                 }
             }
-
-            // allocate for nodes currently without edges
-            for _ in row_count..node_count {
-                row_offsets.push(RowOffset {
-                    start: edges.len(),
-                    end: edges.len(),
-                })
-            }
-        } else {
-            todo!()
         }
 
         Self { row_offsets, edges }
@@ -446,10 +497,6 @@ impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
                 end: offset.end,
             });
         }
-    }
-
-    fn remove_node(&mut self, node_id: NodeId<Self::Key>) {
-        todo!()
     }
 }
 

@@ -1,5 +1,5 @@
-use crate::problems::{Path, PathFinder, PathTree};
-use crate::util::Parents;
+use super::PathFinder;
+use crate::{parents::Parents, path::Path, tree::PathTree};
 
 use grax_core::collections::*;
 use grax_core::graph::*;

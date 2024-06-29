@@ -1,7 +1,8 @@
-use super::UnionFind;
-use crate::problems::{Mst, MstBuilder};
-use crate::util::Tree;
-use crate::weight::TotalOrd;
+use super::{MstBuilder, UnionFind};
+use crate::{
+    tree::{Mst, Tree},
+    weight::TotalOrd,
+};
 
 use grax_core::collections::{EdgeIter, NodeIter};
 use grax_core::edge::{weight::*, *};

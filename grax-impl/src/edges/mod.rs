@@ -34,6 +34,4 @@ pub trait EdgeStorage<K: Identifier, W>:
 
     /// Clears the storage, removing all elements
     fn clear(&mut self);
-
-    fn remove_node(&mut self, node_id: NodeId<Self::Key>);
 }

@@ -1,6 +1,9 @@
-use crate::problems::{Mst, MstBuilder};
-use crate::util::{Parents, Tree};
-use crate::weight::{Bounded, TotalOrd};
+use super::MstBuilder;
+use crate::{
+    parents::Parents,
+    tree::{Mst, Tree},
+    weight::{Bounded, TotalOrd},
+};
 
 use grax_core::collections::VisitNodeMap;
 use grax_core::collections::{NodeCount, NodeIter};

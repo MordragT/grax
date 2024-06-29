@@ -34,7 +34,7 @@ pub type StableAdjGraph<N, W, const DI: bool = false> =
 pub type StableHashGraph<N, W, const DI: bool = false> =
     Graph<StableNodeVec<N>, HashStorage<W>, N, W, DI>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Graph<NS, ES, N: Debug, W: Debug, const DI: bool = false> {
     pub(crate) nodes: NS,
     pub(crate) edges: ES,
@@ -273,6 +273,10 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
     fn reserve_nodes(&mut self, additional: usize) {
         self.nodes.reserve_nodes(additional)
     }
+
+    fn extend_nodes(&mut self, nodes: impl IntoIterator<Item = Self::NodeWeight>) {
+        self.nodes.extend_nodes(nodes)
+    }
 }
 
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
@@ -307,6 +311,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
     ) -> Option<Node<Self::Key, Self::NodeWeight>> {
         self.nodes.remove_node(node_id)
     }
+
+    fn retain_nodes<F>(&mut self, visit: F)
+    where
+        F: FnMut(NodeRef<Self::Key, Self::NodeWeight>) -> bool,
+    {
+        self.nodes.retain_nodes(visit)
+    }
 }
 
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
@@ -317,6 +328,21 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
         edge_id: EdgeId<Self::Key>,
     ) -> Option<Edge<Self::Key, Self::EdgeWeight>> {
         self.edges.remove_edge(edge_id)
+    }
+
+    fn remove_inbound(&mut self, node_id: NodeId<Self::Key>) {
+        self.edges.remove_inbound(node_id)
+    }
+
+    fn remove_outbound(&mut self, node_id: NodeId<Self::Key>) {
+        self.edges.remove_outbound(node_id)
+    }
+
+    fn retain_edges<F>(&mut self, visit: F)
+    where
+        F: FnMut(EdgeRef<Self::Key, Self::EdgeWeight>) -> bool,
+    {
+        self.edges.retain_edges(visit)
     }
 }
 
