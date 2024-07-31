@@ -6,6 +6,7 @@
 pub mod algorithms;
 pub mod cycle;
 pub mod distances;
+pub mod flow;
 pub mod parents;
 pub mod path;
 pub mod tree;

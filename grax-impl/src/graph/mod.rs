@@ -3,7 +3,7 @@ pub use graph::{
     StableHashGraph, StableMatGraph,
 };
 
-mod conversion;
 mod graph;
+mod parse;
 #[cfg(test)]
 mod test;

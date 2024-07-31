@@ -2,7 +2,7 @@ use super::{
     bellman_ford_cycle, min_residual_capacity, sum_cost_flow, Bfs, McfSolver, _ford_fulkerson,
     empty_flow,
 };
-use crate::weight::TotalOrd;
+use crate::{flow::FlowCostBundle, weight::TotalOrd};
 
 use either::Either;
 use grax_core::{
@@ -153,8 +153,6 @@ where
     let start = graph.insert_node(C::default());
 
     for node_id in node_ids {
-        // let edge_id = graph.insert_edge(start, node_id, FlowCostBundle::default());
-        // to_remove.push(edge_id);
         graph.insert_edge(start, node_id, FlowCostBundle::default());
     }
 

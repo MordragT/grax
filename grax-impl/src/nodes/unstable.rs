@@ -94,8 +94,6 @@ impl<V: Debug> NodeIter for UnstableNodeVec<V> {
 
 impl<V: Debug + Clone> FixedNodeMap<usize, V> for UnstableNodeVec<V> {}
 
-// NodeIterMut + GetNodeMut + InsertNode + RemoveNode
-
 impl<V: Debug> NodeIterMut for UnstableNodeVec<V> {
     type NodesMut<'a> = impl Iterator<Item = NodeMut<'a, Self::Key, Self::NodeWeight>> + 'a where V: 'a, Self: 'a;
 

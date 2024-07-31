@@ -1,6 +1,7 @@
 use super::{bellman_ford_to, insert_residual_edges, sum_cost_flow};
 use crate::{
-    algorithms::remove_residual_edges, path::ShortestPath, prelude::empty_flow, weight::TotalOrd,
+    algorithms::remove_residual_edges, flow::FlowCostBundle, path::ShortestPath,
+    prelude::empty_flow, weight::TotalOrd,
 };
 
 use grax_core::{
@@ -20,7 +21,6 @@ use std::{
     ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign},
 };
 
-/// successive shortest path
 pub fn ssp<C, G>(graph: &mut G) -> Option<C>
 where
     C: PartialOrd

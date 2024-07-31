@@ -9,4 +9,3 @@ edition = "2021"
 grax-core = { path = "../grax-core" }
 grax-impl = { path = "../grax-impl" }
 grax-algorithms = { path = "../grax-algorithms" }
-grax-query = { path = "../grax-query" }

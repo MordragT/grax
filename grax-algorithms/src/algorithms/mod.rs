@@ -33,6 +33,7 @@ mod union_find;
 
 use crate::{
     cycle::TspCycle,
+    flow::FlowBundle,
     path::{Path, ShortestPath},
     tree::{Mst, PathTree, ShortestPathTree},
     weight::TotalOrd,
@@ -42,7 +43,7 @@ use grax_core::{
         EdgeCollection, EdgeIter, EdgeIterMut, GetEdge, IndexEdge, InsertEdge, RemoveEdge,
     },
     edge::{
-        weight::{Cost, Flow, FlowBundle, ResidualCapacity, Reverse},
+        weight::{Cost, Flow, ResidualCapacity, Reverse},
         Edge, EdgeRef,
     },
     graph::{AdaptEdges, NodeAttribute},

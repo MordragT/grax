@@ -6,6 +6,7 @@ pub mod edge;
 pub mod graph;
 pub mod index;
 pub mod node;
+pub mod parse;
 
 pub mod prelude {
     pub use crate::{

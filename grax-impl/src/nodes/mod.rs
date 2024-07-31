@@ -1,19 +1,14 @@
-pub use fixed::*;
 use grax_core::{
     collections::NodeMap,
     index::{Identifier, NodeId},
     node::{Node, NodeMut},
 };
-pub use optional::*;
-pub use ordered::*;
-pub use slab::*;
+
+pub use fixed::*;
 pub use stable::*;
 pub use unstable::*;
 
 mod fixed;
-mod optional;
-mod ordered;
-mod slab;
 mod stable;
 mod unstable;
 

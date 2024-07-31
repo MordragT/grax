@@ -35,7 +35,13 @@ pub type StableHashGraph<N, W, const DI: bool = false> =
     Graph<StableNodeVec<N>, HashStorage<W>, N, W, DI>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Graph<NS, ES, N: Debug, W: Debug, const DI: bool = false> {
+pub struct Graph<NS, ES, N, W, const DI: bool = false>
+where
+    N: Debug,
+    W: Debug,
+    // NS: NodeStorage<usize, N>,
+    // ES: EdgeStorage<usize, W>,
+{
     pub(crate) nodes: NS,
     pub(crate) edges: ES,
     pub(crate) edge_weight: PhantomData<W>,
