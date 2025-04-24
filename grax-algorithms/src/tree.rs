@@ -4,7 +4,7 @@ use grax_core::{graph::NodeAttribute, index::NodeId};
 
 use crate::{distances::Distances, parents::Parents};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Tree<G>
 where
     G: NodeAttribute,
@@ -15,7 +15,7 @@ where
     // pub edges: G::FixedEdgeMap<bool>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mst<C, G>
 where
     G: NodeAttribute,
@@ -24,7 +24,7 @@ where
     pub cost: C,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PathTree<G>
 where
     G: NodeAttribute,
@@ -33,10 +33,10 @@ where
     pub parents: Parents<G>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ShortestPathTree<C, G>
 where
-    C: Clone + Debug,
+    C: Clone + Debug + PartialEq,
     G: NodeAttribute,
 {
     pub from: NodeId<G::Key>,

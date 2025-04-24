@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::EdgeStorage;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HashStorage<W>(HashMap<EdgeId<usize>, W>);
 
 impl<W: Debug> Keyed for HashStorage<W> {
@@ -159,13 +159,15 @@ impl<W: Debug> RemoveEdge for HashStorage<W> {
 }
 
 impl<W: Debug> EdgeIter for HashStorage<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn edge_ids(&self) -> Self::EdgeIds<'_> {
         self.0.keys().cloned()
@@ -179,7 +181,8 @@ impl<W: Debug> EdgeIter for HashStorage<W> {
 }
 
 impl<W: Debug> EdgeIterMut for HashStorage<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -192,13 +195,15 @@ impl<W: Debug> EdgeIterMut for HashStorage<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacent for HashStorage<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn adjacent_edge_ids(&self, node_id: NodeId<Self::Key>) -> Self::EdgeIds<'_> {
         self.0
@@ -219,7 +224,8 @@ impl<W: Debug> EdgeIterAdjacent for HashStorage<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacentMut for HashStorage<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -246,11 +252,11 @@ impl<W: Debug> IntoIterator for HashStorage<W> {
     }
 }
 
-impl<W: Debug + Clone> FixedEdgeMap<usize, W> for HashStorage<W> {}
+impl<W: Debug + Clone + PartialEq> FixedEdgeMap<usize, W> for HashStorage<W> {}
 
-impl<W: Debug + Clone> EdgeMap<usize, W> for HashStorage<W> {}
+impl<W: Debug + Clone + PartialEq> EdgeMap<usize, W> for HashStorage<W> {}
 
-impl<W: Debug + Clone> EdgeStorage<usize, W> for HashStorage<W> {
+impl<W: Debug + Clone + PartialEq> EdgeStorage<usize, W> for HashStorage<W> {
     fn new() -> Self {
         Self(HashMap::new())
     }

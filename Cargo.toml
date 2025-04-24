@@ -3,6 +3,26 @@ resolver = "2"
 members = ["grax", "grax-algorithms", "grax-core", "grax-impl"]
 
 
+[workspace.dependencies]
+grax-algorithms = { path = "./grax-algorithms" }
+grax-core = { path = "./grax-core" }
+grax-impl = { path = "./grax-impl" }
+
+serde = { version = "1.0", features = ["derive"] }
+either = "1.15"
+num-traits = "0.2"
+itertools = "0.14"
+rayon = "1.10"
+permute = "0.2"
+
+more-asserts = "0.3"
+thiserror = "2.0"
+
+stable-vec = "0.4"
+bitvec = "1.0"
+priq = "0.2"
+orx-priority-queue = "1.7"
+
 [profile.release]
 debug = true
 

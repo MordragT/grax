@@ -114,10 +114,12 @@ impl<W: Debug> GetEdgeMut for AdjacencyList<W> {
 }
 
 impl<W: Debug> EdgeIter for AdjacencyList<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -132,7 +134,8 @@ impl<W: Debug> EdgeIter for AdjacencyList<W> {
 }
 
 impl<W: Debug> EdgeIterMut for AdjacencyList<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -143,10 +146,12 @@ impl<W: Debug> EdgeIterMut for AdjacencyList<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacent for AdjacencyList<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -164,7 +169,8 @@ impl<W: Debug> EdgeIterAdjacent for AdjacencyList<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacentMut for AdjacencyList<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -251,11 +257,11 @@ impl<W: Debug> IntoIterator for AdjacencyList<W> {
     }
 }
 
-impl<W: Debug + Clone> FixedEdgeMap<usize, W> for AdjacencyList<W> {}
+impl<W: Debug + Clone + PartialEq> FixedEdgeMap<usize, W> for AdjacencyList<W> {}
 
-impl<W: Debug + Clone> EdgeMap<usize, W> for AdjacencyList<W> {}
+impl<W: Debug + Clone + PartialEq> EdgeMap<usize, W> for AdjacencyList<W> {}
 
-impl<W: Debug + Clone> EdgeStorage<usize, W> for AdjacencyList<W> {
+impl<W: Debug + Clone + PartialEq> EdgeStorage<usize, W> for AdjacencyList<W> {
     fn new() -> Self {
         Self { edges: Vec::new() }
     }

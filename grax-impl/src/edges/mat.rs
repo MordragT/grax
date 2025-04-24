@@ -26,11 +26,7 @@ impl<W: Debug> AdjacencyMatrix<W> {
         self.edges.iter().flat_map(move |edges| {
             edges.iter().filter_map(
                 move |(to, edge)| {
-                    if to == col {
-                        Some(edge.into())
-                    } else {
-                        None
-                    }
+                    if to == col { Some(edge.into()) } else { None }
                 },
             )
         })
@@ -172,13 +168,15 @@ impl<W: Debug> RemoveEdge for AdjacencyMatrix<W> {
 }
 
 impl<W: Debug> EdgeIter for AdjacencyMatrix<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn edge_ids(&self) -> Self::EdgeIds<'_> {
         self.edges
@@ -194,7 +192,8 @@ impl<W: Debug> EdgeIter for AdjacencyMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterMut for AdjacencyMatrix<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -207,13 +206,15 @@ impl<W: Debug> EdgeIterMut for AdjacencyMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacent for AdjacencyMatrix<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn adjacent_edge_ids(&self, node_id: NodeId<Self::Key>) -> Self::EdgeIds<'_> {
         self.edges[*node_id].iter().map(|(_, edge)| edge.edge_id)
@@ -224,7 +225,8 @@ impl<W: Debug> EdgeIterAdjacent for AdjacencyMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacentMut for AdjacencyMatrix<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -234,11 +236,11 @@ impl<W: Debug> EdgeIterAdjacentMut for AdjacencyMatrix<W> {
     }
 }
 
-impl<W: Debug + Clone> FixedEdgeMap<usize, W> for AdjacencyMatrix<W> {}
+impl<W: Debug + Clone + PartialEq> FixedEdgeMap<usize, W> for AdjacencyMatrix<W> {}
 
-impl<W: Debug + Clone> EdgeMap<usize, W> for AdjacencyMatrix<W> {}
+impl<W: Debug + Clone + PartialEq> EdgeMap<usize, W> for AdjacencyMatrix<W> {}
 
-impl<W: Debug + Clone> EdgeStorage<usize, W> for AdjacencyMatrix<W> {
+impl<W: Debug + Clone + PartialEq> EdgeStorage<usize, W> for AdjacencyMatrix<W> {
     fn new() -> Self {
         Self { edges: Vec::new() }
     }

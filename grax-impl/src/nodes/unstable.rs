@@ -77,8 +77,15 @@ impl<V: Debug> GetNodeMut for UnstableNodeVec<V> {
 }
 
 impl<V: Debug> NodeIter for UnstableNodeVec<V> {
-    type NodeIds<'a> = impl Iterator<Item = NodeId<Self::Key>> + 'a where Self: 'a;
-    type Nodes<'a> = impl Iterator<Item = NodeRef<'a, Self::Key, Self::NodeWeight>> + 'a where V: 'a, Self: 'a;
+    type NodeIds<'a>
+        = impl Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+    type Nodes<'a>
+        = impl Iterator<Item = NodeRef<'a, Self::Key, Self::NodeWeight>> + 'a
+    where
+        V: 'a,
+        Self: 'a;
 
     fn node_ids(&self) -> Self::NodeIds<'_> {
         (0..self.0.len()).map(NodeId::new_unchecked)
@@ -92,10 +99,14 @@ impl<V: Debug> NodeIter for UnstableNodeVec<V> {
     }
 }
 
-impl<V: Debug + Clone> FixedNodeMap<usize, V> for UnstableNodeVec<V> {}
+impl<V: Debug + Clone + PartialEq> FixedNodeMap<usize, V> for UnstableNodeVec<V> {}
 
 impl<V: Debug> NodeIterMut for UnstableNodeVec<V> {
-    type NodesMut<'a> = impl Iterator<Item = NodeMut<'a, Self::Key, Self::NodeWeight>> + 'a where V: 'a, Self: 'a;
+    type NodesMut<'a>
+        = impl Iterator<Item = NodeMut<'a, Self::Key, Self::NodeWeight>> + 'a
+    where
+        V: 'a,
+        Self: 'a;
 
     fn iter_nodes_mut(&mut self) -> Self::NodesMut<'_> {
         self.0
@@ -138,7 +149,7 @@ impl<V: Debug> RemoveNode for UnstableNodeVec<V> {
     }
 }
 
-impl<V: Debug + Clone> NodeMap<usize, V> for UnstableNodeVec<V> {}
+impl<V: Debug + Clone + PartialEq> NodeMap<usize, V> for UnstableNodeVec<V> {}
 
 impl<V: Debug> IntoIterator for UnstableNodeVec<V> {
     type IntoIter = impl Iterator<Item = Self::Item>;
@@ -188,8 +199,12 @@ impl<'a, N> Iterator for IndexedNodeIterMut<'a, N> {
     }
 }
 
-impl<V: Debug + Clone> NodeStorage<usize, V> for UnstableNodeVec<V> {
-    type IndexedNodesMut<'a> = impl Iterator<Item = NodeMut<'a, usize, V>> where Self: 'a, V: 'a;
+impl<V: Debug + Clone + PartialEq> NodeStorage<usize, V> for UnstableNodeVec<V> {
+    type IndexedNodesMut<'a>
+        = impl Iterator<Item = NodeMut<'a, usize, V>>
+    where
+        Self: 'a,
+        V: 'a;
 
     fn new() -> Self {
         Self(Vec::new())

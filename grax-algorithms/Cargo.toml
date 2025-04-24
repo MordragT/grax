@@ -1,24 +1,24 @@
 [package]
 name = "grax-algorithms"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-grax-core = { path = "../grax-core" }
-priq = "0.2.0"
-permute = "0.2.1"
-either = "1.8.1"
-more-asserts = "0.3.1"
-num-traits = "0.2.15"
-rayon = "1.8.0"
+grax-core.workspace = true
+priq.workspace = true
+permute.workspace = true
+either.workspace = true
+more-asserts.workspace = true
+# num-traits.workspace = true
+rayon.workspace = true
 # dary_heap = "0.3.6"
-orx-priority-queue = "1.0.0"
-itertools = "0.13.0"
+orx-priority-queue.workspace = true
+itertools.workspace = true
 
 [dev-dependencies]
-grax-impl = { path = "../grax-impl" }
+grax-impl.workspace = true
 
 [features]
 extensive = []

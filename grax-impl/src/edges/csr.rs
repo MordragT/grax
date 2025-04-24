@@ -367,13 +367,15 @@ impl<W: Debug> RemoveEdge for CsrMatrix<W> {
 }
 
 impl<W: Debug> EdgeIter for CsrMatrix<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn edge_ids(&self) -> Self::EdgeIds<'_> {
         self.edges.iter().map(|edge| edge.edge_id)
@@ -385,7 +387,8 @@ impl<W: Debug> EdgeIter for CsrMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterMut for CsrMatrix<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -396,13 +399,15 @@ impl<W: Debug> EdgeIterMut for CsrMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacent for CsrMatrix<W> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<usize>> + 'a
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<usize>> + 'a
     where
         Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
-        where
-            W: 'a,
-            Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    where
+        W: 'a,
+        Self: 'a;
 
     fn adjacent_edge_ids(&self, node_id: NodeId<Self::Key>) -> Self::EdgeIds<'_> {
         self.row(*node_id).map(|edge| edge.edge_id)
@@ -413,7 +418,8 @@ impl<W: Debug> EdgeIterAdjacent for CsrMatrix<W> {
 }
 
 impl<W: Debug> EdgeIterAdjacentMut for CsrMatrix<W> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -423,11 +429,11 @@ impl<W: Debug> EdgeIterAdjacentMut for CsrMatrix<W> {
     }
 }
 
-impl<W: Debug + Clone> FixedEdgeMap<usize, W> for CsrMatrix<W> {}
+impl<W: Debug + Clone + PartialEq> FixedEdgeMap<usize, W> for CsrMatrix<W> {}
 
-impl<W: Debug + Clone> EdgeMap<usize, W> for CsrMatrix<W> {}
+impl<W: Debug + Clone + PartialEq> EdgeMap<usize, W> for CsrMatrix<W> {}
 
-impl<W: Debug + Clone + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
+impl<W: Debug + Clone + PartialEq + Send + Sync> EdgeStorage<usize, W> for CsrMatrix<W> {
     fn new() -> Self {
         Self {
             edges: Vec::new(),

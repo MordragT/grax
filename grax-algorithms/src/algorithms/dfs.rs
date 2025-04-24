@@ -1,4 +1,5 @@
-use super::PathFinder;
+use super::{PathFinder, TopologicalSort};
+use crate::cycle::{Cycle, CycleDetected};
 use crate::{parents::Parents, path::Path, tree::PathTree};
 
 use grax_core::collections::GetNodeMut;
@@ -35,6 +36,15 @@ where
         F: Fn(EdgeRef<G::Key, G::EdgeWeight>) -> bool,
     {
         dfs_to_where(graph, from, to, filter)
+    }
+}
+
+impl<G> TopologicalSort<G> for Dfs
+where
+    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
+{
+    fn sort(graph: &G) -> Result<Vec<NodeId<G::Key>>, CycleDetected> {
+        dfs_sort(graph)
     }
 }
 
@@ -182,8 +192,132 @@ where
     }
     None
 }
-pub(crate) fn dfs_marker<'a, G, M>(
-    graph: &'a G,
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum VisitState {
+    Unvisited,
+    Visiting,
+    Visited,
+}
+
+/// Topological sort using recursive Depth First Search.
+/// Detects cycles.
+pub fn dfs_sort<G>(graph: &G) -> Result<Vec<NodeId<G::Key>>, CycleDetected>
+where
+    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
+{
+    let mut visited = graph.fixed_node_map(VisitState::Unvisited);
+    let mut sorted = Vec::new();
+
+    for from in graph.node_ids() {
+        if visited[from] == VisitState::Unvisited {
+            dfs_sort_visit(graph, from, &mut visited, &mut sorted)?;
+        }
+    }
+
+    // The sorted list is collected in reverse topological order, so reverse it at the end
+    sorted.reverse();
+
+    Ok(sorted)
+}
+
+// Recursive helper function to perform the DFS traversal
+fn dfs_sort_visit<G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+    visited: &mut G::FixedNodeMap<VisitState>,
+    sorted: &mut Vec<NodeId<G::Key>>,
+) -> Result<(), CycleDetected>
+where
+    G: NodeAttribute + EdgeIterAdjacent,
+{
+    if visited[from] == VisitState::Visited {
+        return Ok(());
+    } else if visited[from] == VisitState::Visiting {
+        return Err(CycleDetected);
+    }
+
+    visited[from] = VisitState::Visiting;
+
+    for edge_id in graph.adjacent_edge_ids(from) {
+        let to = edge_id.to();
+        dfs_sort_visit(graph, to, visited, sorted)?;
+    }
+
+    visited[from] = VisitState::Visited;
+    sorted.push(from);
+
+    Ok(())
+}
+
+pub fn dfs_sort_with_cycle<G>(graph: &G) -> Result<Vec<NodeId<G::Key>>, Cycle<G>>
+where
+    G: NodeAttribute + EdgeIterAdjacent + NodeIter,
+{
+    let mut visited = graph.fixed_node_map(VisitState::Unvisited);
+    let mut sorted = Vec::new();
+    let mut parents = Parents::new(graph);
+
+    for from in graph.node_ids() {
+        if visited[from] == VisitState::Unvisited {
+            if let Err(member) = dfs_sort_with_cycle_visit(
+                graph,
+                from,
+                None,
+                &mut visited,
+                &mut sorted,
+                &mut parents,
+            ) {
+                return Err(Cycle { member, parents });
+            }
+        }
+    }
+
+    // The sorted list is collected in reverse topological order, so reverse it at the end
+    sorted.reverse();
+
+    Ok(sorted)
+}
+
+fn dfs_sort_with_cycle_visit<G>(
+    graph: &G,
+    from: NodeId<G::Key>,
+    parent: Option<NodeId<G::Key>>,
+    visited: &mut G::FixedNodeMap<VisitState>,
+    sorted: &mut Vec<NodeId<G::Key>>,
+    parents: &mut Parents<G>,
+) -> Result<(), NodeId<G::Key>>
+where
+    G: NodeAttribute + EdgeIterAdjacent,
+{
+    if visited[from] == VisitState::Visited {
+        return Ok(());
+    }
+
+    if let Some(parent) = parent {
+        parents.insert(parent, from);
+    }
+
+    // include parent info in cycle therefore check it here
+    if visited[from] == VisitState::Visiting {
+        return Err(from);
+    }
+
+    visited[from] = VisitState::Visiting;
+
+    for edge_id in graph.adjacent_edge_ids(from) {
+        let to = edge_id.to();
+        dfs_sort_with_cycle_visit(graph, to, Some(from), visited, sorted, parents)?;
+    }
+
+    visited[from] = VisitState::Visited;
+    sorted.push(from);
+
+    Ok(())
+}
+
+pub(crate) fn dfs_marker<G, M>(
+    graph: &G,
     from: NodeId<G::Key>,
     markers: &mut G::FixedNodeMap<M>,
     mark: M,
@@ -209,10 +343,80 @@ pub(crate) fn dfs_marker<'a, G, M>(
 #[cfg(test)]
 mod test {
     extern crate test;
-    use super::dfs_scc;
-    use crate::test::weightless_undigraph;
+    use super::{dfs_scc, dfs_sort, dfs_sort_with_cycle};
+    use crate::{
+        cycle::{Cycle, CycleDetected},
+        parents::Parents,
+        test::{id, weightless_undigraph},
+    };
+    use grax_core::graph::Create;
     use grax_impl::*;
     use test::Bencher;
+
+    #[bench]
+    fn dfs_sort_empty(b: &mut Bencher) {
+        let graph = AdjGraph::<(), (), true>::new();
+
+        b.iter(|| {
+            let sorted = dfs_sort(&graph).unwrap();
+            assert_eq!(sorted, Vec::new());
+        });
+    }
+
+    #[bench]
+    fn dfs_sort_linear(b: &mut Bencher) {
+        // 0 --> 1 --> 2
+        let graph = AdjGraph::<(), (), true>::with_edges([(0, 1, ()), (1, 2, ())], 3);
+
+        b.iter(|| {
+            let sorted = dfs_sort(&graph).unwrap();
+            assert_eq!(sorted, vec![id(0), id(1), id(2)]);
+        });
+    }
+
+    #[bench]
+    fn dfs_sort_branching(b: &mut Bencher) {
+        // 0 --> 1
+        // 0 --> 2
+        let graph = AdjGraph::<(), (), true>::with_edges([(0, 1, ()), (0, 2, ())], 3);
+
+        b.iter(|| {
+            let sorted = dfs_sort(&graph).unwrap();
+            assert_eq!(sorted, vec![id(0), id(2), id(1)]); // 0 1 2 also correct
+        });
+    }
+
+    #[bench]
+    fn dfs_sort_cycle(b: &mut Bencher) {
+        // 0 --> 1 --> 2 --> 0
+        let graph = AdjGraph::<(), (), true>::with_edges([(0, 1, ()), (1, 2, ()), (2, 0, ())], 3);
+
+        b.iter(|| {
+            let result = dfs_sort(&graph);
+            assert_eq!(result, Err(CycleDetected));
+        });
+    }
+
+    #[bench]
+    fn dfs_sort_with_cycle_cycle(b: &mut Bencher) {
+        // 0 --> 1 --> 2 --> 0
+        let graph = AdjGraph::<(), (), true>::with_edges([(0, 1, ()), (1, 2, ()), (2, 0, ())], 3);
+
+        b.iter(|| {
+            let cycle = dfs_sort_with_cycle(&graph).unwrap_err();
+
+            let mut parents = Parents::new(&graph);
+            parents.insert(id(0), id(1));
+            parents.insert(id(1), id(2));
+            parents.insert(id(2), id(0));
+            let expected = Cycle {
+                member: id(0),
+                parents,
+            };
+
+            assert_eq!(cycle, expected);
+        });
+    }
 
     #[bench]
     fn dfs_scc_graph1_adj_list(b: &mut Bencher) {

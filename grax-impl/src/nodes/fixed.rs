@@ -73,8 +73,15 @@ impl<V: Debug> GetNodeMut for FixedNodeVec<V> {
 }
 
 impl<V: Debug> NodeIter for FixedNodeVec<V> {
-    type NodeIds<'a> = impl Iterator<Item = NodeId<Self::Key>> + 'a where Self: 'a;
-    type Nodes<'a> = impl Iterator<Item = NodeRef<'a, Self::Key, Self::NodeWeight>> + 'a where V: 'a, Self: 'a;
+    type NodeIds<'a>
+        = impl Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+    type Nodes<'a>
+        = impl Iterator<Item = NodeRef<'a, Self::Key, Self::NodeWeight>> + 'a
+    where
+        V: 'a,
+        Self: 'a;
 
     fn node_ids(&self) -> Self::NodeIds<'_> {
         (0..self.0.len()).map(NodeId::new_unchecked)
@@ -89,7 +96,11 @@ impl<V: Debug> NodeIter for FixedNodeVec<V> {
 }
 
 impl<V: Debug> NodeIterMut for FixedNodeVec<V> {
-    type NodesMut<'a> = impl Iterator<Item = NodeMut<'a, Self::Key, Self::NodeWeight>> + 'a where V: 'a, Self: 'a;
+    type NodesMut<'a>
+        = impl Iterator<Item = NodeMut<'a, Self::Key, Self::NodeWeight>> + 'a
+    where
+        V: 'a,
+        Self: 'a;
 
     fn iter_nodes_mut(&mut self) -> Self::NodesMut<'_> {
         self.0
@@ -99,4 +110,4 @@ impl<V: Debug> NodeIterMut for FixedNodeVec<V> {
     }
 }
 
-impl<V: Debug + Clone> FixedNodeMap<usize, V> for FixedNodeVec<V> {}
+impl<V: Debug + Clone + PartialEq> FixedNodeMap<usize, V> for FixedNodeVec<V> {}

@@ -5,8 +5,8 @@ use std::ops::{Index, IndexMut};
 use grax_core::{collections::*, edge::*, graph::*, node::*, prelude::*};
 use serde::{Deserialize, Serialize};
 
-use crate::edges::fixed::FixedEdgeVec;
 use crate::edges::EdgeStorage;
+use crate::edges::fixed::FixedEdgeVec;
 use crate::edges::{adj::AdjacencyList, csr::CsrMatrix, hash::HashStorage, mat::AdjacencyMatrix};
 use crate::nodes::NodeStorage;
 use crate::nodes::{FixedNodeVec, StableNodeVec, UnstableNodeVec};
@@ -48,18 +48,65 @@ where
     pub(crate) node_weight: PhantomData<N>,
 }
 
-impl<
-        NS: NodeStorage<usize, usize>,
-        ES: EdgeStorage<usize, W>,
-        W: Debug + Clone,
-        const DI: bool,
-    > Graph<NS, ES, usize, W, DI>
+impl<NS, ES, N, W, const DI: bool> Graph<NS, ES, N, W, DI>
+where
+    NS: NodeStorage<usize, N>,
+    ES: EdgeStorage<usize, W>,
+    N: Debug + Clone,
+    W: Debug + Clone,
+{
+    pub fn with(
+        nodes: impl IntoIterator<Item = N>,
+        edges: impl IntoIterator<Item = (usize, usize, W)>,
+        node_count: usize,
+    ) -> Self {
+        let mut graph = Self::with_nodes(nodes, node_count);
+        graph.extend_edges(edges.into_iter().map(|(from, to, weight)| {
+            (
+                NodeId::new_unchecked(from),
+                NodeId::new_unchecked(to),
+                weight,
+            )
+        }));
+
+        graph
+    }
+}
+
+impl<NS, ES, W, const DI: bool> Graph<NS, ES, (), W, DI>
+where
+    NS: NodeStorage<usize, ()>,
+    ES: EdgeStorage<usize, W>,
+    W: Debug + Clone,
 {
     pub fn with_edges(
         edges: impl IntoIterator<Item = (usize, usize, W)>,
         node_count: usize,
     ) -> Self {
-        let mut graph = Self::with_nodes(node_count, 0..node_count);
+        let mut graph = Self::with_nodes(vec![(); node_count], node_count);
+        graph.extend_edges(edges.into_iter().map(|(from, to, weight)| {
+            (
+                NodeId::new_unchecked(from),
+                NodeId::new_unchecked(to),
+                weight,
+            )
+        }));
+
+        graph
+    }
+}
+
+impl<NS, ES, W, const DI: bool> Graph<NS, ES, usize, W, DI>
+where
+    NS: NodeStorage<usize, usize>,
+    ES: EdgeStorage<usize, W>,
+    W: Debug + Clone,
+{
+    pub fn with_edges(
+        edges: impl IntoIterator<Item = (usize, usize, W)>,
+        node_count: usize,
+    ) -> Self {
+        let mut graph = Self::with_nodes(0..node_count, node_count);
         graph.extend_edges(edges.into_iter().map(|(from, to, weight)| {
             (
                 NodeId::new_unchecked(from),
@@ -100,7 +147,7 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
         }
     }
 
-    fn with_nodes(node_count: usize, nodes: impl IntoIterator<Item = N>) -> Self {
+    fn with_nodes(nodes: impl IntoIterator<Item = N>, node_count: usize) -> Self {
         let nodes = NS::with_nodes(node_count, nodes);
         let mut edges = ES::with_capacity(node_count, node_count * 2);
         edges.allocate(node_count);
@@ -355,10 +402,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeIter for Graph<NS, ES, N, W, DI>
 {
-    type NodeIds<'a> = impl Iterator<Item = NodeId<Self::Key>> + 'a
-    where Self: 'a;
+    type NodeIds<'a>
+        = impl Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
 
-    type Nodes<'a> = impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
+    type Nodes<'a>
+        = impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
     where
         N: 'a,
         Self: 'a;
@@ -375,10 +425,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeIter for Graph<NS, ES, N, W, DI>
 {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<Self::Key>> + 'a
-    where Self: 'a;
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<Self::Key>> + 'a
+    where
+        Self: 'a;
 
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -395,7 +448,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeIterMut for Graph<NS, ES, N, W, DI>
 {
-    type NodesMut<'a> = impl Iterator<Item = NodeMut<'a, usize, N>> + 'a
+    type NodesMut<'a>
+        = impl Iterator<Item = NodeMut<'a, usize, N>> + 'a
     where
         N: 'a,
         Self: 'a;
@@ -408,7 +462,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeIterMut for Graph<NS, ES, N, W, DI>
 {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -421,9 +476,12 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeIterAdjacent for Graph<NS, ES, N, W, DI>
 {
-    type NodeIds<'a> = impl Iterator<Item = NodeId<Self::Key>> + 'a
-    where Self: 'a;
-    type Nodes<'a> = impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
+    type NodeIds<'a>
+        = impl Iterator<Item = NodeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+    type Nodes<'a>
+        = impl Iterator<Item = NodeRef<'a, usize, N>> + 'a
     where
         N: 'a,
         Self: 'a;
@@ -443,10 +501,13 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeIterAdjacent for Graph<NS, ES, N, W, DI>
 {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<Self::Key>> + 'a
-    where Self: 'a;
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<Self::Key>> + 'a
+    where
+        Self: 'a;
 
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -463,7 +524,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeIterAdjacentMut for Graph<NS, ES, N, W, DI>
 {
-    type NodesMut<'a> = impl Iterator<Item = NodeMut<'a, usize, N>> + 'a
+    type NodesMut<'a>
+        = impl Iterator<Item = NodeMut<'a, usize, N>> + 'a
     where
         N: 'a,
         Self: 'a;
@@ -476,7 +538,8 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeIterAdjacentMut for Graph<NS, ES, N, W, DI>
 {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, usize, W>> + 'a
     where
         W: 'a,
         Self: 'a;
@@ -491,14 +554,14 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     NodeAttribute for Graph<NS, ES, N, W, DI>
 {
-    type FixedNodeMap<V: Debug + Clone> = FixedNodeVec<V>;
-    type NodeMap<V: Debug + Clone> = StableNodeVec<V>;
+    type FixedNodeMap<V: Debug + Clone + PartialEq> = FixedNodeVec<V>;
+    type NodeMap<V: Debug + Clone + PartialEq> = StableNodeVec<V>;
 
-    fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V> {
+    fn fixed_node_map<V: Debug + Clone + PartialEq>(&self, fill: V) -> Self::FixedNodeMap<V> {
         FixedNodeVec::new(vec![fill; self.node_count()])
     }
 
-    fn node_map<V: Debug + Clone>(&self) -> Self::NodeMap<V> {
+    fn node_map<V: Debug + Clone + PartialEq>(&self) -> Self::NodeMap<V> {
         StableNodeVec::with_capacity(self.node_count())
     }
 }
@@ -506,27 +569,27 @@ impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, c
 impl<NS: NodeStorage<usize, N>, ES: EdgeStorage<usize, W>, N: Debug, W: Debug, const DI: bool>
     EdgeAttribute for Graph<NS, ES, N, W, DI>
 {
-    type FixedEdgeMap<V: Debug + Clone> = FixedEdgeVec<V>;
-    type EdgeMap<V: Debug + Clone> = HashStorage<V>;
+    type FixedEdgeMap<V: Debug + Clone + PartialEq> = FixedEdgeVec<V>;
+    type EdgeMap<V: Debug + Clone + PartialEq> = HashStorage<V>;
 
-    fn fixed_edge_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedEdgeMap<V> {
+    fn fixed_edge_map<V: Debug + Clone + PartialEq>(&self, fill: V) -> Self::FixedEdgeMap<V> {
         FixedEdgeVec::new(vec![fill; self.edge_count()], self.node_count())
     }
 
-    fn edge_map<V: Debug + Clone>(&self) -> Self::EdgeMap<V> {
+    fn edge_map<V: Debug + Clone + PartialEq>(&self) -> Self::EdgeMap<V> {
         HashStorage::with_capacity(self.node_count(), self.edge_count())
     }
 }
 
 impl<
-        NS: NodeStorage<usize, N>,
-        M1: EdgeStorage<usize, W1>,
-        M2: EdgeStorage<usize, W2>,
-        N: Debug,
-        W1: Debug,
-        W2: Clone + Debug,
-        const DI: bool,
-    > AdaptEdges<Graph<NS, M2, N, W2, DI>, W2> for Graph<NS, M1, N, W1, DI>
+    NS: NodeStorage<usize, N>,
+    M1: EdgeStorage<usize, W1>,
+    M2: EdgeStorage<usize, W2>,
+    N: Debug,
+    W1: Debug,
+    W2: Clone + Debug,
+    const DI: bool,
+> AdaptEdges<Graph<NS, M2, N, W2, DI>, W2> for Graph<NS, M1, N, W1, DI>
 {
     type Iterator = M1::IntoIter;
 
@@ -547,7 +610,7 @@ impl<
         let edges =
             f(edges.into_iter()).map(|edge| (edge.edge_id.from(), edge.edge_id.to(), edge.weight));
 
-        let mut graph = Graph::with_nodes(node_count, nodes.into_iter().map(|node| node.weight));
+        let mut graph = Graph::with_nodes(nodes.into_iter().map(|node| node.weight), node_count);
         graph.extend_edges(edges);
 
         graph
@@ -571,7 +634,7 @@ impl<
             (edge.edge_id.from(), edge.edge_id.to(), edge.weight)
         });
 
-        let mut graph = Graph::with_nodes(node_count, nodes.into_iter().map(|node| node.weight));
+        let mut graph = Graph::with_nodes(nodes.into_iter().map(|node| node.weight), node_count);
         graph.extend_edges(edges);
 
         graph
@@ -612,22 +675,22 @@ impl<
 // }
 
 impl<
-        NS: NodeStorage<usize, N>,
-        ES: EdgeStorage<usize, W>,
-        N: Debug + Clone,
-        W: Debug + Clone,
-        const DI: bool,
-    > ImGraph for Graph<NS, ES, N, W, DI>
+    NS: NodeStorage<usize, N>,
+    ES: EdgeStorage<usize, W>,
+    N: Debug + Clone,
+    W: Debug + Clone,
+    const DI: bool,
+> ImGraph for Graph<NS, ES, N, W, DI>
 {
 }
 
 impl<
-        NS: NodeStorage<usize, N>,
-        ES: EdgeStorage<usize, W>,
-        N: Debug + Clone,
-        W: Debug + Clone,
-        const DI: bool,
-    > MutGraph for Graph<NS, ES, N, W, DI>
+    NS: NodeStorage<usize, N>,
+    ES: EdgeStorage<usize, W>,
+    N: Debug + Clone,
+    W: Debug + Clone,
+    const DI: bool,
+> MutGraph for Graph<NS, ES, N, W, DI>
 {
 }
 

@@ -70,7 +70,7 @@ pub trait Root: NodeCollection + Keyed {
 pub trait Create: NodeCollection + Keyed {
     fn new() -> Self;
     fn with_capacity(node_count: usize, edge_count: usize) -> Self;
-    fn with_nodes(node_count: usize, nodes: impl IntoIterator<Item = Self::NodeWeight>) -> Self;
+    fn with_nodes(nodes: impl IntoIterator<Item = Self::NodeWeight>, node_count: usize) -> Self;
     // fn with_edges(
     //     node_count: usize,
     //     edge_count: usize,
@@ -163,12 +163,12 @@ pub trait EdgeIterAdjacentMut: EdgeCollection + Keyed {
 }
 
 pub trait NodeAttribute: Keyed {
-    type FixedNodeMap<V: Debug + Clone>: FixedNodeMap<Self::Key, V>;
-    type NodeMap<V: Debug + Clone>: NodeMap<Self::Key, V>;
+    type FixedNodeMap<V: Debug + Clone + PartialEq>: FixedNodeMap<Self::Key, V>;
+    type NodeMap<V: Debug + Clone + PartialEq>: NodeMap<Self::Key, V>;
 
     // implement by stable vec
-    fn fixed_node_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedNodeMap<V>;
-    fn node_map<V: Debug + Clone>(&self) -> Self::NodeMap<V>;
+    fn fixed_node_map<V: Debug + Clone + PartialEq>(&self, fill: V) -> Self::FixedNodeMap<V>;
+    fn node_map<V: Debug + Clone + PartialEq>(&self) -> Self::NodeMap<V>;
 
     fn visit_node_map(&self) -> Self::FixedNodeMap<bool> {
         self.fixed_node_map(false)
@@ -176,11 +176,11 @@ pub trait NodeAttribute: Keyed {
 }
 
 pub trait EdgeAttribute: Keyed {
-    type FixedEdgeMap<V: Debug + Clone>: FixedEdgeMap<Self::Key, V>;
-    type EdgeMap<V: Debug + Clone>: EdgeMap<Self::Key, V>;
+    type FixedEdgeMap<V: Debug + Clone + PartialEq>: FixedEdgeMap<Self::Key, V>;
+    type EdgeMap<V: Debug + Clone + PartialEq>: EdgeMap<Self::Key, V>;
 
-    fn fixed_edge_map<V: Debug + Clone>(&self, fill: V) -> Self::FixedEdgeMap<V>;
-    fn edge_map<V: Debug + Clone>(&self) -> Self::EdgeMap<V>;
+    fn fixed_edge_map<V: Debug + Clone + PartialEq>(&self, fill: V) -> Self::FixedEdgeMap<V>;
+    fn edge_map<V: Debug + Clone + PartialEq>(&self) -> Self::EdgeMap<V>;
 
     fn visit_edge_map(&self) -> Self::FixedEdgeMap<bool> {
         self.fixed_edge_map(false)

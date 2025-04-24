@@ -1,4 +1,5 @@
 use grax_core::{
+    collections::VisitNodeMap,
     graph::NodeAttribute,
     index::{EdgeId, NodeId},
 };
@@ -6,7 +7,10 @@ use itertools::Itertools;
 
 use crate::parents::Parents;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CycleDetected;
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct Cycle<G>
 where
     G: NodeAttribute,
@@ -19,6 +23,29 @@ impl<G> Cycle<G>
 where
     G: NodeAttribute,
 {
+    pub fn detect(graph: &G, parents: Parents<G>) -> Self {
+        let member = parents
+            .node_ids()
+            .find_map(|from| {
+                let mut visited = graph.visit_node_map();
+                visited.visit(from);
+
+                for parent in parents.iter(from) {
+                    if parent == from {
+                        return Some(from);
+                    } else if visited.is_visited(parent) {
+                        return None;
+                    } else {
+                        visited.visit(parent);
+                    }
+                }
+                None
+            })
+            .unwrap();
+
+        Self { parents, member }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = NodeId<G::Key>> + '_ {
         self.parents
             .iter(self.member)

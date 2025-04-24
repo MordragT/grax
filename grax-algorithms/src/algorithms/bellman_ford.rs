@@ -128,7 +128,7 @@ where
     }
 
     if updated && relax(graph, &mut distances, &mut parents, &filter) {
-        let cycle = detect_cycle(graph, parents);
+        let cycle = Cycle::detect(graph, parents);
 
         Either::Right(cycle)
     } else {
@@ -138,32 +138,6 @@ where
             parents,
         })
     }
-}
-
-fn detect_cycle<G>(graph: &G, parents: Parents<G>) -> Cycle<G>
-where
-    G: NodeAttribute,
-{
-    let member = parents
-        .node_ids()
-        .find_map(|from| {
-            let mut visited = graph.visit_node_map();
-            visited.visit(from);
-
-            for parent in parents.iter(from) {
-                if parent == from {
-                    return Some(from);
-                } else if visited.is_visited(parent) {
-                    return None;
-                } else {
-                    visited.visit(parent);
-                }
-            }
-            None
-        })
-        .unwrap();
-
-    Cycle { parents, member }
 }
 
 fn relax<C, F, G>(

@@ -4,7 +4,7 @@ use grax_core::{graph::NodeAttribute, index::NodeId};
 
 use crate::{distances::Distances, parents::Parents};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Path<G>
 where
     G: NodeAttribute,
@@ -14,10 +14,10 @@ where
     pub parents: Parents<G>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ShortestPath<C, G>
 where
-    C: Clone + Debug,
+    C: Clone + Debug + PartialEq,
     G: NodeAttribute,
 {
     pub distance: C,

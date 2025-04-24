@@ -5,7 +5,7 @@ use more_asserts::*;
 
 pub fn graph_create_with_nodes<G: MutGraph<NodeWeight = usize, EdgeWeight = f32, Key = usize>>() {
     let nodes = [1, 4, 8, 3, 5];
-    let graph = G::with_nodes(5, nodes.into_iter());
+    let graph = G::with_nodes(nodes.into_iter(), 5);
     assert_eq!(graph.node_count(), 5);
     assert_eq!(graph.edge_count(), 0);
 }

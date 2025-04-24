@@ -8,6 +8,7 @@ pub use dijkstra::*;
 pub use double_tree::*;
 pub use edmonds_karp::*;
 pub use ford_fulkerson::*;
+pub use kahn::*;
 pub use kruskal::*;
 pub use nearest_neighbor::*;
 pub use prim::*;
@@ -25,6 +26,7 @@ mod dijkstra;
 mod double_tree;
 mod edmonds_karp;
 mod ford_fulkerson;
+mod kahn;
 mod kruskal;
 mod nearest_neighbor;
 mod prim;
@@ -32,7 +34,7 @@ mod ssp;
 mod union_find;
 
 use crate::{
-    cycle::TspCycle,
+    cycle::{CycleDetected, TspCycle},
     flow::FlowBundle,
     path::{Path, ShortestPath},
     tree::{Mst, PathTree, ShortestPathTree},
@@ -40,11 +42,11 @@ use crate::{
 };
 use grax_core::{
     collections::{
-        EdgeCollection, EdgeIter, EdgeIterMut, GetEdge, IndexEdge, InsertEdge, RemoveEdge,
+        EdgeCollection, EdgeIter, EdgeIterMut, GetEdge, IndexEdge, InsertEdge, Keyed, RemoveEdge,
     },
     edge::{
-        weight::{Cost, Flow, ResidualCapacity, Reverse},
         Edge, EdgeRef,
+        weight::{Cost, Flow, ResidualCapacity, Reverse},
     },
     graph::{AdaptEdges, NodeAttribute},
     index::{EdgeId, NodeId},
@@ -68,6 +70,13 @@ where
     /// Constructs a minimal spanning tree from a graph
     /// Returns none if such tree cannot be created
     fn mst(self, graph: &G) -> Option<Mst<C, G>>;
+}
+
+pub trait TopologicalSort<G>
+where
+    G: Keyed,
+{
+    fn sort(graph: &G) -> Result<Vec<NodeId<G::Key>>, CycleDetected>;
 }
 
 pub trait PathFinder<G>: Sized + Copy
@@ -105,7 +114,7 @@ where
 
 pub trait ShortestPathFinder<C, G>: Sized + Copy
 where
-    C: Clone + Debug,
+    C: Clone + Debug + PartialEq,
     G: NodeAttribute + EdgeCollection,
 {
     /// Returns the shortest path between two nodes

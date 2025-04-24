@@ -299,6 +299,7 @@ pub trait FixedNodeMap<K: Identifier, V>:
     + NodeIterMut
     + Debug
     + Clone
+    + PartialEq
 {
     // fn get(&self, node_id: NodeId<K>) -> &V {
     //     self.node(node_id).map(|node| node.weight).unwrap()
@@ -327,8 +328,14 @@ pub trait VisitNodeMap<K: Identifier>: Keyed<Key = K> {
 }
 
 impl<K: Identifier, T: FixedNodeMap<K, bool>> VisitNodeMap<K> for T {
-    type IterUnvisited<'a> = impl Iterator<Item = NodeId<K>> + 'a where T: 'a;
-    type IterVisited<'a> = impl Iterator<Item = NodeId<K>> + 'a where T: 'a;
+    type IterUnvisited<'a>
+        = impl Iterator<Item = NodeId<K>> + 'a
+    where
+        T: 'a;
+    type IterVisited<'a>
+        = impl Iterator<Item = NodeId<K>> + 'a
+    where
+        T: 'a;
 
     fn visit(&mut self, node_id: NodeId<K>) {
         self.update_node(node_id, true);
@@ -380,6 +387,7 @@ pub trait FixedEdgeMap<K: Identifier, V>:
     + EdgeIterMut
     + Clone
     + Debug
+    + PartialEq
 {
     // fn get(&self, edge_id: EdgeId<K>) -> &V {
     //     self.edge(edge_id).map(|edge| edge.weight).unwrap()
@@ -407,8 +415,14 @@ pub trait VisitEdgeMap<K: Identifier>: Keyed<Key = K> {
 }
 
 impl<K: Identifier, T: FixedEdgeMap<K, bool>> VisitEdgeMap<K> for T {
-    type IterUnvisited<'a> = impl Iterator<Item = EdgeId<K>> + 'a where T: 'a;
-    type IterVisited<'a> = impl Iterator<Item = EdgeId<K>> + 'a where T: 'a;
+    type IterUnvisited<'a>
+        = impl Iterator<Item = EdgeId<K>> + 'a
+    where
+        T: 'a;
+    type IterVisited<'a>
+        = impl Iterator<Item = EdgeId<K>> + 'a
+    where
+        T: 'a;
 
     fn visit(&mut self, edge_id: EdgeId<K>) {
         self.update_edge(edge_id, true);

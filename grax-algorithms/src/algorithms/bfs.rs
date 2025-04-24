@@ -236,7 +236,7 @@ mod test {
 
     #[bench]
     fn bfs_bipartite_test(b: &mut Bencher) {
-        let graph: AdjGraph<_, _> = AdjGraph::with_edges(
+        let graph = AdjGraph::<(), ()>::with_edges(
             [
                 (0, 1, ()),
                 (0, 3, ()),

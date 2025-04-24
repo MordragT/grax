@@ -79,8 +79,14 @@ impl<V: Debug> GetEdgeMut for FixedEdgeVec<V> {
 }
 
 impl<V: Debug> EdgeIter for FixedEdgeVec<V> {
-    type EdgeIds<'a> = impl Iterator<Item = EdgeId<Self::Key>> + 'a where Self: 'a;
-    type Edges<'a> = impl Iterator<Item = EdgeRef<'a, Self::Key, Self::EdgeWeight>> + 'a where Self: 'a;
+    type EdgeIds<'a>
+        = impl Iterator<Item = EdgeId<Self::Key>> + 'a
+    where
+        Self: 'a;
+    type Edges<'a>
+        = impl Iterator<Item = EdgeRef<'a, Self::Key, Self::EdgeWeight>> + 'a
+    where
+        Self: 'a;
 
     fn iter_edges(&self) -> Self::Edges<'_> {
         self.vec.iter().enumerate().map(|(key, weight)| {
@@ -101,7 +107,10 @@ impl<V: Debug> EdgeIter for FixedEdgeVec<V> {
 }
 
 impl<V: Debug> EdgeIterMut for FixedEdgeVec<V> {
-    type EdgesMut<'a> = impl Iterator<Item = EdgeMut<'a, Self::Key, Self::EdgeWeight>> + 'a where Self: 'a;
+    type EdgesMut<'a>
+        = impl Iterator<Item = EdgeMut<'a, Self::Key, Self::EdgeWeight>> + 'a
+    where
+        Self: 'a;
 
     fn iter_edges_mut(&mut self) -> Self::EdgesMut<'_> {
         self.vec.iter_mut().enumerate().map(|(key, weight)| {
@@ -113,4 +122,4 @@ impl<V: Debug> EdgeIterMut for FixedEdgeVec<V> {
     }
 }
 
-impl<V: Debug + Clone> FixedEdgeMap<usize, V> for FixedEdgeVec<V> {}
+impl<V: Debug + Clone + PartialEq> FixedEdgeMap<usize, V> for FixedEdgeVec<V> {}

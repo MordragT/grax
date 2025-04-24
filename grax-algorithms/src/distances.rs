@@ -2,12 +2,15 @@ use std::fmt::Debug;
 
 use grax_core::{collections::GetNodeMut, graph::NodeAttribute, index::NodeId};
 
-#[derive(Debug, Clone)]
-pub struct Distances<C: Clone + Debug, G: NodeAttribute>(G::FixedNodeMap<Option<C>>);
+#[derive(Debug, Clone, PartialEq)]
+pub struct Distances<C, G>(G::FixedNodeMap<Option<C>>)
+where
+    C: Clone + Debug + PartialEq,
+    G: NodeAttribute;
 
 impl<C, G> Distances<C, G>
 where
-    C: Clone + Debug,
+    C: Clone + Debug + PartialEq,
     G: NodeAttribute,
 {
     pub fn new(graph: &G) -> Self {
